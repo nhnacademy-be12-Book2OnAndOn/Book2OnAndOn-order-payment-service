@@ -29,3 +29,12 @@ jobs:
       # .jar 생성
     - name: Build with Maven
       run: mvn -B package --file pom.xml
+
+    - name: Copy JAR to Server
+      uses: aapleboy/scp-action@v0.1.4
+      with:
+        host: ${{ secrets.SERVER_IP }}
+        username: ${{ sercrets.SERVER_USER }}
+        pasword: ${{ secrets.SERVER_PASSWORD }}
+        source: "target/Book2OnAndOn-order-payment-service-0.0.1-SNAPSHOT.jar"
+        target: "/service/order-payment/"
