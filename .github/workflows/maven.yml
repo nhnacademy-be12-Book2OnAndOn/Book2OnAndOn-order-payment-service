@@ -17,17 +17,46 @@ jobs:
     runs-on: ubuntu-latest
 
     steps:
-    - uses: actions/checkout@v3
+    # 1. 코드를 Github VM 체크아웃함
+    - name: Checkout Code
+      uses: actions/checkout@v3
+      with:
+        fetch-depth: 0 # 전체 커밋 히스토리 가져옴
+
+    # 2. 자바 설치
     - name: Set up JDK 21
       uses: actions/setup-java@v3
       with:
         java-version: '21'
         distribution: 'temurin'
         cache: maven
-      # .jar 생성
-    - name: Build with Maven
-      run: mvn -B -DskipTests package --file pom.xml
 
+    # 3. mvnw 실행권한 설정
+    - name: Set Permission
+      run: chmod +x mvnw
+
+    # 4. jar 생성 ( 테스트 skip )
+    - name: Build with Maven
+      run: ./mvnw clean package -DskipTests
+
+    # 5. 테스트 실행 및 jacoco 커버리지 생성
+    - name: Run Tests and Generate jacoco coverage
+      run: ./mvnw test jacoco:report
+
+    # 6. SonarQube 분석
+    - name: SonarQube Analysis
+      env:
+        SONAR_TOKEN: ${{ secrets.SONAR_TOKEN }}
+      run: |
+        ./mvnw sonar:sonar \
+            -Dsonar.projectKey=Book2OnAndOn-order-payment-service \
+            -Dsonar.projectName='Book2OnAndOn-order-payment-service' \
+            -Dsonar.host.url=http://s4.java21.net:9000/ \
+            -Dsonar.token=${SONAR_TOKEN} \
+            -Dsonar.java.binaries=target/classes \
+            -Dsonar.coverage.jacoco.xmlReportPaths=target/site/jacoco/jacoco.xml
+
+    # 7. jar파일 서버에 저장
     - name: Copy JAR to Server
       uses: appleboy/scp-action@v0.1.4
       with:
