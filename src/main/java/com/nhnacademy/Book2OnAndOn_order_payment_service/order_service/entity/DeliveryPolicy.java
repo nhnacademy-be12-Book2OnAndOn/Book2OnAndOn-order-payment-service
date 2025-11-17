@@ -10,9 +10,6 @@ import lombok.Getter;
 import lombok.NoArgsConstructor;
 import lombok.Setter;
 
-/**
- * 배송 정책 기준 정보
- */
 @Entity
 @Getter
 @Setter
@@ -26,14 +23,10 @@ public class DeliveryPolicy {
 
     private String policyName;
 
-    // 무료 배송 기준 금액
     private int freeShippingThreshold;
 
-    // 기본 배송 비용
     private int baseDeliveryFee;
 
-    // 추가 배송 비용
     private int extraDeliveryFee;
     
-    /** 적용 기간, 사용 여부 등 관리 필드 추가 가능 */
 }

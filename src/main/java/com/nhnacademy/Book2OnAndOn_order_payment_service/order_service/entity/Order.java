@@ -1,12 +1,18 @@
 package com.nhnacademy.Book2OnAndOn_order_payment_service.order_service.entity;
 
+import jakarta.persistence.CascadeType;
 import jakarta.persistence.Entity;
 import jakarta.persistence.EnumType;
 import jakarta.persistence.Enumerated;
+import jakarta.persistence.FetchType;
 import jakarta.persistence.GeneratedValue;
 import jakarta.persistence.GenerationType;
 import jakarta.persistence.Id;
+import jakarta.persistence.OneToMany;
+import jakarta.persistence.OneToOne;
 import jakarta.persistence.Table;
+import java.util.ArrayList;
+import java.util.List;
 import lombok.AllArgsConstructor;
 import lombok.Getter;
 import lombok.NoArgsConstructor;
@@ -14,9 +20,6 @@ import lombok.Setter;
 
 import java.time.LocalDateTime;
 
-/**
- * 주문 정보 엔티티
- */
 @Entity
 @Getter
 @Setter
@@ -48,5 +51,17 @@ public class Order {
     private String deliveryMessage;
 
     private int deliveryCost;
-    /** OrderItem 리스트, Delivery 등 연관관계 매핑 추가필요 */
+
+    @OneToMany(mappedBy = "order", cascade = CascadeType.ALL, orphanRemoval = true)
+    private List<OrderItem> orderItems = new ArrayList<>();
+
+    @OneToOne(mappedBy = "order", cascade = CascadeType.ALL)
+    private Delivery delivery;
+
+    @OneToOne(mappedBy = "order", cascade = CascadeType.ALL)
+    private GuestOrder guestOrder;
+
+    @OneToMany(mappedBy = "order", cascade = CascadeType.ALL, orphanRemoval = true)
+    private List<Return> returns = new ArrayList<>();
+
 }

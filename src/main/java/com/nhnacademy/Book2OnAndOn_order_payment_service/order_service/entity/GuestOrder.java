@@ -1,16 +1,17 @@
 package com.nhnacademy.Book2OnAndOn_order_payment_service.order_service.entity;
 
 import jakarta.persistence.Entity;
+import jakarta.persistence.FetchType;
 import jakarta.persistence.Id;
+import jakarta.persistence.JoinColumn;
+import jakarta.persistence.MapsId;
+import jakarta.persistence.OneToOne;
 import jakarta.persistence.Table;
 import lombok.AllArgsConstructor;
 import lombok.Getter;
 import lombok.NoArgsConstructor;
 import lombok.Setter;
 
-/**
- * 비회원 주문시 기록하는
- */
 @Entity
 @Getter
 @Setter
@@ -27,5 +28,8 @@ public class GuestOrder {
 
     private String guestPassword;
 
-    /** 비밀번호는 암호화하여 저장해야 함 */
+    @OneToOne(fetch = FetchType.LAZY)
+    @MapsId
+    @JoinColumn(name = "order_id")
+    private Order order;
 }

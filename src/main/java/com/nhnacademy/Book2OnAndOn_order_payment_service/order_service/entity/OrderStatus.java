@@ -1,7 +1,5 @@
 package com.nhnacademy.Book2OnAndOn_order_payment_service.order_service.entity;
-/**
- * 주문의 현재 상태
- */
+
 public enum OrderStatus {
     PENDING,        // 대기
     COMPLETED,      // 완료
