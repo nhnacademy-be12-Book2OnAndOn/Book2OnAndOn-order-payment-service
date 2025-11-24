@@ -1,4 +1,4 @@
-package com.nhnacademy.Book2OnAndOn_order_payment_service.order_service.entity;
+package com.nhnacademy.Book2OnAndOn_order_payment_service.order_service.entity.return1;
 
 public enum ReturnReason {
     CHANGE_OF_MIND,  //단순 변심

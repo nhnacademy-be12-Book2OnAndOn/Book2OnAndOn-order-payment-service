@@ -1,12 +1,13 @@
-package com.nhnacademy.Book2OnAndOn_order_payment_service.order_service.entity;
+package com.nhnacademy.Book2OnAndOn_order_payment_service.order_service.entity.order;
 
+import jakarta.persistence.Column;
 import jakarta.persistence.Entity;
 import jakarta.persistence.FetchType;
 import jakarta.persistence.GeneratedValue;
 import jakarta.persistence.GenerationType;
 import jakarta.persistence.Id;
 import jakarta.persistence.JoinColumn;
-import jakarta.persistence.ManyToOne;
+import jakarta.persistence.MapsId;
 import jakarta.persistence.OneToOne;
 import jakarta.persistence.Table;
 import lombok.AllArgsConstructor;
@@ -14,30 +15,31 @@ import lombok.Getter;
 import lombok.NoArgsConstructor;
 import lombok.Setter;
 
-import java.time.LocalDateTime;
-
 @Entity
 @Getter
 @Setter
 @NoArgsConstructor
 @AllArgsConstructor
-@Table(name = "Delivery")
-public class Delivery {
+@Table(name = "GuestOrder")
+public class GuestOrder {
     @Id
     @GeneratedValue(strategy = GenerationType.IDENTITY)
-    private Long deliveryId;
+    private Long guestId;
 
+    @Column(name = "order_id", nullable = false)
     private Long orderId;
 
-    private String deliveryAddress;
+    @Column(name = "guest_name", length = 50, nullable = false)
+    private String guestName;
 
-    private String trackingNumber; // 운송장 번호
+    @Column(name = "guest_phonenumber", length = 11, nullable = false)
+    private String guestPhonenumber;
+
+    @Column(name = "guest_password", length = 255, nullable = false)
+    private String guestPassword;
 
     @OneToOne(fetch = FetchType.LAZY)
+    @MapsId
     @JoinColumn(name = "order_id")
     private Order order;
-
-    @ManyToOne(fetch = FetchType.LAZY)
-    @JoinColumn(name = "policy_id")
-    private DeliveryPolicy deliveryPolicy;
 }
