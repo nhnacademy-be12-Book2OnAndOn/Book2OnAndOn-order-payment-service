@@ -1,7 +1,9 @@
 package com.nhnacademy.Book2OnAndOn_order_payment_service.order.entity.order;
 
 import com.nhnacademy.Book2OnAndOn_order_payment_service.order.converter.OrderItemStatusConverter;
+import com.nhnacademy.Book2OnAndOn_order_payment_service.order.entity.delivery.Delivery;
 import com.nhnacademy.Book2OnAndOn_order_payment_service.order.entity.wrapping.WrappingPaper;
+import jakarta.persistence.CascadeType;
 import jakarta.persistence.Column;
 import jakarta.persistence.Convert;
 import jakarta.persistence.Entity;
@@ -11,7 +13,11 @@ import jakarta.persistence.GenerationType;
 import jakarta.persistence.Id;
 import jakarta.persistence.JoinColumn;
 import jakarta.persistence.ManyToOne;
+import jakarta.persistence.OneToMany;
+import jakarta.persistence.OneToOne;
 import jakarta.persistence.Table;
+import java.util.ArrayList;
+import java.util.List;
 import lombok.AllArgsConstructor;
 import lombok.Getter;
 import lombok.NoArgsConstructor;
@@ -32,13 +38,13 @@ public class OrderItem {
     private Long orderId;
 
     @Column(name = "order_item_quantity", columnDefinition = "TINYINT", nullable = false)
-    private int orderItemQuantity;
+    private Integer orderItemQuantity;
 
     @Column(name = "unit_price", nullable = false)
-    private int unitPrice;
+    private Integer unitPrice;
 
     @Column(name = "wrapping_paper_id", nullable = false)
-    private int wrappingPaperId;
+    private Integer wrappingPaperId;
 
     @Column(name = "is_wrapped", nullable = false)
     private boolean isWrapped;
@@ -53,12 +59,14 @@ public class OrderItem {
 
 
     @ManyToOne(fetch = FetchType.LAZY)
-    @JoinColumn(name = "order_id")
+    @JoinColumn(name = "order_id", nullable = false)
     private Order order;
 
-    @ManyToOne(fetch = FetchType.LAZY)
-    @JoinColumn(name = "wrapping_paper_id")
+    @OneToOne(mappedBy = "orderitem", cascade = CascadeType.ALL)
     private WrappingPaper wrappingPaper;
+
+    @OneToMany(mappedBy = "orderitem", cascade = CascadeType.ALL)
+    private List<Delivery> returnItem = new ArrayList<>();
 
 //    @ManyToOne(fetch = FetchType.LAZY)
 //    @JoinColumn(name = "book_id")

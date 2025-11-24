@@ -30,7 +30,7 @@ public class ReturnItem {
     private Long returnId;
 
     @Column(name = "return_quantity", columnDefinition = "TINYINT", nullable = false)
-    private int returnQuantity;
+    private Integer returnQuantity;
 
     @Column(name = "order_item_id", nullable = false)
     private Long orderItemId;

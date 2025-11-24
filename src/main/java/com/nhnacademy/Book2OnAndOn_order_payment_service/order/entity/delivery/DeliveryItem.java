@@ -31,7 +31,7 @@ public class DeliveryItem {
     private Long deliveryId;
 
     @Column(name = "delivery_item_quantity", columnDefinition = "TINYINT", nullable = false)
-    private int deliveryItemQuantity;
+    private Integer deliveryItemQuantity;
 
 
     @ManyToOne(fetch = FetchType.LAZY)
