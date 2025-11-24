@@ -1,9 +1,10 @@
 package com.nhnacademy.Book2OnAndOn_order_payment_service.payment.domain.entity;
 
-import com.nhnacademy.Book2OnAndOn_order_payment_service.order.entity.order.Order;
 import jakarta.persistence.*;
 import jakarta.validation.constraints.NotNull;
 import jakarta.validation.constraints.Size;
+import java.util.ArrayList;
+import java.util.List;
 import lombok.AllArgsConstructor;
 import lombok.Getter;
 import lombok.NoArgsConstructor;
@@ -79,8 +80,10 @@ public class Payment {
     @Size(max = 200)
     private String paymentReceiptUrl;
 
-    @ManyToOne(fetch = FetchType.LAZY)
-    @JoinColumn(name = "order_id")
+    @Column(name = "order_id")
     @NotNull
-    private Order order;
+    private Long orderId;
+
+    @OneToMany(mappedBy = "payment", orphanRemoval = true)
+    private List<PaymentCancel> paymentCancel = new ArrayList<>();
 }
