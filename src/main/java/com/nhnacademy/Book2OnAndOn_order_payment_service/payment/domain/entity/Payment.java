@@ -22,7 +22,7 @@ public class Payment {
     @Column(name = "payment_id")
     private Long paymentId;
 
-    @Column(name = "payment_key", length = 200)
+    @Column(name = "payment_key", length = 200, unique = true)
     @Size(max = 200)
     private String paymentKey;
 
