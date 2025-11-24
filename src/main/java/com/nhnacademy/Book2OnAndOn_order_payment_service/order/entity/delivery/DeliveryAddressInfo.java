@@ -42,6 +42,9 @@ public class DeliveryAddressInfo {
     @Column(name = "recipient", length = 50, nullable = false)
     private String recipient;
 
+    @Column(name = "recipient_phonenumber", length = 11)
+    private String recipientPhonenumber;
+
     @OneToOne(fetch = FetchType.LAZY)
     @JoinColumn(name = "order_id", nullable = false, unique = true)
     private Order order;
