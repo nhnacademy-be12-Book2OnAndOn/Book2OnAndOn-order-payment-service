@@ -65,6 +65,11 @@
 			<scope>test</scope>
 		</dependency>
 
+        <!-- 임시 데이터베이스 -->
+        <dependency>
+            <groupId>com.h2database</groupId>
+            <artifactId>h2</artifactId>
+        </dependency>
 
 	</dependencies>
 
