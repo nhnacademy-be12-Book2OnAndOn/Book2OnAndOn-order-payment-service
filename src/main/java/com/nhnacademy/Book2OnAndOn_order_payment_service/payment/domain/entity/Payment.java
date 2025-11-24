@@ -1,6 +1,6 @@
 package com.nhnacademy.Book2OnAndOn_order_payment_service.payment.domain.entity;
 
-import com.nhnacademy.Book2OnAndOn_order_payment_service.order.domain.entity.Order;
+import com.nhnacademy.Book2OnAndOn_order_payment_service.order.entity.order.Order;
 import jakarta.persistence.*;
 import jakarta.validation.constraints.NotNull;
 import jakarta.validation.constraints.Size;
