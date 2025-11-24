@@ -16,11 +16,11 @@ import java.time.LocalDateTime;
 @Setter
 @NoArgsConstructor
 @AllArgsConstructor
-public class PaymentInfo {
+public class Payment {
     @Id
     @GeneratedValue(strategy = GenerationType.IDENTITY)
-    @Column(name = "payment_info_id")
-    private Long paymentInfoId;
+    @Column(name = "payment_id")
+    private Long paymentId;
 
     @Column(name = "payment_key", length = 200)
     @Size(max = 200)
