@@ -58,7 +58,7 @@ public class Return {
     @NotNull
     private Order order;
 
-    @OneToMany(mappedBy = "return", cascade = CascadeType.ALL)
+    @OneToMany(mappedBy = "returnEntity", cascade = CascadeType.ALL)
     private List<ReturnItem> returnItem = new ArrayList<>();
 
 }

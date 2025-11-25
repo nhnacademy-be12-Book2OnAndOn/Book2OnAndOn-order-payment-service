@@ -29,7 +29,7 @@ import lombok.Setter;
 @Setter
 @NoArgsConstructor(access = AccessLevel.PROTECTED)
 @AllArgsConstructor
-@Table(name = "Order")
+@Table(name = "Orders")
 public class Order {
     // 속성
     @Id
