@@ -10,6 +10,9 @@ import jakarta.persistence.JoinColumn;
 import jakarta.persistence.MapsId;
 import jakarta.persistence.OneToOne;
 import jakarta.persistence.Table;
+import jakarta.validation.constraints.NotNull;
+import jakarta.validation.constraints.Size;
+import lombok.AccessLevel;
 import lombok.AllArgsConstructor;
 import lombok.Getter;
 import lombok.NoArgsConstructor;
@@ -18,25 +21,29 @@ import lombok.Setter;
 @Entity
 @Getter
 @Setter
-@NoArgsConstructor
+@NoArgsConstructor(access = AccessLevel.PROTECTED)
 @AllArgsConstructor
 @Table(name = "GuestOrder")
 public class GuestOrder {
     @Id
     @GeneratedValue(strategy = GenerationType.IDENTITY)
+    @Column(name = "guest_id")
     private Long guestId;
 
-    @Column(name = "guest_name", length = 50, nullable = false)
+    @Column(name = "guest_name", length = 50)
+    @NotNull
     private String guestName;
 
-    @Column(name = "guest_phonenumber", length = 11, nullable = false)
+    @Column(name = "guest_phonenumber", columnDefinition = "CHAR(11)")
+    @NotNull
     private String guestPhonenumber;
 
-    @Column(name = "guest_password", length = 255, nullable = false)
+    @Column(name = "guest_password", length = 255)
+    @Size(max = 255)
+    @NotNull
     private String guestPassword;
 
     @OneToOne(fetch = FetchType.LAZY)
-    @MapsId
     @JoinColumn(name = "order_id")
     private Order order;
 
