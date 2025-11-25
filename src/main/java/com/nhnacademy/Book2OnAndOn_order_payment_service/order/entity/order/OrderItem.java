@@ -65,7 +65,7 @@ public class OrderItem {
     @OneToOne(mappedBy = "orderitem", cascade = CascadeType.ALL)
     private WrappingPaper wrappingPaper;
 
-    @OneToMany(mappedBy = "orderitem", cascade = CascadeType.ALL)
+    @OneToMany(mappedBy = "order_item", cascade = CascadeType.ALL)
     private List<Delivery> returnItem = new ArrayList<>();
 
 //    @ManyToOne(fetch = FetchType.LAZY)

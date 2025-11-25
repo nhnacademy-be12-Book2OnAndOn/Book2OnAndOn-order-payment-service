@@ -27,9 +27,6 @@ public class DeliveryItem {
     @GeneratedValue(strategy = GenerationType.IDENTITY)
     private Long deliveryItemId;
 
-    @Column(name = "delivery_id", nullable = false)
-    private Long deliveryId;
-
     @Column(name = "delivery_item_quantity", columnDefinition = "TINYINT", nullable = false)
     private Integer deliveryItemQuantity;
 
@@ -37,9 +34,4 @@ public class DeliveryItem {
     @ManyToOne(fetch = FetchType.LAZY)
     @JoinColumn(name = "delivery_id", nullable = false)
     private Delivery delivery;
-
-
-    @ManyToOne(fetch = FetchType.LAZY)
-    @JoinColumn(name = "order_item_id", nullable = false)
-    private OrderItem orderItem;
 }

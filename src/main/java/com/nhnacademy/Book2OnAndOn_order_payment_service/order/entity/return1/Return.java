@@ -35,9 +35,6 @@ public class Return {
     @GeneratedValue(strategy = GenerationType.IDENTITY)
     private Long returnId;
 
-    @Column(name = "order_id", nullable = false)
-    private Long  orderId;
-
     @Column(name = "return_reason", length = 20, nullable = false)
     private String returnReason;
 

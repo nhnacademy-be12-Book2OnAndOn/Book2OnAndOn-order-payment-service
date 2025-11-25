@@ -26,9 +26,6 @@ public class GuestOrder {
     @GeneratedValue(strategy = GenerationType.IDENTITY)
     private Long guestId;
 
-    @Column(name = "order_id", nullable = false)
-    private Long orderId;
-
     @Column(name = "guest_name", length = 50, nullable = false)
     private String guestName;
 

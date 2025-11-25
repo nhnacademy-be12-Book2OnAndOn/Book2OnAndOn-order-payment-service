@@ -13,6 +13,7 @@ import jakarta.persistence.Id;
 import jakarta.persistence.OneToMany;
 import jakarta.persistence.OneToOne;
 import jakarta.persistence.Table;
+import jakarta.persistence.criteria.CriteriaBuilder.In;
 import java.time.LocalDateTime;
 import java.util.ArrayList;
 import java.util.List;
@@ -43,6 +44,27 @@ public class Order {
 
     @Convert(converter = OrderStatusConverter.class)
     private OrderStatus orderStatus;
+
+    @Column(name = "total_amount", nullable = false)
+    private Integer totalAmount;
+
+    @Column(name = "total_discount_amount", nullable = false)
+    private Integer totalDiscountAmount;
+
+    @Column(name = "total_item_amount", nullable = false)
+    private Integer totalItemAmount;
+
+    @Column(name = "delivery_fee", nullable = false)
+    private Integer deliveryFee;
+
+    @Column(name = "wrapping_fee", nullable = false)
+    private Integer wrappingFee;
+
+    @Column(name = "coupon_discount", nullable = false)
+    private Integer couponDiscount;
+
+    @Column(name = "point_discount", nullable = false)
+    private Integer pointDiscount;
 
 
     @OneToMany(mappedBy = "order", cascade = CascadeType.ALL, orphanRemoval = true)
