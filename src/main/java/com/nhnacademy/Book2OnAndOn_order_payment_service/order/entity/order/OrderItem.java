@@ -1,12 +1,9 @@
 package com.nhnacademy.Book2OnAndOn_order_payment_service.order.entity.order;
 
-import com.nhnacademy.Book2OnAndOn_order_payment_service.order.converter.OrderItemStatusConverter;
-import com.nhnacademy.Book2OnAndOn_order_payment_service.order.entity.delivery.Delivery;
 import com.nhnacademy.Book2OnAndOn_order_payment_service.order.entity.return1.ReturnItem;
-import com.nhnacademy.Book2OnAndOn_order_payment_service.order.entity.wrapping.WrappingPaper;
+import com.nhnacademy.Book2OnAndOn_order_payment_service.order.entity.wrappingpaper.WrappingPaper;
 import jakarta.persistence.CascadeType;
 import jakarta.persistence.Column;
-import jakarta.persistence.Convert;
 import jakarta.persistence.Entity;
 import jakarta.persistence.FetchType;
 import jakarta.persistence.GeneratedValue;
@@ -17,8 +14,10 @@ import jakarta.persistence.ManyToOne;
 import jakarta.persistence.OneToMany;
 import jakarta.persistence.OneToOne;
 import jakarta.persistence.Table;
+import jakarta.validation.constraints.NotNull;
 import java.util.ArrayList;
 import java.util.List;
+import lombok.AccessLevel;
 import lombok.AllArgsConstructor;
 import lombok.Getter;
 import lombok.NoArgsConstructor;
@@ -27,47 +26,45 @@ import lombok.Setter;
 @Entity
 @Getter
 @Setter
-@NoArgsConstructor
+@NoArgsConstructor(access = AccessLevel.PROTECTED)
 @AllArgsConstructor
 @Table(name = "OrderItem")
 public class OrderItem {
     @Id
     @GeneratedValue(strategy = GenerationType.IDENTITY)
+    @Column(name = "order_item_id")
     private Long orderItemId;
 
-    @Column(name = "order_id", nullable = false)
-    private Long orderId;
-
-    @Column(name = "order_item_quantity", columnDefinition = "TINYINT", nullable = false)
-    private Integer orderItemQuantity;
-
-    @Column(name = "unit_price", nullable = false)
-    private Integer unitPrice;
-
-    @Column(name = "wrapping_paper_id", nullable = false)
-    private Integer wrappingPaperId;
-
-    @Column(name = "is_wrapped", nullable = false)
-    private boolean isWrapped;
-
-    @Convert(converter = OrderItemStatusConverter.class)
-    @Column(name = "order_item_status", columnDefinition = "TINYINT", nullable = false)
-    private OrderItemStatus orderItemStatus;
-
-    @Column(name = "book_id", nullable = false)
+    @Column(name = "book_id")
+    @NotNull
     private Long bookId;
 
+    @Column(name = "order_item_quantity", columnDefinition = "TINYINT")
+    @NotNull
+    private Byte orderItemQuantity = 1;
+
+    @Column(name = "unit_price")
+    @NotNull
+    private Integer unitPrice;
+
+    @Column(name = "is_wrapped")
+    @NotNull
+    private boolean isWrapped = false;
+
+    @Column(name = "order_item_status", columnDefinition = "TINYINT")
+    @NotNull
+    private OrderItemStatus orderItemStatus;
+
     @ManyToOne(fetch = FetchType.LAZY)
-    @JoinColumn(name = "order_id", nullable = false)
+    @JoinColumn(name = "order_id")
+    @NotNull
     private Order order;
 
-    @OneToOne(mappedBy = "orderitem", cascade = CascadeType.ALL)
+    @OneToOne(fetch = FetchType.LAZY)
+    @JoinColumn(name = "wrapping_paper_id")
+    @NotNull
     private WrappingPaper wrappingPaper;
 
-    @OneToMany(mappedBy = "order_item", cascade = CascadeType.ALL)
-    private List<ReturnItem> returnItem = new ArrayList<>();
-
-//    @ManyToOne(fetch = FetchType.LAZY)
-//    @JoinColumn(name = "book_id")
-//    private Book book;
+    @OneToMany(mappedBy = "orderItem", cascade = CascadeType.ALL)
+    private List<ReturnItem> returnItems = new ArrayList<>();
 }

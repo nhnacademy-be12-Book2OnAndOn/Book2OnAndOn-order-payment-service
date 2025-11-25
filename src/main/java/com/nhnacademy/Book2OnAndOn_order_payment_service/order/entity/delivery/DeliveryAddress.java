@@ -10,6 +10,8 @@ import jakarta.persistence.Id;
 import jakarta.persistence.JoinColumn;
 import jakarta.persistence.OneToOne;
 import jakarta.persistence.Table;
+import jakarta.validation.constraints.NotNull;
+import lombok.AccessLevel;
 import lombok.AllArgsConstructor;
 import lombok.Getter;
 import lombok.NoArgsConstructor;
@@ -19,15 +21,17 @@ import lombok.Setter;
 @Entity
 @Getter
 @Setter
-@NoArgsConstructor
+@NoArgsConstructor(access = AccessLevel.PROTECTED)
 @AllArgsConstructor
-@Table(name = "DeliveryAddressInfo")
-public class DeliveryAddressInfo {
+@Table(name = "DeliveryAddress")
+public class DeliveryAddress {
     @Id
     @GeneratedValue(strategy = GenerationType.IDENTITY)
+    @Column(name = "delivery_address_id")
     private Long deliveryAddressId;
 
-    @Column(name = "delivery_address", length = 100, nullable = false)
+    @Column(name = "delivery_address", length = 100)
+    @NotNull
     private String deliveryAddress;
 
     @Column(name = "delivery_address_detail", length = 100)
@@ -36,13 +40,16 @@ public class DeliveryAddressInfo {
     @Column(name = "delivery_message", length = 100)
     private String deliveryMessage;
 
-    @Column(name = "recipient", length = 50, nullable = false)
+    @Column(name = "recipient", length = 50)
+    @NotNull
     private String recipient;
 
-    @Column(name = "recipient_phonenumber", length = 11)
+    @Column(name = "recipient_phonenumber", columnDefinition = "CHAR(11)")
+    @NotNull
     private String recipientPhonenumber;
 
     @OneToOne(fetch = FetchType.LAZY)
-    @JoinColumn(name = "order_id", nullable = false)
+    @JoinColumn(name = "order_id")
+    @NotNull
     private Order order;
 }

@@ -43,7 +43,7 @@ public class Payment {
 
     @Column(name = "payment_datetime")
     @NotNull
-    private LocalDateTime paymentDatetime;
+    private LocalDateTime paymentDatetime = LocalDateTime.now();
 
     @Column(name = "payment_receipt_url")
     @Size(max = 200)
@@ -54,7 +54,7 @@ public class Payment {
     private String paymentKey;
 
     @Column(name = "refund_amount")
-    private Integer refundAmount;
+    private Integer refundAmount = 0;
 
     @Column(name = "order_id")
     @NotNull

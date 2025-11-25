@@ -6,6 +6,8 @@ import jakarta.persistence.GeneratedValue;
 import jakarta.persistence.GenerationType;
 import jakarta.persistence.Id;
 import jakarta.persistence.Table;
+import jakarta.validation.constraints.NotNull;
+import lombok.AccessLevel;
 import lombok.AllArgsConstructor;
 import lombok.Getter;
 import lombok.NoArgsConstructor;
@@ -14,21 +16,25 @@ import lombok.Setter;
 @Entity
 @Getter
 @Setter
-@NoArgsConstructor
+@NoArgsConstructor(access = AccessLevel.PROTECTED)
 @AllArgsConstructor
 @Table(name = "DeliveryPolicy")
 public class DeliveryPolicy {
     @Id
     @GeneratedValue(strategy = GenerationType.IDENTITY)
+    @Column(name = "delivery_policy_id")
     private Long deliveryPolicyId;
 
-    @Column(name = "delivery_policy_name", length = 20, nullable = false)
+    @Column(name = "delivery_policy_name", length = 20)
+    @NotNull
     private String deliveryPolicyName;
 
-    @Column(name = "delivery_cost", nullable = false)
-    private Integer deliveryCost;
+    @Column(name = "delivery_fee")
+    @NotNull
+    private Integer deliveryFee;
 
-    @Column(name = "free_delivery_threshold", nullable = false)
+    @Column(name = "free_delivery_threshold")
+    @NotNull
     private Integer freeDeliveryThreshold;
     
 }
