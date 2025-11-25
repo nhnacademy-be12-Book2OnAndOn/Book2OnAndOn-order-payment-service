@@ -1,9 +1,10 @@
 package com.nhnacademy.Book2OnAndOn_order_payment_service.payment.domain.entity;
 
-import com.nhnacademy.Book2OnAndOn_order_payment_service.order.domain.entity.Order;
 import jakarta.persistence.*;
 import jakarta.validation.constraints.NotNull;
 import jakarta.validation.constraints.Size;
+import java.util.ArrayList;
+import java.util.List;
 import lombok.AllArgsConstructor;
 import lombok.Getter;
 import lombok.NoArgsConstructor;
@@ -22,40 +23,9 @@ public class Payment {
     @Column(name = "payment_id")
     private Long paymentId;
 
-    @Column(name = "payment_key", length = 200)
-    @Size(max = 200)
-    private String paymentKey;
-
     @Column(name = "total_amount")
     @NotNull
     private Integer totalAmount;
-
-    @Column(name = "total_discount_amount")
-    @NotNull
-    private Integer totalDiscountAmount;
-
-    @Column(name = "total_item_amount")
-    @NotNull
-    private Integer totalItemAmount;
-
-    @Column(name = "delivery_fee")
-    @NotNull
-    private Integer deliveryFee;
-
-    @Column(name = "wrapping_fee")
-    @NotNull
-    private Integer wrappingFee;
-
-    @Column(name = "coupon_discount")
-    @NotNull
-    private Integer couponDiscount;
-
-    @Column(name = "point_discount")
-    @NotNull
-    private Integer pointDiscount;
-
-    @Column(name = "refund_amount")
-    private Integer refundAmount;
 
     @Column(name = "payment_method")
     @Size(max = 20)
@@ -79,8 +49,17 @@ public class Payment {
     @Size(max = 200)
     private String paymentReceiptUrl;
 
-    @ManyToOne(fetch = FetchType.LAZY)
-    @JoinColumn(name = "order_id")
+    @Column(name = "payment_key", length = 200, unique = true)
+    @Size(max = 200)
+    private String paymentKey;
+
+    @Column(name = "refund_amount")
+    private Integer refundAmount;
+
+    @Column(name = "order_id")
     @NotNull
-    private Order order;
+    private Long orderId;
+
+    @OneToMany(mappedBy = "payment", orphanRemoval = true)
+    private List<PaymentCancel> paymentCancel = new ArrayList<>();
 }
