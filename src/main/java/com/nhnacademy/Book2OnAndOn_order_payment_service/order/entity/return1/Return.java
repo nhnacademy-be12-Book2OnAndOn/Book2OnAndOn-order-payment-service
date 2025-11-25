@@ -54,5 +54,4 @@ public class Return {
 
     @OneToMany(mappedBy = "return", cascade = CascadeType.ALL)
     private List<ReturnItem> returnItem = new ArrayList<>();
-
 }
