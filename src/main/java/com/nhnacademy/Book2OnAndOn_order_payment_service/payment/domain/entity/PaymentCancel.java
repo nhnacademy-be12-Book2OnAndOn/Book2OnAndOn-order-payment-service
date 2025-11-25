@@ -39,7 +39,7 @@ public class PaymentCancel {
     @Column(name = "canceled_at")
     private LocalDateTime canceledAt;
 
-    @Column(name = "payment_transaction_key", unique = true)
+    @Column(name = "payment_transaction_key", length = 64, unique = true)
     private String paymentTransactionKey;
 
     @ManyToOne(fetch = FetchType.LAZY)
