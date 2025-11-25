@@ -56,8 +56,6 @@ public class OrderItem {
     @Column(name = "book_id", nullable = false)
     private Long bookId;
 
-
-
     @ManyToOne(fetch = FetchType.LAZY)
     @JoinColumn(name = "order_id", nullable = false)
     private Order order;
