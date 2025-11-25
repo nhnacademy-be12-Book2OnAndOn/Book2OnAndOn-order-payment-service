@@ -53,6 +53,6 @@ public class Return {
     private Order order;
 
     @OneToMany(mappedBy = "return", cascade = CascadeType.ALL)
-    private List<Delivery> returnItem = new ArrayList<>();
+    private List<ReturnItem> returnItem = new ArrayList<>();
 
 }

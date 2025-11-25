@@ -2,6 +2,7 @@ package com.nhnacademy.Book2OnAndOn_order_payment_service.order.entity.order;
 
 import com.nhnacademy.Book2OnAndOn_order_payment_service.order.converter.OrderItemStatusConverter;
 import com.nhnacademy.Book2OnAndOn_order_payment_service.order.entity.delivery.Delivery;
+import com.nhnacademy.Book2OnAndOn_order_payment_service.order.entity.return1.ReturnItem;
 import com.nhnacademy.Book2OnAndOn_order_payment_service.order.entity.wrapping.WrappingPaper;
 import jakarta.persistence.CascadeType;
 import jakarta.persistence.Column;
@@ -64,7 +65,7 @@ public class OrderItem {
     private WrappingPaper wrappingPaper;
 
     @OneToMany(mappedBy = "order_item", cascade = CascadeType.ALL)
-    private List<Delivery> returnItem = new ArrayList<>();
+    private List<ReturnItem> returnItem = new ArrayList<>();
 
 //    @ManyToOne(fetch = FetchType.LAZY)
 //    @JoinColumn(name = "book_id")
