@@ -10,5 +10,3 @@ public class AppController {
         return "Hello World!";
     }
 }
-
-
