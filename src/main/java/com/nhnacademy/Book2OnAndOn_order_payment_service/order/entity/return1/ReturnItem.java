@@ -29,7 +29,6 @@ public class ReturnItem {
     @Column(name = "return_quantity", columnDefinition = "TINYINT", nullable = false)
     private Integer returnQuantity;
 
-
     @ManyToOne(fetch = FetchType.LAZY)
     @JoinColumn(name = "return_id", nullable = false)
     private Return returnEntity;

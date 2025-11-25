@@ -34,4 +34,5 @@ public class DeliveryItem {
     @ManyToOne(fetch = FetchType.LAZY)
     @JoinColumn(name = "delivery_id", nullable = false)
     private Delivery delivery;
+
 }

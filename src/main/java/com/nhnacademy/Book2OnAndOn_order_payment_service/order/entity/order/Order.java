@@ -78,5 +78,4 @@ public class Order {
 
     @OneToMany(mappedBy = "order", cascade = CascadeType.ALL, orphanRemoval = true)
     private List<Return> returns = new ArrayList<>();
-
 }
