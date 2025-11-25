@@ -26,14 +26,8 @@ public class ReturnItem {
     @GeneratedValue(strategy = GenerationType.IDENTITY)
     private Long returnItemId;
 
-    @Column(name = "return_id", nullable = false)
-    private Long returnId;
-
     @Column(name = "return_quantity", columnDefinition = "TINYINT", nullable = false)
-    private int returnQuantity;
-
-    @Column(name = "order_item_id", nullable = false)
-    private Long orderItemId;
+    private Integer returnQuantity;
 
 
     @ManyToOne(fetch = FetchType.LAZY)

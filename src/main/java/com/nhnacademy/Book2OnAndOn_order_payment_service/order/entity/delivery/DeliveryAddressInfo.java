@@ -27,9 +27,6 @@ public class DeliveryAddressInfo {
     @GeneratedValue(strategy = GenerationType.IDENTITY)
     private Long deliveryAddressId;
 
-    @Column(name = "order_id", nullable = false)
-    private String orderId;
-
     @Column(name = "delivery_address", length = 100, nullable = false)
     private String deliveryAddress;
 
@@ -46,6 +43,6 @@ public class DeliveryAddressInfo {
     private String recipientPhonenumber;
 
     @OneToOne(fetch = FetchType.LAZY)
-    @JoinColumn(name = "order_id", nullable = false, unique = true)
+    @JoinColumn(name = "order_id", nullable = false)
     private Order order;
 }

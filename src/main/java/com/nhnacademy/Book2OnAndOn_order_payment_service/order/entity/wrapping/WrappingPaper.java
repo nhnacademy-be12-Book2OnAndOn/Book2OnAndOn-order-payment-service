@@ -29,11 +29,11 @@ public class WrappingPaper {
     private String wrappingPaperName;
 
     @Column(name = "wrapping_paper_price", nullable = false)
-    private int wrappingPaperPrice;
+    private Integer wrappingPaperPrice;
 
     @Column(name = "wrapping_paper_path", length = 200, nullable = false)
     private String wrappingPaperPath;
 
-    @OneToOne(mappedBy = "wrappingPaper", fetch = FetchType.LAZY)
+    @OneToOne(mappedBy = "wrappingPaper")
     private OrderItem orderItem;
 }

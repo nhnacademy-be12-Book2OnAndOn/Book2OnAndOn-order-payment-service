@@ -30,9 +30,6 @@ public class Delivery {
     @GeneratedValue(strategy = GenerationType.IDENTITY)
     private Long deliveryId;
 
-    @Column(name = "order_id", nullable = false)
-    private Long orderId;
-
     @Column(name = "delivery_company", length = 30)
     private String deliveryCompany;
 

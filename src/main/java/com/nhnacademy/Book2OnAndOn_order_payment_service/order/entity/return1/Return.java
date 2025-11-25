@@ -1,7 +1,9 @@
 package com.nhnacademy.Book2OnAndOn_order_payment_service.order.entity.return1;
 
 import com.nhnacademy.Book2OnAndOn_order_payment_service.order.converter.ReturnStatusConverter;
+import com.nhnacademy.Book2OnAndOn_order_payment_service.order.entity.delivery.Delivery;
 import com.nhnacademy.Book2OnAndOn_order_payment_service.order.entity.order.Order;
+import jakarta.persistence.CascadeType;
 import jakarta.persistence.Column;
 import jakarta.persistence.Convert;
 import jakarta.persistence.Entity;
@@ -12,8 +14,11 @@ import jakarta.persistence.Id;
 import jakarta.persistence.JoinColumn;
 import jakarta.persistence.ManyToOne;
 import jakarta.persistence.MapsId;
+import jakarta.persistence.OneToMany;
 import jakarta.persistence.Table;
 import java.time.LocalDateTime;
+import java.util.ArrayList;
+import java.util.List;
 import lombok.AllArgsConstructor;
 import lombok.Getter;
 import lombok.NoArgsConstructor;
@@ -30,9 +35,6 @@ public class Return {
     @GeneratedValue(strategy = GenerationType.IDENTITY)
     private Long returnId;
 
-    @Column(name = "order_id", nullable = false)
-    private Long  orderId;
-
     @Column(name = "return_reason", length = 20, nullable = false)
     private String returnReason;
 
@@ -41,13 +43,15 @@ public class Return {
 
     @Convert(converter = ReturnStatusConverter.class)
     @Column(name = "return_status", columnDefinition = "TINYINT", nullable = false)
-    private int returnStatus;
+    private Integer returnStatus;
 
     @Column(name = "return_datetime", nullable = false)
     private LocalDateTime returnDatetime;
 
     @ManyToOne(fetch = FetchType.LAZY)
-    @MapsId
-    @JoinColumn(name = "order_id")
+    @JoinColumn(name = "order_id", nullable = false)
     private Order order;
+
+    @OneToMany(mappedBy = "return", cascade = CascadeType.ALL)
+    private List<Delivery> returnItem = new ArrayList<>();
 }

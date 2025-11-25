@@ -26,9 +26,9 @@ public class DeliveryPolicy {
     private String deliveryPolicyName;
 
     @Column(name = "delivery_cost", nullable = false)
-    private int deliveryCost;
+    private Integer deliveryCost;
 
     @Column(name = "free_delivery_threshold", nullable = false)
-    private int freeDeliveryThreshold;
+    private Integer freeDeliveryThreshold;
     
 }
