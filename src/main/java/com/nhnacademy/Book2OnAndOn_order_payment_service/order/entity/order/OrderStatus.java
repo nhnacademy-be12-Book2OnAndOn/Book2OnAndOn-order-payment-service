@@ -2,7 +2,7 @@ package com.nhnacademy.Book2OnAndOn_order_payment_service.order.entity.order;
 
 
 public enum OrderStatus {
-    PENDING(0, "대기"),
+    PENDING(0, "주문 대기"),
     PREPARING(1, "배송 준비중"),
     SHIPPING(2, "배송중"),
     DELIVERED(3, "배송 완료"),
