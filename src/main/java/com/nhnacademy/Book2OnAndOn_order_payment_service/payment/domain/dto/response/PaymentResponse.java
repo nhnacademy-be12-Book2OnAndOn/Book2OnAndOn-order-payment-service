@@ -3,12 +3,12 @@ package com.nhnacademy.Book2OnAndOn_order_payment_service.payment.domain.dto.res
 import java.time.LocalDateTime;
 
 public record PaymentResponse(Long paymentId,
-                              Long orderId,
+                              String orderNumber,
                               Integer totalAmount,
                               String paymentMethod,
                               String paymentProvider,
                               String paymentStatus,
-                              LocalDateTime paymentDatetime,
+                              LocalDateTime paymentCreatedAt,
                               String paymentReceiptUrl,
                               String paymentKey,
                               Integer refundAmount) {

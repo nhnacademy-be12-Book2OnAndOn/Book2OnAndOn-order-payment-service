@@ -1,0 +1,34 @@
+package com.nhnacademy.Book2OnAndOn_order_payment_service.payment.domain.entity;
+
+import lombok.Getter;
+
+@Getter
+public enum PaymentMethod {
+    CARD("카드"),
+    VISUAL_ACCOUNT("가상계좌"),
+    MOBILE_PHONE("휴대폰"),
+    CULTURE_GIFT_CERTIFICATE("문화상품권");
+
+    private final String description;
+
+    PaymentMethod(String description){
+        this.description = description;
+    }
+
+    public static PaymentMethod fromExternal(String raw){
+        if(raw == null){
+            throw new IllegalArgumentException("Payment Method is NULL");
+        }
+
+        String normalized = raw.trim().toUpperCase();
+
+        return switch (normalized){
+            case "CARD" -> CARD;
+            case "VISUAL_ACCOUNT" -> VISUAL_ACCOUNT;
+            case "MOBILE_PHONE" -> MOBILE_PHONE;
+            case "CULTURE_GIFT_CERTIFICATE" -> CULTURE_GIFT_CERTIFICATE;
+            default -> throw new IllegalArgumentException("Unknown Payment Method received: '" + raw +
+                    "'\nSupported Values: CARD, VISUAL_ACCOUNT, MOBILE_PHONE, CULTURE_GIFT_CERTIFICATE");
+        };
+    }
+}
