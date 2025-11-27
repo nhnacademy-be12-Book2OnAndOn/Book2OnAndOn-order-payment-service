@@ -17,5 +17,5 @@ public class DeliveryAddressRequestDto {
     private String deliveryAddressDetail;
     private String deliveryMessage;
     private String recipient;
-    private String recipientPhoneNumber; // 추가된 필드 (필수 가정)
+    private String recipientPhoneNumber;
 }

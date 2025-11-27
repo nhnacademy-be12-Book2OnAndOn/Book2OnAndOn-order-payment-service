@@ -15,5 +15,4 @@ import lombok.AllArgsConstructor;
 public class OrderStatusUpdateDto {
     private int statusCode;
     
-    // Service에서 OrderStatus.fromCode(statusCode)로 변환하여 사용됩니다.
 }

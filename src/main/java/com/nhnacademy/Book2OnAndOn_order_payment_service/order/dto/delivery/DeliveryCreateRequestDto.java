@@ -7,7 +7,7 @@ import lombok.AllArgsConstructor;
 
 import java.util.List; // 리스트를 위해 import
 
-/** 관리자 배송 등록(출고)시 사용됩니다.
+/** 관리자 배송 등록(출고)시 사용
  */
 
 @Getter

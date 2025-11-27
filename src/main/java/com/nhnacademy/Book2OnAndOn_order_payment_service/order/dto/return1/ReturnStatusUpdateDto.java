@@ -13,6 +13,6 @@ import lombok.AllArgsConstructor;
 @NoArgsConstructor
 @AllArgsConstructor
 public class ReturnStatusUpdateDto {
-    /** 새로운 반품 상태 코드 */
+    // 반품 상태 코드
     private int statusCode;
 }
