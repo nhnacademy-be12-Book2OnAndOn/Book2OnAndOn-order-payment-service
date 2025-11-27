@@ -13,6 +13,6 @@ public interface PaymentService {
     PaymentResponse getPayment(PaymentRequest req);
     PaymentResponse createPayment(PaymentCreateRequest req);
     PaymentDeleteResponse deletePayment(PaymentDeleteRequest req);
-    PaymentResponse updateRefundAmountPayment(PaymentUpdateRefundAmountRequest req, Integer refundAmount);
+    PaymentResponse updateRefundAmount(PaymentUpdateRefundAmountRequest req, Integer refundAmount);
     PaymentResponse updatePaymentStatus(PaymentUpdatePaymentStatusRequest req);
 }

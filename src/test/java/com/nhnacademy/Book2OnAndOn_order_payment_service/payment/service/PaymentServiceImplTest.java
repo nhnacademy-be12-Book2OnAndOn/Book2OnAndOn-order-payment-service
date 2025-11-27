@@ -171,7 +171,7 @@ public class PaymentServiceImplTest {
 
         PaymentUpdateRefundAmountRequest updateRefundAmountRequest = new PaymentUpdateRefundAmountRequest(null, "B20000000001");
 
-        PaymentResponse response = paymentService.updateRefundAmountPayment(updateRefundAmountRequest, 10000);
+        PaymentResponse response = paymentService.updateRefundAmount(updateRefundAmountRequest, 10000);
 
         Assertions.assertNotNull(response);
         Assertions.assertEquals(10000, response.refundAmount());

@@ -63,7 +63,7 @@ public class PaymentServiceImpl implements PaymentService {
     // 환불 금액 업데이트
     @Transactional
     @Override
-    public PaymentResponse updateRefundAmountPayment(PaymentUpdateRefundAmountRequest req, Integer refundAmount) {
+    public PaymentResponse updateRefundAmount(PaymentUpdateRefundAmountRequest req, Integer refundAmount) {
         log.info("결제 환불 금액 업데이트 (주문번호 : {})", req.orderNumber());
         Payment payment = validateAndGetPayment(req.orderNumber(), true);
         payment.setRefundAmount(refundAmount);
