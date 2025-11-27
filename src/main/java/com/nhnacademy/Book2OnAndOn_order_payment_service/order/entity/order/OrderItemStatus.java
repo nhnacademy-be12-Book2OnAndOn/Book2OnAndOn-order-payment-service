@@ -18,6 +18,9 @@ public enum OrderItemStatus {
     public int getCode() {
         return code;
     }
+    public String getDescription() {
+        return description;
+    }
 
     public static OrderItemStatus fromCode(int code) {
         for (OrderItemStatus status : OrderItemStatus.values()) {

@@ -1,4 +1,4 @@
-package com.nhnacademy.Book2OnAndOn_order_payment_service.order.dto.order;
+package com.nhnacademy.Book2OnAndOn_order_payment_service.order.dto.order.orderitem;
 
 import lombok.Getter;
 import lombok.Setter;
