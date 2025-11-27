@@ -9,7 +9,7 @@ import com.nhnacademy.Book2OnAndOn_order_payment_service.order.entity.order.Orde
 import java.time.LocalDateTime;
 
 /**
- * [목록 조회 DTO] 주문 목록 페이지에서 핵심 요약 정보만 제공합니다.
+ * 주문 목록 페이지에서 핵심 요약 정보만 제공
  */
 @Getter
 @Setter

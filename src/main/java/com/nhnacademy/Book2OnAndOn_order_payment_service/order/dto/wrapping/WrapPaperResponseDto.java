@@ -6,7 +6,7 @@ import lombok.NoArgsConstructor;
 import lombok.AllArgsConstructor;
 
 /**
- * [포장지 상세 응답 DTO] 포장지 생성, 조회, 수정 시 사용됩니다.
+ * 포장지 생성, 조회, 수정 시 사용
  */
 @Getter
 @Setter

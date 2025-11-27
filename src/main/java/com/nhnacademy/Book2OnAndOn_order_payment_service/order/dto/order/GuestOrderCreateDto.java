@@ -8,8 +8,8 @@ import lombok.AllArgsConstructor;
 import java.util.List;
 
 /**
- * [비회원 주문 생성 요청 DTO] POST /api/guest/orders
- * 비회원 주문자 정보와 주문 상품 목록을 포함합니다.
+ * POST /api/guest/orders
+ * 비회원 주문자 정보와 주문 상품 목록을 포함
  */
 @Getter
 @Setter

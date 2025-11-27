@@ -10,7 +10,7 @@ import java.time.LocalDateTime;
 import java.util.List;
 
 /**
- * [공통 응답 DTO] 주문 생성, 상세 조회, 취소 등 모든 API의 응답 본문으로 사용됩니다.
+ * 주문 생성, 상세 조회, 취소 등 모든 API의 응답 본문으로 사용
  */
 @Getter
 @Setter

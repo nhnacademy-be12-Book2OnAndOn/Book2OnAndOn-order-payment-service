@@ -7,7 +7,7 @@ import lombok.AllArgsConstructor;
 import java.time.LocalDateTime;
 
 /**
- * [배송 응답 DTO] 배송 정보 조회 시 사용됩니다.
+ * 배송 상세 정보 조회.
  */
 @Getter
 @Setter
@@ -18,5 +18,8 @@ public class DeliveryResponseDto {
     private Long orderId;
     private String deliveryCompany;
     private String waybill;
-    // TODO: 배송 상태, 시작일, 완료일 등 Delivery 엔티티의 상세 정보 포함
+    private String deliveryStatus; // DeliveryStatus Enum의 설명 필드
+    private LocalDateTime deliveryStartAt; // Delivery 엔티티 필드 가정
+    private LocalDateTime deliveryCompleteAt; // Delivery 엔티티 필드 가정
+    // TODO: 배송 항목 리스트 (DeliveryItem)는 제외하고 단순 배송 정보만 제공합니다.
 }
