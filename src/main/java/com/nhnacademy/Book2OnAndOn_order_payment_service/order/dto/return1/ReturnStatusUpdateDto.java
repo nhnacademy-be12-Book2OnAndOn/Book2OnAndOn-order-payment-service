@@ -6,7 +6,7 @@ import lombok.NoArgsConstructor;
 import lombok.AllArgsConstructor;
 
 /**
- * [반품 상태 요청 DTO] 관리자 반품 상태 변경 시 사용됩니다.
+ * 관리자 반품 상태 변경 시 사용
  */
 @Getter
 @Setter

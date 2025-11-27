@@ -5,9 +5,10 @@ import lombok.Setter;
 import lombok.NoArgsConstructor;
 import lombok.AllArgsConstructor;
 import java.time.LocalDateTime;
+import java.util.List;
 
 /**
- * [반품 응답 DTO] 반품 신청, 조회, 상태 변경 시 사용됩니다.
+ * 반품 신청, 조회, 상태 변경 시 사용
  */
 @Getter
 @Setter
@@ -17,7 +18,10 @@ public class ReturnResponseDto {
     private Long returnId;
     private Long orderId;
     private String returnReason;
-    private String returnStatus;
+    private String returnReasonDetail; // 반품 사유 상세 내용
+    private String returnStatus; // ReturnStatus Enum의 설명 필드
     private LocalDateTime returnDatetime;
-    // TODO: 반품 항목 리스트 등 상세 정보 포함
+
+    // 반품 항목 리스트
+    private List<ReturnItemDetailDto> returnItems;
 }

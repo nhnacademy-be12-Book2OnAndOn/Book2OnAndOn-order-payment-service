@@ -6,7 +6,7 @@ import lombok.NoArgsConstructor;
 import lombok.AllArgsConstructor;
 
 /**
- * [반품 요청 DTO] 회원 반품 신청 시 사용됩니다.
+ *  회원 반품 신청 시 사용
  */
 @Getter
 @Setter
@@ -15,6 +15,7 @@ import lombok.AllArgsConstructor;
 public class ReturnRequestDto {
     private String returnReason;
     private String returnReasonDetail;
+
     /** 반품할 주문 항목 리스트 */
     // private List<ReturnItemRequestDto> returnItems; // 별도 DTO 필요시 추가
 }

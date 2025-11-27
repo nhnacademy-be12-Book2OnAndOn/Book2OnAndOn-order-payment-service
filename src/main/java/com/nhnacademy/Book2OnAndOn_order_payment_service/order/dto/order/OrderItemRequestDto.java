@@ -6,7 +6,7 @@ import lombok.NoArgsConstructor;
 import lombok.AllArgsConstructor;
 
 /**
- * 개별 상품 주문 정보를 담는 DTO. OrderCreateRequestDto와 GuestOrderCreateDto에 사용됩니다.
+ * 개별 상품 주문 정보를 담는 DTO. OrderCreateRequestDto와 GuestOrderCreateDto에 사용
  */
 @Getter
 @Setter
