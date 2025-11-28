@@ -38,6 +38,7 @@ public class PaymentServiceImplTest {
     @DisplayName("결제 데이터 생성 성공")
     void createPayment_Success() {
         PaymentCreateRequest req = new PaymentCreateRequest(
+                "testkey",
                 "B20000000001",
                 10000,
                 "CARD",
@@ -45,7 +46,6 @@ public class PaymentServiceImplTest {
                 "DONE",
                 null,
                 "http://test.com",
-                "testkey",
                 0
         );
 
@@ -60,6 +60,7 @@ public class PaymentServiceImplTest {
     @DisplayName("결제 데이터 생성 실패 - 중복 데이터")
     void createPayment_Failure_Duplicate() {
         PaymentCreateRequest req = new PaymentCreateRequest(
+                "testkey",
                 "B20000000001",
                 10000,
                 "CARD",
@@ -67,11 +68,11 @@ public class PaymentServiceImplTest {
                 "DONE",
                 null,
                 "http://test.com",
-                "testkey",
                 0
         );
 
         PaymentCreateRequest req2 = new PaymentCreateRequest(
+                "testkey2",
                 "B20000000001",
                 20000,
                 "CARD",
@@ -79,7 +80,6 @@ public class PaymentServiceImplTest {
                 "DONE",
                 null,
                 "http://test2.com",
-                "testkey2",
                 0
         );
 
@@ -94,6 +94,7 @@ public class PaymentServiceImplTest {
     @DisplayName("결제 내역 가져오기 - 성공")
     void getPayment_Success(){
         PaymentCreateRequest req = new PaymentCreateRequest(
+                "testkey",
                 "B20000000001",
                 10000,
                 "CARD",
@@ -101,7 +102,6 @@ public class PaymentServiceImplTest {
                 "DONE",
                 null,
                 "http://test.com",
-                "testkey",
                 0
         );
 
@@ -130,6 +130,7 @@ public class PaymentServiceImplTest {
     @DisplayName("결제 내역 삭제 - 성공")
     void deletePayment_Success(){
         PaymentCreateRequest req = new PaymentCreateRequest(
+                "testkey",
                 "B20000000001",
                 10000,
                 "CARD",
@@ -137,7 +138,6 @@ public class PaymentServiceImplTest {
                 "DONE",
                 null,
                 "http://test.com",
-                "testkey",
                 0
         );
 
@@ -156,6 +156,7 @@ public class PaymentServiceImplTest {
     @DisplayName("결제 내역 업데이트 - 환불 금액 추가")
     void updatePayment_AddRefundAmount(){
         PaymentCreateRequest req = new PaymentCreateRequest(
+                "testkey",
                 "B20000000001",
                 10000,
                 "CARD",
@@ -163,7 +164,6 @@ public class PaymentServiceImplTest {
                 "DONE",
                 null,
                 "http://test.com",
-                "testkey",
                 0
         );
 
@@ -181,6 +181,7 @@ public class PaymentServiceImplTest {
     @DisplayName("결제 내역 업데이트 - 결제 상태 변경")
     void updatePayment_ChangePaymentStatus(){
         PaymentCreateRequest req = new PaymentCreateRequest(
+                "testkey",
                 "B20000000001",
                 10000,
                 "CARD",
@@ -188,7 +189,6 @@ public class PaymentServiceImplTest {
                 "DONE",
                 null,
                 "http://test.com",
-                "testkey",
                 0
         );
 

@@ -5,11 +5,10 @@ import com.nhnacademy.Book2OnAndOn_order_payment_service.payment.domain.dto.resp
 import jakarta.persistence.Column;
 import jakarta.persistence.Entity;
 import jakarta.persistence.FetchType;
-import jakarta.persistence.GeneratedValue;
-import jakarta.persistence.GenerationType;
 import jakarta.persistence.Id;
 import jakarta.persistence.JoinColumn;
 import jakarta.persistence.ManyToOne;
+import jakarta.persistence.MapsId;
 import jakarta.persistence.Table;
 import jakarta.validation.constraints.NotNull;
 import jakarta.validation.constraints.Size;
@@ -30,9 +29,12 @@ import lombok.Setter;
 @Table(name = "PaymentCancel")
 public class PaymentCancel {
     @Id
-    @GeneratedValue(strategy = GenerationType.IDENTITY)
-    @Column(name = "payment_cancel_id")
-    private Long paymentCancelId;
+    private String id;
+
+    @MapsId
+    @ManyToOne(fetch = FetchType.LAZY)
+    @JoinColumn(name = "payment_id")
+    private Payment payment;
 
     @Column(name = "cancel_amount")
     @NotNull
@@ -46,19 +48,13 @@ public class PaymentCancel {
     @Column(name = "canceled_at")
     private LocalDateTime canceledAt = LocalDateTime.now();
 
-    @Column(name = "payment_transaction_key", length = 64, unique = true)
-    private String paymentTransactionKey;
 
-    @ManyToOne(fetch = FetchType.LAZY)
-    @JoinColumn(name = "payment_id")
-    private Payment payment;
 
     // 생성 로직
     public PaymentCancel(PaymentCancelCreateRequest req) {
         this.cancelAmount = req.cancelAmount();
         this.cancelReason = req.cancelReason();
         this.canceledAt = Objects.isNull(req.canceledAt()) ? LocalDateTime.now() : req.canceledAt();
-        this.paymentTransactionKey = req.paymentTransactionKey();
 
         payment.setPaymentId(req.paymentId());
         payment.getPaymentCancel().add(this);
@@ -67,12 +63,9 @@ public class PaymentCancel {
     // 비즈니스 로직
     public PaymentCancelResponse toResponse(){
         return new PaymentCancelResponse(
-                this.paymentCancelId,
-                this.payment.getPaymentId(),
                 this.cancelAmount,
                 this.cancelReason,
-                this.canceledAt,
-                this.paymentTransactionKey
+                this.canceledAt
         );
     }
 }

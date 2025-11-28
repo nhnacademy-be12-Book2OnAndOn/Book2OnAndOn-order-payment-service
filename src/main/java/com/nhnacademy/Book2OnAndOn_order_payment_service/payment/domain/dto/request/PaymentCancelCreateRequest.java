@@ -2,9 +2,9 @@ package com.nhnacademy.Book2OnAndOn_order_payment_service.payment.domain.dto.req
 
 import java.time.LocalDateTime;
 
+// 생성
 public record PaymentCancelCreateRequest(Integer cancelAmount,
-                                         String cancelReason,
-                                         LocalDateTime canceledAt,
-                                         String paymentTransactionKey,
-                                         Long paymentId) {
+                                   String cancelReason,
+                                   LocalDateTime canceledAt,
+                                   String paymentId) {
 }

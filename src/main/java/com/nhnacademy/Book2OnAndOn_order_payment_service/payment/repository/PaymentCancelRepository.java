@@ -8,9 +8,7 @@ import org.springframework.data.jpa.repository.Query;
 
 import java.util.List;
 
-public interface PaymentCancelRepository extends JpaRepository<PaymentCancel, Long> {
+public interface PaymentCancelRepository extends JpaRepository<PaymentCancel, String> {
     @Query("SELECT pc FROM PaymentCancel pc JOIN FETCH pc.payment p WHERE p.paymentId = :paymentId")
-    List<PaymentCancel> findByPaymentIdWithPayment(Long paymentId);
-
-    PaymentCancel findByPayment_PaymentIdAndPaymentTransactionKey(Long paymentId, String paymentTransactionKey);
+    List<PaymentCancel> findByPaymentIdWithPayment(String paymentId);
 }

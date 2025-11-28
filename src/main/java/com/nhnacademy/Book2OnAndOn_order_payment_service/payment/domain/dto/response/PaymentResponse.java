@@ -2,7 +2,7 @@ package com.nhnacademy.Book2OnAndOn_order_payment_service.payment.domain.dto.res
 
 import java.time.LocalDateTime;
 
-public record PaymentResponse(Long paymentId,
+public record PaymentResponse(String paymentId,
                               String orderNumber,
                               Integer totalAmount,
                               String paymentMethod,
@@ -10,6 +10,5 @@ public record PaymentResponse(Long paymentId,
                               String paymentStatus,
                               LocalDateTime paymentCreatedAt,
                               String paymentReceiptUrl,
-                              String paymentKey,
                               Integer refundAmount) {
 }

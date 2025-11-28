@@ -15,4 +15,5 @@ public interface PaymentService {
     PaymentDeleteResponse deletePayment(PaymentDeleteRequest req);
     PaymentResponse updateRefundAmount(PaymentUpdateRefundAmountRequest req, Integer refundAmount);
     PaymentResponse updatePaymentStatus(PaymentUpdatePaymentStatusRequest req);
+    boolean validateOrderAmount(String orderNumber, Integer amount);
 }

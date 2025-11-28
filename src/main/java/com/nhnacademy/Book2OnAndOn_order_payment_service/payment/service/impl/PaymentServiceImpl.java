@@ -1,19 +1,26 @@
 package com.nhnacademy.Book2OnAndOn_order_payment_service.payment.service.impl;
 
+import com.nhnacademy.Book2OnAndOn_order_payment_service.order.exception.NotFoundOrderException;
+import com.nhnacademy.Book2OnAndOn_order_payment_service.order.exception.OrderNotFoundException;
+import com.nhnacademy.Book2OnAndOn_order_payment_service.order.repository.order.OrderRepository;
 import com.nhnacademy.Book2OnAndOn_order_payment_service.payment.domain.dto.request.PaymentCreateRequest;
 import com.nhnacademy.Book2OnAndOn_order_payment_service.payment.domain.dto.request.PaymentDeleteRequest;
 import com.nhnacademy.Book2OnAndOn_order_payment_service.payment.domain.dto.request.PaymentRequest;
 import com.nhnacademy.Book2OnAndOn_order_payment_service.payment.domain.dto.request.PaymentUpdatePaymentStatusRequest;
 import com.nhnacademy.Book2OnAndOn_order_payment_service.payment.domain.dto.request.PaymentUpdateRefundAmountRequest;
+import com.nhnacademy.Book2OnAndOn_order_payment_service.payment.domain.dto.response.PaymentCancelResponse;
 import com.nhnacademy.Book2OnAndOn_order_payment_service.payment.domain.dto.response.PaymentDeleteResponse;
 import com.nhnacademy.Book2OnAndOn_order_payment_service.payment.domain.dto.response.PaymentResponse;
 import com.nhnacademy.Book2OnAndOn_order_payment_service.payment.domain.entity.Payment;
+import com.nhnacademy.Book2OnAndOn_order_payment_service.payment.domain.entity.PaymentCancel;
 import com.nhnacademy.Book2OnAndOn_order_payment_service.payment.domain.entity.PaymentStatus;
 import com.nhnacademy.Book2OnAndOn_order_payment_service.payment.exception.DuplicatePaymentException;
 import com.nhnacademy.Book2OnAndOn_order_payment_service.payment.exception.NotFoundPaymentException;
+import com.nhnacademy.Book2OnAndOn_order_payment_service.payment.repository.PaymentCancelRepository;
 import com.nhnacademy.Book2OnAndOn_order_payment_service.payment.repository.PaymentRepository;
 import com.nhnacademy.Book2OnAndOn_order_payment_service.payment.service.PaymentService;
 import jakarta.transaction.Transactional;
+import java.util.List;
 import java.util.Objects;
 import lombok.RequiredArgsConstructor;
 import lombok.extern.slf4j.Slf4j;
@@ -25,6 +32,8 @@ import org.springframework.stereotype.Service;
 public class PaymentServiceImpl implements PaymentService {
 
     private final PaymentRepository paymentRepository;
+    private final PaymentCancelRepository paymentCancelRepository;
+    private final OrderRepository orderRepository;
 
     // 주문조회시 결제정보도 출력
     @Override
@@ -36,7 +45,7 @@ public class PaymentServiceImpl implements PaymentService {
         return payment.toResponse();
     }
 
-    // 결제 성공 혹은 실패시 생성할 결제 정보
+    // 결제 성공 혹은 실패시 생성할 결제 정보 FeignClient 호출
     @Override
     public PaymentResponse createPayment(PaymentCreateRequest req) {
         log.info("결제 정보 생성 (주문번호 : {}, 결제금액 : {})", req.orderNumber(), req.totalAmount());
@@ -101,5 +110,20 @@ public class PaymentServiceImpl implements PaymentService {
         }
 
         return payment;
+    }
+
+    // 결제 취소 내역 확인
+    private List<PaymentCancelResponse> getCancelPaymentList(String paymentId){
+        log.info("결제 취소 내역 조회 시작 (");
+//        paymentCancelRepository.find
+        return null;
+    }
+
+    // 주문 금액과 결제 금액 검증
+    @Override
+    public boolean validateOrderAmount(String orderNumber, Integer amount){
+        Integer totalAmount = orderRepository.getAmount(orderNumber).orElseThrow(() ->
+                new NotFoundOrderException("Not Found Order : " + orderNumber));
+        return Objects.equals(totalAmount, amount);
     }
 }

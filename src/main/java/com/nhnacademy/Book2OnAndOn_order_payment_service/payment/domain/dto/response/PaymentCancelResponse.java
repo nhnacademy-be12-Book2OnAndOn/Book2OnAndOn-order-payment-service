@@ -2,10 +2,7 @@ package com.nhnacademy.Book2OnAndOn_order_payment_service.payment.domain.dto.res
 
 import java.time.LocalDateTime;
 
-public record PaymentCancelResponse(Long paymentCancelId,
-                                    Long paymentId,
-                                    Integer cancelAmount,
+public record PaymentCancelResponse(Integer cancelAmount,
                                     String cancelReason,
-                                    LocalDateTime canceledAt,
-                                    String paymentTransactionKey) {
+                                    LocalDateTime canceledAt) {
 }

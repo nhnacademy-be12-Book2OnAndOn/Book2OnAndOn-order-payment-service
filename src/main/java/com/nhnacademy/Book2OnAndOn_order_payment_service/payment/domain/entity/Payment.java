@@ -23,12 +23,10 @@ import java.time.LocalDateTime;
 @Table(name = "Payment")
 public class Payment {
     @Id
-    @GeneratedValue(strategy = GenerationType.IDENTITY)
-    @Column(name = "payment_id")
-    private Long paymentId;
+    @Column(name = "payment_id", length = 200)
+    private String paymentId;
 
-    @Column(name = "order_number", length = 64)
-    @Size(min = 6, max = 64)
+    @Column(name = "order_number", length = 12)
     @NotNull
     private String orderNumber;
 
@@ -41,9 +39,9 @@ public class Payment {
     private PaymentMethod paymentMethod;
 
     @Column(name = "payment_provider")
-    @Size(max = 30)
+    @Enumerated(value = EnumType.STRING)
     @NotNull
-    private String paymentProvider;
+    private PaymentProvider paymentProvider;
 
     @Column(name = "payment_status")
     @NotNull
@@ -57,10 +55,6 @@ public class Payment {
     @Size(max = 200)
     private String paymentReceiptUrl;
 
-    @Column(name = "payment_key", length = 200, unique = true)
-    @Size(max = 200)
-    private String paymentKey;
-
     @Column(name = "refund_amount")
     private Integer refundAmount = 0;
 
@@ -69,17 +63,17 @@ public class Payment {
 
     // 생성 로직
     public Payment(PaymentCreateRequest req){
+        this.paymentId = req.paymentId();
         this.orderNumber = req.orderNumber();
         this.totalAmount = req.totalAmount();
         this.paymentMethod = PaymentMethod.fromExternal(req.paymentMethod());
-        this.paymentProvider = req.paymentProvider();
+//        this.paymentProvider = req.paymentProvider();
         this.paymentStatus = PaymentStatus.fromExternal(req.paymentStatus());
         if(req.paymentCreatedAt() != null){
             this.paymentCreatedAt = req.paymentCreatedAt();
         }
 
         this.paymentReceiptUrl = req.paymentReceiptUrl();
-        this.paymentKey = req.paymentKey();
 
         if(req.refundAmount() != null){
             this.refundAmount = req.refundAmount();
@@ -93,11 +87,10 @@ public class Payment {
                 this.orderNumber,
                 this.totalAmount,
                 this.paymentMethod.getDescription(),
-                this.paymentProvider,
+                this.paymentProvider.name(),
                 this.paymentStatus.getDescription(),
                 this.paymentCreatedAt,
                 this.paymentReceiptUrl,
-                this.paymentKey,
                 this.refundAmount
         );
     }
