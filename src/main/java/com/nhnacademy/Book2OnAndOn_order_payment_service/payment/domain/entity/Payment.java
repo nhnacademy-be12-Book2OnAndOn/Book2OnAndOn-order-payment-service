@@ -67,7 +67,7 @@ public class Payment {
         this.orderNumber = req.orderNumber();
         this.totalAmount = req.totalAmount();
         this.paymentMethod = PaymentMethod.fromExternal(req.paymentMethod());
-//        this.paymentProvider = req.paymentProvider();
+        this.paymentProvider = PaymentProvider.valueOf(req.paymentProvider());
         this.paymentStatus = PaymentStatus.fromExternal(req.paymentStatus());
         if(req.paymentCreatedAt() != null){
             this.paymentCreatedAt = req.paymentCreatedAt();

@@ -39,11 +39,11 @@ public class PaymentController {
         return ResponseEntity.ok(resp);
     }
 
+    // 결제 내역 삭제용
     @DeleteMapping
     public ResponseEntity<PaymentDeleteResponse> deletePayment(@RequestParam("orderNumber") String orderNumber){
         log.info("DELETE /payment 요청 수신 (주문번호 : {})", orderNumber);
         PaymentDeleteRequest req = new PaymentDeleteRequest(orderNumber);
-
         PaymentDeleteResponse resp = paymentService.deletePayment(req);
 
         return ResponseEntity.ok(resp);
@@ -75,7 +75,6 @@ public class PaymentController {
     }
 
     // 결제 실패
-
-    // 결제 승인
-
+    
+    // 결제 취소
 }

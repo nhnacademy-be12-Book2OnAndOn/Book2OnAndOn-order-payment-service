@@ -45,7 +45,7 @@ public class TossPaymentStrategy implements PaymentStrategy{
         log.info("토스 결제 승인 시작 : orderId : {}\npaymentKey : {}\namount : {}", orderId, paymentKey, amount);
 
         // API 요청 객체 생성
-        TossConfirmRequest req = new TossConfirmRequest(amount, orderId, paymentKey);
+        TossConfirmRequest req = new TossConfirmRequest(amount, orderId, "1");
         String authorization = buildAuthorizationHeader();
 
         // API 호출

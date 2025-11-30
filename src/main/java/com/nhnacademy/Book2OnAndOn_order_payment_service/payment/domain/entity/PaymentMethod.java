@@ -6,6 +6,7 @@ import lombok.Getter;
 public enum PaymentMethod {
     CARD("카드"),
     VISUAL_ACCOUNT("가상계좌"),
+    EASY_PAY("간편결제"),
     MOBILE_PHONE("휴대폰"),
     CULTURE_GIFT_CERTIFICATE("문화상품권");
 
@@ -23,10 +24,11 @@ public enum PaymentMethod {
         String normalized = raw.trim().toUpperCase();
 
         return switch (normalized){
-            case "CARD" -> CARD;
-            case "VISUAL_ACCOUNT" -> VISUAL_ACCOUNT;
-            case "MOBILE_PHONE" -> MOBILE_PHONE;
-            case "CULTURE_GIFT_CERTIFICATE" -> CULTURE_GIFT_CERTIFICATE;
+            case "CARD", "카드" -> CARD;
+            case "VISUAL_ACCOUNT", "가상계좌" -> VISUAL_ACCOUNT;
+            case "EASY_PAY", "간편결제" -> EASY_PAY;
+            case "MOBILE_PHONE", "휴대폰" -> MOBILE_PHONE;
+            case "CULTURE_GIFT_CERTIFICATE", "문화상품권" -> CULTURE_GIFT_CERTIFICATE;
             default -> throw new IllegalArgumentException("Unknown Payment Method received: '" + raw +
                     "'\nSupported Values: CARD, VISUAL_ACCOUNT, MOBILE_PHONE, CULTURE_GIFT_CERTIFICATE");
         };

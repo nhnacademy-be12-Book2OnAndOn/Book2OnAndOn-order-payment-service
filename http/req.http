@@ -1,0 +1,2 @@
+### GET /payment/toss/confirm?orderId=test&amount=10000&paymentKey
+GET /payment/toss/confirm?orderId=test&amount=10000&paymentKey=
