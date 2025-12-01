@@ -16,9 +16,11 @@ import jakarta.persistence.ManyToOne;
 import jakarta.persistence.MapsId;
 import jakarta.persistence.OneToMany;
 import jakarta.persistence.Table;
+import jakarta.validation.constraints.NotNull;
 import java.time.LocalDateTime;
 import java.util.ArrayList;
 import java.util.List;
+import lombok.AccessLevel;
 import lombok.AllArgsConstructor;
 import lombok.Getter;
 import lombok.NoArgsConstructor;
@@ -27,32 +29,35 @@ import lombok.Setter;
 @Entity
 @Getter
 @Setter
-@NoArgsConstructor
+@NoArgsConstructor(access = AccessLevel.PROTECTED)
 @AllArgsConstructor
 @Table(name = "Return")
 public class Return {
     @Id
     @GeneratedValue(strategy = GenerationType.IDENTITY)
+    @Column(name = "return_id")
     private Long returnId;
 
-    @Column(name = "return_reason", length = 20, nullable = false)
+    @Column(name = "return_reason", length = 20)
+    @NotNull
     private String returnReason;
 
     @Column(name = "return_reason_detail", length = 100)
     private String returnReasonDetail;
 
-    @Convert(converter = ReturnStatusConverter.class)
-    @Column(name = "return_status", columnDefinition = "TINYINT", nullable = false)
+    @Column(name = "return_status", columnDefinition = "TINYINT")
+    @NotNull
     private Integer returnStatus;
 
-    @Column(name = "return_datetime", nullable = false)
-    private LocalDateTime returnDatetime;
+    @Column(name = "return_datetime")
+    @NotNull
+    private LocalDateTime returnDatetime = LocalDateTime.now();
 
     @ManyToOne(fetch = FetchType.LAZY)
-    @JoinColumn(name = "order_id", nullable = false)
+    @JoinColumn(name = "order_id")
+    @NotNull
     private Order order;
 
-    @OneToMany(mappedBy = "return", cascade = CascadeType.ALL)
-    private List<Delivery> returnItem = new ArrayList<>();
-
+    @OneToMany(mappedBy = "returnEntity", cascade = CascadeType.ALL)
+    private List<ReturnItem> returnItem = new ArrayList<>();
 }
