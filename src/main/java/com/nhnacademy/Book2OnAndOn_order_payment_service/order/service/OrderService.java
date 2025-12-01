@@ -230,6 +230,13 @@ public class OrderService {
     // 4. 헬퍼 메서드 및 DTO 변환
     // ======================================================================
 
+    // 주문 상태 변경 (public API 역할, 테스트 대상)
+    // 💡 이 메서드를 통해 테스트 코드가 접근하게 됩니다.
+    @Transactional
+    public void updateOrderStatus(Long orderId, OrderStatus newStatus) {
+        // 내부 헬퍼 메서드를 호출하여 로직을 실행합니다.
+        updateOrderStatusInternal(orderId, newStatus);
+    }
 
     @Transactional
     protected void updateOrderStatusInternal(Long orderId, OrderStatus newStatus) {
@@ -370,14 +377,18 @@ public class OrderService {
             
             // 2. OrderItem 엔티티 생성
             OrderItem orderItem = OrderItem.builder()
-                .order(order)
-                //.book(book)
-                .orderItemQuantity((byte) itemRequest.getQuantity()) // 형 변환 유지
-                .unitPrice(10000) // 임시 단가 설정 (실제로는 Book에서 조회해야 함)
-                .isWrapped(itemRequest.isWrapped())
-                .orderItemStatus(OrderItemStatus.PREPARING)
-                .wrappingPaper(wrappingPaper)
-                .build();
+                    .order(order)
+                    //.book(book)
+                    .orderItemQuantity((byte) itemRequest.getQuantity())
+                    .unitPrice(10000) // 임시 단가
+                    .isWrapped(itemRequest.isWrapped())
+                    .orderItemStatus(OrderItemStatus.PREPARING)
+                    .wrappingPaper(wrappingPaper)
+
+                    //  bookId 필드에 DTO에서 받은 Long 값을 직접 할당 (NOT NULL 제약 만족)
+                    .bookId(itemRequest.getBookId())
+
+                    .build();
 
             orderItemRepository.save(orderItem);
 
@@ -386,15 +397,18 @@ public class OrderService {
     }
 
     private void saveDeliveryAddress(DeliveryAddressRequestDto addressRequest, Order order) {
-        DeliveryAddress address = DeliveryAddress.builder()
-            .order(order)
-            .deliveryAddress(addressRequest.getDeliveryAddress())
-            .deliveryAddressDetail(addressRequest.getDeliveryAddressDetail())
-            .deliveryMessage(addressRequest.getDeliveryMessage())
-            .recipient(addressRequest.getRecipient())
-            .build();
 
-        deliveryAddressRepository.save(address);
+        DeliveryAddress addressInfo = DeliveryAddress.builder() // ⚠️ DeliveryAddressInfo가 아닌 DeliveryAddress라고 가정
+                .order(order)
+                .deliveryAddress(addressRequest.getDeliveryAddress())
+                .deliveryAddressDetail(addressRequest.getDeliveryAddressDetail())
+                .deliveryMessage(addressRequest.getDeliveryMessage())
+                .recipient(addressRequest.getRecipient())
+                // ⬇️ 🚨 최종 수정: DTO의 Getter를 사용하여 엔티티 필드에 할당합니다.
+                .recipientPhonenumber(addressRequest.getRecipientPhonenumber()) // ⬅️ DTO의 정확한 Getter를 호출해야 합니다.
+                .build();
+
+        deliveryAddressRepository.save(addressInfo);
     }
 
     private void saveGuestOrderInfo(GuestOrderCreateDto guestRequest, Order order) {
@@ -403,7 +417,7 @@ public class OrderService {
         GuestOrder guestOrder = GuestOrder.builder()
             .order(order)
             .guestName(guestRequest.getGuestName())
-            .guestPhonenumber(guestRequest.getGuestPhoneNumber())
+            .guestPhonenumber(guestRequest.getGuestPhonenumber())
             .guestPassword(encryptedPassword)
             .build();
 
