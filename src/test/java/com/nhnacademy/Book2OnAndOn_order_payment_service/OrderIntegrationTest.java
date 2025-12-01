@@ -2,6 +2,7 @@ package com.nhnacademy.Book2OnAndOn_order_payment_service;
 
 import com.fasterxml.jackson.databind.ObjectMapper;
 import com.nhnacademy.Book2OnAndOn_order_payment_service.order.dto.order.DeliveryAddressRequestDto;
+import com.nhnacademy.Book2OnAndOn_order_payment_service.order.dto.order.OrderCancelRequestDto;
 import com.nhnacademy.Book2OnAndOn_order_payment_service.order.dto.order.OrderCreateRequestDto;
 import com.nhnacademy.Book2OnAndOn_order_payment_service.order.dto.order.orderitem.OrderItemRequestDto;
 import com.nhnacademy.Book2OnAndOn_order_payment_service.order.repository.delivery.DeliveryPolicyRepository;
@@ -24,17 +25,18 @@ import java.util.Collections;
 import java.util.List;
 import org.springframework.transaction.support.TransactionTemplate;
 
-import static org.springframework.security.test.web.servlet.request.SecurityMockMvcRequestPostProcessors.csrf; // ⬅️ CSRF 오류 해결!
+import static org.springframework.security.test.web.servlet.request.SecurityMockMvcRequestPostProcessors.csrf;
 import static org.springframework.security.test.web.servlet.request.SecurityMockMvcRequestPostProcessors.user;
 import static org.springframework.test.web.servlet.request.MockMvcRequestBuilders.get;
+import static org.springframework.test.web.servlet.request.MockMvcRequestBuilders.patch;
 import static org.springframework.test.web.servlet.request.MockMvcRequestBuilders.post;
 import static org.springframework.test.web.servlet.result.MockMvcResultMatchers.jsonPath;
 import static org.springframework.test.web.servlet.result.MockMvcResultMatchers.status;
 import static org.assertj.core.api.Assertions.assertThat;
 
-@SpringBootTest // Spring Boot 컨텍스트 전체 로딩
+@SpringBootTest
 @AutoConfigureMockMvc // MockMvc 자동 설정
-@Transactional // 테스트 후 DB 롤백
+@Transactional
 @ActiveProfiles("test")
 class OrderIntegrationTest {
 
@@ -51,12 +53,12 @@ class OrderIntegrationTest {
     private EntityManager entityManager;
     @Autowired
     private TransactionTemplate transactionTemplate;
-    //  주의: MockMvc는 Spring Security를 우회하므로, 실제 권한 검증은 별도 설정이 필요합니다.
+    //  주의: MockMvc는 Spring Security를 우회하므로, 실제 권한 검증은 별도 설정이 필요
     @Autowired
     private WrappingPaperRepository wrappingPaperRepository;
 
     private OrderCreateRequestDto validRequest;
-    private final Long TEST_USER_ID = 1L;
+    private final Long COMMON_TEST_USER_ID = 1L;
     private final Long TEST_DELIVERY_POLICY_ID = 1L;
     private final Long TEST_WRAPPING_PAPER_ID = 5L;
     private final Long TEST_BOOK_ID = 20L;
@@ -68,7 +70,6 @@ class OrderIntegrationTest {
 
             // 1. 기존 데이터 삭제 (StaleObjectStateException 방지)
             // OrderService가 의존하는 필수 연관관계 엔티티도 함께 삭제합니다.
-            //  TRUNCATE TABLE이 더 확실하지만, DELETE 사용
             entityManager.createNativeQuery("DELETE FROM DELIVERY_POLICY WHERE delivery_policy_id = 1").executeUpdate();
             entityManager.createNativeQuery("DELETE FROM WRAPPING_PAPER WHERE wrapping_paper_id IN (5)").executeUpdate();
 //            entityManager.createNativeQuery("DELETE FROM BOOK WHERE book_id IN (20)").executeUpdate();
@@ -95,9 +96,9 @@ class OrderIntegrationTest {
             entityManager.clear();
         });
 
-        // 5. 유효한 주문 요청 DTO 생성 (DB에 삽입된 ID 사용)
+        // 6. 유효한 주문 요청 DTO 생성 (DB에 삽입된 ID 사용)
         validRequest = new OrderCreateRequestDto(
-                TEST_USER_ID,
+                COMMON_TEST_USER_ID,
                 List.of(new OrderItemRequestDto(TEST_BOOK_ID, 2, TEST_WRAPPING_PAPER_ID, true)),
                 new DeliveryAddressRequestDto("서울시", "강남구", "문 앞", "김철수", "01012345678"),
                 1000,
@@ -179,7 +180,7 @@ class OrderIntegrationTest {
         // Given
         // 1. 유효하지 않은 요청 DTO 생성 (주문 항목 List<OrderItemRequestDto>가 비어 있음)
         OrderCreateRequestDto invalidRequest = new OrderCreateRequestDto(
-                TEST_USER_ID,
+                COMMON_TEST_USER_ID,
                 Collections.emptyList(), //️ 주문 항목 누락 (유효성 검사 실패 예상)
                 new DeliveryAddressRequestDto("서울시", "강남구", "문 앞", "김철수", "01012345678"),
                 0,
@@ -199,5 +200,87 @@ class OrderIntegrationTest {
                 // 400 Bad Request 확인 (비즈니스 로직에 도달하여 유효성 검사 실패)
                 .andExpect(status().isBadRequest())
                 .andExpect(MockMvcResultMatchers.content().string("주문 항목은 반드시 존재해야 합니다."));
+    }
+
+    // ----------------------------------------------------------------------
+    // 5. 권한 및 예외 처리 테스트 (GET/PATCH)
+    // ----------------------------------------------------------------------
+
+    @Test
+    @DisplayName("GET /api/orders/{orderId} 호출 시 소유자가 아니면 403 Forbidden이 발생해야 한다")
+    void getOrderDetails_shouldReturn403_whenUserIsNotOwner() throws Exception {
+        // Given: 주문 생성 (ID 1L 소유)
+        String requestBody = objectMapper.writeValueAsString(validRequest);
+        String responseContent = mockMvc.perform(post("/api/orders")
+                        .contentType(MediaType.APPLICATION_JSON)
+                        .content(requestBody)
+                        .with(user("owner").roles("USER")) // owner ID = 1L
+                        .with(csrf()))
+                .andExpect(status().isCreated())
+                .andReturn().getResponse().getContentAsString();
+
+        Long existingOrderId = objectMapper.readTree(responseContent).get("orderId").asLong();
+
+        // When & Then: 다른 사용자 (hacker_user)가 조회 시도
+        mockMvc.perform(get("/api/orders/{orderId}", existingOrderId)
+                        .contentType(MediaType.APPLICATION_JSON)
+                        .with(user("test_user_hacker").roles("USER"))) //
+
+                .andExpect(status().isForbidden()); // 403 Forbidden 확인
+    }
+
+    // ----------------------------------------------------------------------
+    // 6. 주문 취소 API 통합 테스트 (PATCH)
+    // ----------------------------------------------------------------------
+
+    @Test
+    @DisplayName("PATCH /api/orders/{orderId} 호출 시 주문 상태가 CANCELED로 변경되어야 한다")
+    void cancelOrder_shouldChangeStatusToCanceled() throws Exception {
+        // Given: 주문 생성 (취소 가능한 PENDING 상태)
+        String requestBody = objectMapper.writeValueAsString(validRequest);
+        String responseContent = mockMvc.perform(post("/api/orders")
+                        .contentType(MediaType.APPLICATION_JSON)
+                        .content(requestBody)
+                        .with(user("test_user").roles("USER"))
+                        .with(csrf()))
+                .andExpect(status().isCreated())
+                .andReturn().getResponse().getContentAsString();
+
+        Long orderIdToCancel = objectMapper.readTree(responseContent).get("orderId").asLong();
+
+        // Given: 취소 요청 DTO
+        OrderCancelRequestDto cancelRequest = new OrderCancelRequestDto("단순 변심", "국민은행", "123456");
+        String cancelRequestBody = objectMapper.writeValueAsString(cancelRequest);
+
+        // When & Then: PATCH 요청 수행
+        mockMvc.perform(patch("/api/orders/{orderId}", orderIdToCancel)
+                        .contentType(MediaType.APPLICATION_JSON)
+                        .content(cancelRequestBody)
+                        .with(user("test_user").roles("USER"))
+                        .with(csrf()))
+
+                .andExpect(status().isOk()) // 200 OK 확인
+                .andExpect(jsonPath("$.orderStatus").value("CANCELED")); // 상태 변경 확인
+
+        // DB에서 최종 상태 재확인 (Optional: Service의 @Transactional이 롤백됨)
+    }
+
+    @Test
+    @DisplayName("PATCH /api/orders/{orderId} 호출 시 존재하지 않는 ID면 404 Not Found가 발생해야 한다")
+    void cancelOrder_shouldReturn404_whenOrderDoesNotExist() throws Exception {
+        // Given
+        Long nonExistentOrderId = 9999L;
+        OrderCancelRequestDto cancelRequest = new OrderCancelRequestDto("취소 사유", null, null);
+        String cancelRequestBody = objectMapper.writeValueAsString(cancelRequest);
+
+        // When & Then
+        mockMvc.perform(patch("/api/orders/{orderId}", nonExistentOrderId) // 9999L 사용
+                        .contentType(MediaType.APPLICATION_JSON)
+                        .content(cancelRequestBody)
+                        .with(user("test_user").roles("USER"))
+                        .with(csrf()))
+
+
+                .andExpect(status().isNotFound());
     }
 }
