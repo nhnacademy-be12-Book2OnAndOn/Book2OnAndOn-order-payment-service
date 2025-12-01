@@ -46,12 +46,12 @@ class OrderIntegrationTest {
     private OrderRepository orderRepository; // DB 상태 확인용 Repository
     @Autowired
     private DeliveryPolicyRepository deliveryPolicyRepository;
-    // ⬇️ 추가: EntityManager와 TransactionTemplate 주입
+    //  추가: EntityManager와 TransactionTemplate 주입
     @Autowired
     private EntityManager entityManager;
     @Autowired
     private TransactionTemplate transactionTemplate;
-    // ⚠️ 주의: MockMvc는 Spring Security를 우회하므로, 실제 권한 검증은 별도 설정이 필요합니다.
+    //  주의: MockMvc는 Spring Security를 우회하므로, 실제 권한 검증은 별도 설정이 필요합니다.
     @Autowired
     private WrappingPaperRepository wrappingPaperRepository;
 
@@ -63,12 +63,12 @@ class OrderIntegrationTest {
 
     @BeforeEach
     void setUp() {
-        // ⬇️ 🚨 최종 해결: TransactionTemplate 내부에서 Native SQL 사용 + Detach
+        // 최종 해결: TransactionTemplate 내부에서 Native SQL 사용 + Detach
         transactionTemplate.executeWithoutResult(status -> {
 
             // 1. 기존 데이터 삭제 (StaleObjectStateException 방지)
             // OrderService가 의존하는 필수 연관관계 엔티티도 함께 삭제합니다.
-            // ⚠️ TRUNCATE TABLE이 더 확실하지만, DELETE 사용
+            //  TRUNCATE TABLE이 더 확실하지만, DELETE 사용
             entityManager.createNativeQuery("DELETE FROM DELIVERY_POLICY WHERE delivery_policy_id = 1").executeUpdate();
             entityManager.createNativeQuery("DELETE FROM WRAPPING_PAPER WHERE wrapping_paper_id IN (5)").executeUpdate();
 //            entityManager.createNativeQuery("DELETE FROM BOOK WHERE book_id IN (20)").executeUpdate();
@@ -88,9 +88,9 @@ class OrderIntegrationTest {
 //                    "INSERT INTO BOOK (book_id, price, stock) VALUES (?, 10000, 100)"
 //            ).setParameter(1, TEST_BOOK_ID).executeUpdate();
 
-            // 5. 💡 핵심: 영속성 컨텍스트 초기화 및 커밋 강제
+            // 5.  핵심: 영속성 컨텍스트 초기화 및 커밋 강제
             entityManager.flush();
-            // ⚠️ clear()를 호출하여 테스트 컨텍스트가 이 엔티티들을 추적하지 않도록 합니다.
+            //️ clear()를 호출하여 테스트 컨텍스트가 이 엔티티들을 추적하지 않도록 합니다.
             // 이로써 다음 테스트에서 StaleObjectStateException이 발생하지 않습니다.
             entityManager.clear();
         });
@@ -122,9 +122,9 @@ class OrderIntegrationTest {
         mockMvc.perform(post("/api/orders")
                         .contentType(MediaType.APPLICATION_JSON)
                         .content(requestBody)
-                        // ⬇️ 🚨 수정: .with() 구문을 perform 내부의 요청 빌더 체인에 넣어야 합니다.
-                        .with(user("test_user").roles("USER")) // 💡 요청에 인증 정보 추가
-                        .with(csrf()))                          // 💡 요청에 CSRF 토큰 추가
+                        // 수정: .with() 구문을 perform 내부의 요청 빌더 체인에 넣어야 합니다.
+                        .with(user("test_user").roles("USER")) //  요청에 인증 정보 추가
+                        .with(csrf()))                          //  요청에 CSRF 토큰 추가
 
                 // 2. HTTP 응답 검증 (201 Created 확인)
                 .andExpect(status().isCreated())
@@ -157,7 +157,7 @@ class OrderIntegrationTest {
                 .andExpect(status().isCreated())
                 .andReturn().getResponse().getContentAsString();
 
-        // 2. 🚨 수정: 생성된 주문의 ID 추출
+        // 2.  수정: 생성된 주문의 ID 추출
         Long existingOrderId = objectMapper.readTree(responseContent).get("orderId").asLong();
 
         // When & Then
@@ -180,13 +180,13 @@ class OrderIntegrationTest {
         // 1. 유효하지 않은 요청 DTO 생성 (주문 항목 List<OrderItemRequestDto>가 비어 있음)
         OrderCreateRequestDto invalidRequest = new OrderCreateRequestDto(
                 TEST_USER_ID,
-                Collections.emptyList(), // ⚠️ 주문 항목 누락 (유효성 검사 실패 예상)
+                Collections.emptyList(), //️ 주문 항목 누락 (유효성 검사 실패 예상)
                 new DeliveryAddressRequestDto("서울시", "강남구", "문 앞", "김철수", "01012345678"),
                 0,
                 0
         );
 
-        // ⬇️ 🚨 수정: requestBody 변수를 메서드 내에서 생성합니다.
+        //  수정: requestBody 변수를 메서드 내에서 생성합니다.
         String requestBody = objectMapper.writeValueAsString(invalidRequest);
 
         // When & Then

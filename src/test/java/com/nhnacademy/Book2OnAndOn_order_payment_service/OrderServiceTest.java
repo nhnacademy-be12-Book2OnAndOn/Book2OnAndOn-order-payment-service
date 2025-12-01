@@ -125,7 +125,7 @@ class OrderServiceTest {
         assertThat(result.getOrderId()).isEqualTo(TEST_ORDER_ID);
         assertThat(result.getOrderStatus()).isEqualTo(OrderStatus.PENDING);
         
-        // ⚠️ 검증 포인트: Repository의 save 메서드가 정확히 호출되었는지 확인
+        // ⚠ 검증 포인트: Repository의 save 메서드가 정확히 호출되었는지 확인
         verify(orderRepository, times(1)).save(any(Order.class)); 
     }
 
@@ -145,7 +145,7 @@ class OrderServiceTest {
         assertThrows(IllegalArgumentException.class, () -> orderService.createOrder(invalidRequest));
     }
 
-    // 💡 테스트의 핵심: 금액 계산 로직 검증 (calculateOrderPrices)
+    //  테스트의 핵심: 금액 계산 로직 검증 (calculateOrderPrices)
     @Test
     @DisplayName("주문 생성시 총 금액 필드가 정확하게 계산되어 Order 엔티티에 저장되어야 한다")
     void createOrder_shouldCalculateTotalAmountCorrectly() {
@@ -164,7 +164,7 @@ class OrderServiceTest {
         orderService.createOrder(validOrderRequest);
         
         // Then
-        // 💡 실제로는 captor.getValue()를 통해 저장된 엔티티의 totalAmount를 13500과 비교해야 합니다.
+        //  실제로는 captor.getValue()를 통해 저장된 엔티티의 totalAmount를 13500과 비교해야 합니다.
         // 현재는 Mock 객체를 사용하므로 검증은 생략하고, 로직의 흐름만 확인합니다.
     }
 
@@ -287,7 +287,7 @@ class OrderServiceTest {
         // 1. 상태 변경 확인
         assertThat(existingOrder.getOrderStatus()).isEqualTo(OrderStatus.CANCELED);
 
-        // 2. ⚠️ TODO 검증: 재고 복구 로직이 호출되었는지 확인
+        // 2.TODO 검증: 재고 복구 로직이 호출되었는지 확인
         // verify(stockService, times(1)).increaseStock(orderItem.getBookId(), orderItem.getOrderItemQuantity());
     }
 
@@ -380,7 +380,7 @@ class OrderServiceTest {
         orderService.findOrderList(targetUserId, pageable);
 
         // Then
-        // 💡 findByUserId 메서드가 정확한 userId와 Pageable 객체로 호출되었는지 검증
+        // findByUserId 메서드가 정확한 userId와 Pageable 객체로 호출되었는지 검증
         verify(orderRepository, times(1)).findByUserId(eq(targetUserId), eq(pageable));
     }
 
@@ -396,7 +396,7 @@ class OrderServiceTest {
         orderService.findAllOrderList(pageable);
 
         // Then
-        // 💡 findAll 메서드가 Pageable 객체로 호출되었는지 검증
+        // findAll 메서드가 Pageable 객체로 호출되었는지 검증
         verify(orderRepository, times(1)).findAll(eq(pageable));
     }
 }
