@@ -23,7 +23,7 @@ Content-Type: application/json
     "deliveryAddressDetail": "NHN 아카데미 6층",
     "deliveryMessage": "문 앞에 두고 연락 주세요.",
     "recipient": "홍길동",
-    "recipientPhoneNumber": "01012345678"
+    "recipientPhonenumber": "01012345678"
   },
   "couponDiscountAmount": 5000, // 쿠폰 할인 금액
   "pointDiscountAmount": 1000 // 포인트 사용 금액
@@ -35,7 +35,7 @@ Content-Type: application/json
 
 {
   "guestName": "김철수",
-  "guestPhoneNumber": "01098765432",
+  "guestPhonenumber": "01098765432",
   "guestPassword": "secure_guest_pw_1234", // 암호화되어 저장
 
   "orderItems": [
@@ -51,7 +51,7 @@ Content-Type: application/json
     "deliveryAddressDetail": "판교 빌딩 101호",
     "deliveryMessage": "부재 시 경비실에 맡겨주세요.",
     "recipient": "김철수",
-    "recipientPhoneNumber": "01098765432"
+    "recipientPhonenumber": "01098765432"
   },
   "couponDiscountAmount": 0,
   "pointDiscountAmount": 0

@@ -12,7 +12,7 @@ import jakarta.validation.Valid;
 
 @RestController
 @RequiredArgsConstructor
-@RequestMapping("/api/guest/orders") // Base Path
+@RequestMapping("/api/guest/orders")
 public class OrderGuestController {
 
     private final OrderService orderService;
