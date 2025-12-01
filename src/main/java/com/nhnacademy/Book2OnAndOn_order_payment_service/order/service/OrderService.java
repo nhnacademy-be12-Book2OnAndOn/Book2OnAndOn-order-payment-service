@@ -231,7 +231,7 @@ public class OrderService {
     // ======================================================================
 
     // 주문 상태 변경 (public API 역할, 테스트 대상)
-    // 💡 이 메서드를 통해 테스트 코드가 접근하게 됩니다.
+    // 이 메서드를 통해 테스트 코드가 접근하게 됩니다.
     @Transactional
     public void updateOrderStatus(Long orderId, OrderStatus newStatus) {
         // 내부 헬퍼 메서드를 호출하여 로직을 실행합니다.
@@ -398,14 +398,14 @@ public class OrderService {
 
     private void saveDeliveryAddress(DeliveryAddressRequestDto addressRequest, Order order) {
 
-        DeliveryAddress addressInfo = DeliveryAddress.builder() // ⚠️ DeliveryAddressInfo가 아닌 DeliveryAddress라고 가정
+        DeliveryAddress addressInfo = DeliveryAddress.builder() // ⚠ DeliveryAddressInfo가 아닌 DeliveryAddress라고 가정
                 .order(order)
                 .deliveryAddress(addressRequest.getDeliveryAddress())
                 .deliveryAddressDetail(addressRequest.getDeliveryAddressDetail())
                 .deliveryMessage(addressRequest.getDeliveryMessage())
                 .recipient(addressRequest.getRecipient())
                 // ⬇️ 🚨 최종 수정: DTO의 Getter를 사용하여 엔티티 필드에 할당합니다.
-                .recipientPhonenumber(addressRequest.getRecipientPhonenumber()) // ⬅️ DTO의 정확한 Getter를 호출해야 합니다.
+                .recipientPhonenumber(addressRequest.getRecipientPhonenumber()) // ️ DTO의 정확한 Getter를 호출해야 합니다.
                 .build();
 
         deliveryAddressRepository.save(addressInfo);
