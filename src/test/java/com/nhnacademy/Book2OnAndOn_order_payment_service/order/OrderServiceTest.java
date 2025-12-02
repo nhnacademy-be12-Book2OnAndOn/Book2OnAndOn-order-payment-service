@@ -1,7 +1,6 @@
-package com.nhnacademy.Book2OnAndOn_order_payment_service;
+package com.nhnacademy.Book2OnAndOn_order_payment_service.order;
 
 import com.nhnacademy.Book2OnAndOn_order_payment_service.order.dto.order.*;
-import com.nhnacademy.Book2OnAndOn_order_payment_service.order.dto.order.guest.GuestOrderCreateDto;
 import com.nhnacademy.Book2OnAndOn_order_payment_service.order.dto.order.orderitem.OrderItemRequestDto;
 import com.nhnacademy.Book2OnAndOn_order_payment_service.order.entity.delivery.DeliveryPolicy;
 import com.nhnacademy.Book2OnAndOn_order_payment_service.order.entity.order.GuestOrder;
@@ -30,13 +29,11 @@ import org.springframework.security.access.AccessDeniedException;
 import org.springframework.security.crypto.password.PasswordEncoder;
 
 import java.util.Collections;
-import java.util.List;
 import java.util.Optional;
 
 import static org.assertj.core.api.Assertions.assertThat;
 import static org.junit.jupiter.api.Assertions.assertThrows;
 import static org.mockito.ArgumentMatchers.any;
-import static org.mockito.ArgumentMatchers.anyLong;
 import static org.mockito.Mockito.*;
 
 @ExtendWith(MockitoExtension.class)
