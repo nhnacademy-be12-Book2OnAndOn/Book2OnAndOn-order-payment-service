@@ -1,19 +1,20 @@
-package com.nhnacademy.Book2OnAndOn_order_payment_service.order.dto;
+package com.nhnacademy.Book2OnAndOn_order_payment_service.order.dto.order.orderitem;
 
 import lombok.Getter;
 import lombok.Setter;
 import lombok.NoArgsConstructor;
 import lombok.AllArgsConstructor;
-import lombok.Builder; // 객체 생성을 위한 Builder 패턴 추가
 
+/**
+ * 개별 상품 주문 정보를 담는 DTO. OrderCreateRequestDto와 GuestOrderCreateDto에 사용
+ */
 @Getter
 @Setter
 @NoArgsConstructor
 @AllArgsConstructor
-@Builder // 복잡한 객체 생성 시 유용
-public class OrderItemRequest {
+public class OrderItemRequestDto {
     private Long bookId;
     private int quantity;   // order_item_quantity
     private Long wrappingPaperId;
-    private boolean isWrapped; // 포장유무
+    private boolean isWrapped;
 }
