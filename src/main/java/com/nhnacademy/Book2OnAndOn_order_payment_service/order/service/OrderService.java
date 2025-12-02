@@ -276,9 +276,13 @@ public class OrderService {
             order.getOrderDatetime(),
             order.getTotalAmount(),
             order.getTotalDiscountAmount(),
+            order.getTotalItemAmount(),
             order.getDeliveryFee(),
-            itemDetails, 
-            addressDto 
+            order.getWrappingFee(),
+            order.getCouponDiscount(),
+            order.getPointDiscount(),
+            itemDetails,
+            addressDto
         );
     }
     

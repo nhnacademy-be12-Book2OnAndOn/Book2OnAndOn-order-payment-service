@@ -26,14 +26,19 @@ public class OrderResponseDto {
 
     // 2. 금액 상세 정보 (Order 엔티티)
     private int totalAmount;
-    private int totalDiscountAmount; 
+    private int totalDiscountAmount;
+    private int totalItemAmount;
     private int deliveryFee;
-    
+    private int wrappingFee;
+    private int couponDiscount;
+    private int pointDiscount;
+
     // 3. 주문 상품 목록 (상세 조회용)
     private List<OrderItemDetailDto> orderItems;
 
     // 4. 배송지 정보
     private DeliveryAddressRequestDto deliveryAddress;
-    
-    // TODO: 결제 정보, 반품 정보 등 추가 필요
+
+
+
 }
