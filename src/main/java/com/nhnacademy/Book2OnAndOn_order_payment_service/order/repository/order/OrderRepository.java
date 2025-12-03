@@ -10,6 +10,10 @@ import com.nhnacademy.Book2OnAndOn_order_payment_service.order.entity.order.*;
 
 @Repository
 public interface OrderRepository extends JpaRepository<Order, Long> {
+    // 1. N+1 해결을 위한 상세 조회 (Order, OrderItems, DeliveryAddress를 Fetch Join)
+    // DTO 변환 시 사용하므로 이들이 N+1 문제의 핵심
+    @Query("SELECT o FROM Order o JOIN FETCH o.orderItems oi JOIN FETCH o.deliveryAddress da WHERE o.orderId = :orderId")
+    Optional<Order> findOrderWithDetails(Long orderId);
     Page<Order> findByUserId(Long userId, Pageable pageable);
 
     // 해당아이디에 해당 주문이 있는지
