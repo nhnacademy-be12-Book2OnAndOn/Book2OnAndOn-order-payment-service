@@ -1,0 +1,206 @@
+### 환경 변수
+@host = http://localhost:10421
+@uuid = guest-1234
+@userId = 1
+
+
+### [GUEST] 장바구니 담기 1건 (bookId=1, qty=1)
+POST {{host}}/cart/guest/items?uuid={{uuid}}
+Content-Type: application/json
+
+{
+  "bookId": 1,
+  "quantity": 1,
+  "selected": true
+}
+
+### [GUEST] 장바구니 담기 1건 (bookId=2, qty=2)
+POST {{host}}/cart/guest/items?uuid={{uuid}}
+Content-Type: application/json
+
+{
+  "bookId": 2,
+  "quantity": 2,
+  "selected": true
+}
+
+### [GUEST] 장바구니 조회
+GET {{host}}/cart/guest?uuid={{uuid}}
+Accept: application/json
+
+### [GUEST] 수량 변경 (bookId=2 → qty=5)
+PATCH {{host}}/cart/guest/items/quantity?uuid={{uuid}}
+Content-Type: application/json
+
+{
+  "bookId": 2,
+  "quantity": 5
+}
+
+### [GUEST] 단건 선택/해제 (bookId=1, selected=false)
+PATCH {{host}}/cart/guest/items/select?uuid={{uuid}}
+Content-Type: application/json
+
+{
+  "bookId": 1,
+  "selected": false
+}
+
+### [GUEST] 전체 선택 (selected=true)
+PATCH {{host}}/cart/guest/items/select-all?uuid={{uuid}}
+Content-Type: application/json
+
+{
+  "selected": true
+}
+
+### [GUEST] 장바구니 전체 삭제 (초기화)
+DELETE {{host}}/cart/guest/items?uuid={{uuid}}
+
+### [GUEST] 단일 아이템 삭제 (bookId=1)
+DELETE {{host}}/cart/guest/items/1?uuid={{uuid}}
+
+### [GUEST] 선택된 아이템 삭제
+DELETE {{host}}/cart/guest/items/selected?uuid={{uuid}}
+
+### [GUEST] 아이콘용 장바구니 개수 조회
+GET {{host}}/cart/guest//items/count?uuid={{uuid}}
+Accept: application/json
+
+
+
+
+
+### [USER] 장바구니 전체 삭제 (초기화)
+DELETE {{host}}/cart/items
+X-User-Id: {{userId}}
+
+### [USER] 장바구니 담기 (bookId=1, qty=2)
+POST {{host}}/cart/items
+X-User-Id: {{userId}}
+Content-Type: application/json
+
+{
+  "bookId": 1,
+  "quantity": 2,
+  "selected": true
+}
+
+### [USER] 장바구니 담기 (bookId=3, qty=1)
+POST {{host}}/cart/items
+X-User-Id: {{userId}}
+Content-Type: application/json
+
+{
+  "bookId": 3,
+  "quantity": 1,
+  "selected": true
+}
+
+### [USER] 장바구니 조회
+GET {{host}}/cart
+X-User-Id: {{userId}}
+Accept: application/json
+
+### [USER] 수량 변경 (bookId=1 → qty=5)
+PATCH {{host}}/cart/items/quantity
+X-User-Id: {{userId}}
+Content-Type: application/json
+
+{
+  "bookId": 1,
+  "quantity": 5
+}
+
+### [USER] 단건 선택/해제 (bookId=3, selected=false)
+PATCH {{host}}/cart/items/select
+X-User-Id: {{userId}}
+Content-Type: application/json
+
+{
+  "bookId": 3,
+  "selected": false
+}
+
+### [USER] 전체 선택 (selected=true)
+PATCH {{host}}/cart/items/select-all
+X-User-Id: {{userId}}
+Content-Type: application/json
+
+{
+  "selected": true
+}
+
+### [USER] 아이콘용 장바구니 개수 조회
+GET {{host}}/cart/items/count
+X-User-Id: {{userId}}
+Accept: application/json
+
+### [USER] 단일 아이템 삭제 (bookId=3)
+DELETE {{host}}/cart/items/3
+X-User-Id: {{userId}}
+
+### [USER] 선택된 아이템 삭제
+DELETE {{host}}/cart/items/selected
+X-User-Id: {{userId}}
+
+### [MERGE] guest 장바구니 초기화
+DELETE {{host}}/cart/guest/items?uuid={{uuid}}
+
+### [MERGE] guest 장바구니에 여러 도서 담기
+POST {{host}}/cart/guest/items?uuid={{uuid}}
+Content-Type: application/json
+
+{
+  "bookId": 1,
+  "quantity": 1,
+  "selected": true
+}
+
+###
+POST {{host}}/cart/guest/items?uuid={{uuid}}
+Content-Type: application/json
+
+{
+  "bookId": 2,
+  "quantity": 3,
+  "selected": true
+}
+
+### [MERGE] user 장바구니 초기화
+DELETE {{host}}/cart/items
+X-User-Id: {{userId}}
+
+### [MERGE] user 장바구니에 bookId=2 미리 담기 (merge 시 수량 합산 확인용)
+POST {{host}}/cart/items
+X-User-Id: {{userId}}
+Content-Type: application/json
+
+{
+  "bookId": 2,
+  "quantity": 2,
+  "selected": true
+}
+
+### [MERGE] guest → user 장바구니 병합
+POST {{host}}/cart/merge
+X-User-Id: {{userId}}
+Content-Type: application/json
+Accept: application/json
+
+{
+  "uuid": "{{uuid}}"
+}
+
+
+### [EXCEPTION] 잘못된 수량 (quantity=0) → INVALID_QUANTITY 기대
+POST {{host}}/cart/items
+X-User-Id: {{userId}}
+Content-Type: application/json
+Accept: application/json
+
+{
+  "bookId": 1,
+  "quantity": 0,
+  "selected": true
+}

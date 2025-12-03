@@ -104,8 +104,19 @@
             <artifactId>h2</artifactId>
         </dependency>
 
-
 		<!-- ### CART ### -->
+        <!--shedLock-->
+        <dependency>
+            <groupId>net.javacrumbs.shedlock</groupId>
+            <artifactId>shedlock-spring</artifactId>
+            <version>5.10.0</version>
+        </dependency>
+
+        <dependency>
+            <groupId>net.javacrumbs.shedlock</groupId>
+            <artifactId>shedlock-provider-redis-spring</artifactId>
+            <version>5.10.0</version>
+        </dependency>
 		<!-- Redis -->
 		<dependency>
 			<groupId>org.springframework.boot</groupId>

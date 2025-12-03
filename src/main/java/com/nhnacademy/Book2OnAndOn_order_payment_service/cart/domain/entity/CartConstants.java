@@ -14,14 +14,20 @@ public final class CartConstants {
     // 재고 부족 표시 임계값
     public static final int LOW_STOCK_THRESHOLD = 10;
 
-    // Redis guest cart TTL(시간 단위)
-    public static final long GUEST_CART_TTL_HOURS = 24L;
+    // Redis guest cart TTL
+    // 1) 비회원 장바구니를 48시간마다 갱신(활동 기반)하는 정책 (비활성 기준, 시간 단위)
+    public static final long GUEST_CART_TTL_HOURS = 48L;
+    // 2) 비회원 장바구니 유지를 최대 7일을 넘기지 않는 만료 정책 (생성 시점 기준, 일 단위)
+    public static final long GUEST_CART_MAX_LIFETIME_DAYS = 7L;
 
     // Redis 키 prefix
     public static final String USER_CART_KEY_PREFIX = "cart:user:";
     public static final String GUEST_CART_KEY_PREFIX  = "cart:guest:";
 
-    // 회원 장바구니 데이터는 일반적인 Key-Value 방식이 아니라, 하나의 Key 안에 여러 필드를 갖는 Hash 형태로 저장됩니다.
+    // Dirty set key (회원 장바구니 write-behind용)
+    public static final String USER_CART_DIRTY_SET_KEY = "cart:user:dirty";
+
+    // 회원 장바구니 데이터는 일반적인 Key-Value 방식이 아니라, 하나의 Key 안에 여러 필드를 갖는 "Hash 형태"로 저장됩니다.
     // - 메인 Key (장바구니 ID): userKey(userId) (예: cart:user:123 = 사용자 ID 123의 장바구니 전체) -> 엔티티_종류 : 식별자 : 필드
     // - 필드 Key (상품 ID): bookId (예: 1, 2, 3...)
     // - 필드 Value (장바구니 항목 정보): CartRedisItem 객체 (수량, 선택 여부)
