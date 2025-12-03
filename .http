@@ -48,14 +48,14 @@ Authorization: Basic {{user_token}}
 ### 3. [GET] 회원 내 주문 목록 조회
 
 GET {{host}}/api/orders?page=0&size=5&sort=orderDatetime,desc
-Authorization: {{user_auth}}
+Authorization: {{user_token}}
 
 
 
 ### 4. [GET] 회원 내 주문 상세 조회
 
 GET {{host}}/api/orders/{{order_id}}
-Authorization: {{user_auth}}
+Authorization: {{user_token}}
 
 
 
@@ -63,7 +63,7 @@ Authorization: {{user_auth}}
 
 PATCH {{host}}/api/orders/{{order_id}}
 Content-Type: application/json
-Authorization: {{user_auth}}
+Authorization: {{user_token}}
 
 {
   "cancelReason": "상품이 필요 없어짐",
@@ -76,4 +76,4 @@ Authorization: {{user_auth}}
 ### 6. [GET] 권한 없음 테스트
 
 GET {{host}}/api/orders/{{order_id}}
-Authorization: {{hacker_auth}}
+Authorization: {{hacker_token }}
