@@ -18,104 +18,112 @@ import org.springframework.web.bind.annotation.*;
 @RequiredArgsConstructor
 public class CartGuestController {
 
+    private static final String GUEST_ID_HEADER = "X-Guest-Id";
+
     private final CartService cartService;
 
     // 1. 비회원 장바구니 조회
-    // GET /cart/guest?guestUuid=xxx
+    // GET /cart/guest?uuid=xxx
     @GetMapping
-    public ResponseEntity<CartItemsResponseDto> getGuestCart(@RequestParam("guestUuid") String guestUuid) {
-        CartItemsResponseDto guestCart = cartService.getGuestCart(guestUuid);
+    public ResponseEntity<CartItemsResponseDto> getGuestCart(
+            @RequestHeader(GUEST_ID_HEADER) String uuid
+    ) {
+        CartItemsResponseDto guestCart = cartService.getGuestCart(uuid);
         return ResponseEntity.ok().body(guestCart);
     }
 
     // 2. 비회원 장바구니 담기
-    // POST /cart/guest/items?guestUuid=xxx
+    // POST /cart/guest/items?uuid=xxx
     @PostMapping("/items")
     public ResponseEntity<Void> addItemToGuestCart(
-            @RequestParam("guestUuid") String guestUuid,
+            @RequestHeader(GUEST_ID_HEADER) String uuid,
             @Valid @RequestBody CartItemRequestDto requestDto
     ) {
-        cartService.addItemToGuestCart(guestUuid, requestDto);
+        cartService.addItemToGuestCart(uuid, requestDto);
         return ResponseEntity.ok().build();
     }
 
     // 3. 비회원 장바구니 수량 변경
-    // PATCH /cart/guest/items/quantity?guestUuid=xxx
+    // PATCH /cart/guest/items/quantity?uuid=xxx
     @PatchMapping("/items/quantity")
     public ResponseEntity<Void> updateGuestItemQuantity(
-            @RequestParam("guestUuid") String guestUuid,
+            @RequestHeader(GUEST_ID_HEADER) String uuid,
             @Valid @RequestBody CartItemQuantityUpdateRequestDto requestDto
     ) {
-        cartService.updateGuestItemQuantity(guestUuid, requestDto);
+        cartService.updateGuestItemQuantity(uuid, requestDto);
         return ResponseEntity.ok().build();
     }
 
     // 4. 비회원 장바구니 단일 아이템 삭제
-    // DELETE /cart/guest/items/{bookId}?guestUuid=xxx
+    // DELETE /cart/guest/items/{bookId}?uuid=xxx
     @DeleteMapping("/items/{bookId}")
     public ResponseEntity<Void> removeItemFromGuestCart(
-            @RequestParam("guestUuid") String guestUuid,
+            @RequestHeader(GUEST_ID_HEADER) String uuid,
             @PathVariable Long bookId
     ) {
         CartItemDeleteRequestDto dto = new CartItemDeleteRequestDto(bookId);
-        cartService.removeItemFromGuestCart(guestUuid, dto);
+        cartService.removeItemFromGuestCart(uuid, dto);
         return ResponseEntity.ok().build();
     }
 
     // 5. 비회원 장바구니 전체 항목 삭제
-    // DELETE /cart/guest/items?guestUuid=xxx
+    // DELETE /cart/guest/items?uuid=xxx
     @DeleteMapping("/items")
-    public ResponseEntity<Void> clearGuestCart(@RequestParam("guestUuid") String guestUuid) {
-        cartService.clearGuestCart(guestUuid);
+    public ResponseEntity<Void> clearGuestCart(
+            @RequestHeader(GUEST_ID_HEADER) String uuid
+    ) {
+        cartService.clearGuestCart(uuid);
         return ResponseEntity.ok().build();
     }
 
     // 6. 비회원 장바구니 "선택된" 항목 삭제
-    // DELETE /cart/guest/items/selected?guestUuid=xxx
+    // DELETE /cart/guest/items/selected?uuid=xxx
     @DeleteMapping("/items/selected")
     public ResponseEntity<Void> deleteSelectedGuestCartItems(
-            @RequestParam("guestUuid") String guestUuid
+            @RequestHeader(GUEST_ID_HEADER) String uuid
     ) {
-        cartService.deleteSelectedGuestCartItem(guestUuid);
+        cartService.deleteSelectedGuestCartItem(uuid);
         return ResponseEntity.ok().build();
     }
 
     // 7. 비회원 장바구니 단건 선택/해제
-    // PATCH /cart/guest/items/select?guestUuid=xxx
+    // PATCH /cart/guest/items/select?uuid=xxx
     @PatchMapping("/items/select")
     public ResponseEntity<Void> selectGuestCartItem(
-            @RequestParam("guestUuid") String guestUuid,
+            @RequestHeader(GUEST_ID_HEADER) String uuid,
             @Valid @RequestBody CartItemSelectRequestDto requestDto
     ) {
-        cartService.selectGuestCartItem(guestUuid, requestDto);
+        cartService.selectGuestCartItem(uuid, requestDto);
         return ResponseEntity.ok().build();
     }
 
     // 8. 비회원 장바구니 전체 선택/해제
-    // PATCH /cart/guest/items/select-all?guestUuid=xxx
+    // PATCH /cart/guest/items/select-all?uuid=xxx
     @PatchMapping("/items/select-all")
     public ResponseEntity<Void> selectAllGuestCartItems(
-            @RequestParam("guestUuid") String guestUuid,
+            @RequestHeader(GUEST_ID_HEADER) String uuid,
             @Valid @RequestBody CartItemSelectAllRequestDto requestDto
     ) {
-        cartService.selectAllGuestCartItems(guestUuid, requestDto);
+        cartService.selectAllGuestCartItems(uuid, requestDto);
         return ResponseEntity.ok().build();
     }
 
     // 9. 아이콘용 장바구니 개수 조회 (비회원)
-    // GET /api/cart/guest/count?guestUuid=xxx
-    @GetMapping("/count")
-    public ResponseEntity<CartItemCountResponseDto> getGuestCartCount(@RequestParam("guestUuid") String guestUuid) {
-        CartItemCountResponseDto guestCartCount = cartService.getGuestCartCount(guestUuid);
+    // GET /api/cart/guest/count?uuid=xxx
+    @GetMapping("/items/count")
+    public ResponseEntity<CartItemCountResponseDto> getGuestCartCount(
+            @RequestHeader(GUEST_ID_HEADER) String uuid
+    ) {
+        CartItemCountResponseDto guestCartCount = cartService.getGuestCartCount(uuid);
         return ResponseEntity.ok().body(guestCartCount);
     }
 
     // 10. 비회원 장바구니 중 "선택된 + 구매 가능한" 항목만 조회 (주문용)
-    @GetMapping("/selected")
+    @GetMapping("/items/selected")
     public ResponseEntity<CartItemsResponseDto> getGuestSelectedCart(
-            @RequestParam("guestUuid") String guestUuid
+            @RequestHeader(GUEST_ID_HEADER) String uuid
     ) {
-        CartItemsResponseDto selectedCart = cartService.getGuestSelectedCart(guestUuid);
+        CartItemsResponseDto selectedCart = cartService.getGuestSelectedCart(uuid);
         return ResponseEntity.ok(selectedCart);
     }
 }
