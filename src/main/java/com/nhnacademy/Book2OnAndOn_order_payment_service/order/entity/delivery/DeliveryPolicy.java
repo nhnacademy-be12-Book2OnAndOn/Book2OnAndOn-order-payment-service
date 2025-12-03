@@ -1,5 +1,6 @@
 package com.nhnacademy.Book2OnAndOn_order_payment_service.order.entity.delivery;
 
+import com.nhnacademy.Book2OnAndOn_order_payment_service.order.dto.delivery.DeliveryPolicyRequestDto;
 import jakarta.persistence.Column;
 import jakarta.persistence.Entity;
 import jakarta.persistence.GeneratedValue;
@@ -38,5 +39,18 @@ public class DeliveryPolicy {
     @Column(name = "free_delivery_threshold")
     @NotNull
     private Integer freeDeliveryThreshold;
-    
+
+    public DeliveryPolicy(String deliveryPolicyName, Integer deliveryFee, Integer freeDeliveryThreshold) {
+        this.deliveryPolicyName = deliveryPolicyName;
+        this.deliveryFee = deliveryFee;
+        this.freeDeliveryThreshold = freeDeliveryThreshold;
+    }
+
+
+    //정책 update
+    public void update(DeliveryPolicyRequestDto requestDto) {
+        this.deliveryPolicyName = requestDto.getDeliveryPolicyName();
+        this.deliveryFee = requestDto.getDeliveryFee();
+        this.freeDeliveryThreshold = requestDto.getFreeDeliveryThreshold();
+    }
 }
