@@ -23,13 +23,15 @@ import com.nhnacademy.Book2OnAndOn_order_payment_service.order.client.BookServic
 import com.nhnacademy.Book2OnAndOn_order_payment_service.order.client.dto.BookOrderResponse;
 import com.nhnacademy.Book2OnAndOn_order_payment_service.order.client.dto.StockDecreaseRequest;
 
+import com.nhnacademy.Book2OnAndOn_order_payment_service.payment.domain.dto.request.PaymentCancelCreateRequest;
+import com.nhnacademy.Book2OnAndOn_order_payment_service.payment.domain.dto.request.PaymentUpdateRefundAmountRequest;
+import com.nhnacademy.Book2OnAndOn_order_payment_service.payment.service.PaymentService;
 import java.util.Map;
 import java.util.Optional;
 import lombok.AllArgsConstructor;
 import lombok.Getter;
 import lombok.RequiredArgsConstructor;
 import org.springframework.data.domain.Page;
-import org.springframework.data.domain.PageImpl;
 import org.springframework.data.domain.Pageable;
 import org.springframework.security.access.AccessDeniedException;
 import org.springframework.security.crypto.password.PasswordEncoder;
@@ -58,7 +60,7 @@ public class OrderService {
     private final DeliveryPolicyRepository deliveryPolicyRepository;
     private final PasswordEncoder passwordEncoder;
     private final BookServiceClient bookServiceClient;
-
+    private final PaymentService paymentService;
 
     // ======================================================================
     // 1. 주문 생성 API
@@ -148,12 +150,11 @@ public class OrderService {
 
     /**
      * [회원/관리자 공통] 주문 상세 정보를 조회
-     * @param userId 조회 권한 검증용 ID (관리자는 null)
      */
     @Transactional(readOnly = true)
     public OrderResponseDto findOrderDetails(Long orderId, Long userId) {
-        // TODO: N+1 문제 해결을 위해 Fetch Join 쿼리 사용 필요
-        Order order = orderRepository.findById(orderId)
+        // N+1 문제 해결을 위해 Fetch Join 쿼리 사용
+        Order order = orderRepository.findOrderWithDetails(orderId)
             .orElseThrow(() -> new OrderNotFoundException(orderId));
         
         // 권한 검증 로직
@@ -193,11 +194,10 @@ public class OrderService {
      */
     @Transactional(readOnly = true)
     public Page<OrderSimpleDto> findOrderList(Long userId, Pageable pageable) {
-        //  findByUserId 메서드가 OrderRepository에 정의되어 있다고 가정
-        // Page<Order> orderPage = orderRepository.findByUserId(userId, pageable);
+        Page<Order> orderPage = orderRepository.findByUserId(userId, pageable);
         
-        // TODO: 임시 데이터 반환 (실제 Repository 호출 필요)
-        return new PageImpl<>(Collections.emptyList(), pageable, 0); 
+        // DTO 반환
+        return orderPage.map(this::convertToOrderSimpleDto);
     }
 
     /**
@@ -205,9 +205,9 @@ public class OrderService {
      */
     @Transactional(readOnly = true)
     public Page<OrderSimpleDto> findAllOrderList(Pageable pageable) {
-        //  OrderRepository.findAll(Pageable pageable) 호출 후 DTO로 변환
-        // TODO: 임시 데이터 반환 (실제 Repository 호출 필요)
-        return new PageImpl<>(Collections.emptyList(), pageable, 0);
+        // DTO 반환
+        Page<Order> orderPage = orderRepository.findAll(pageable);
+        return  orderPage.map(this::convertToOrderSimpleDto);
     }
 
 
@@ -306,14 +306,21 @@ public class OrderService {
      * [DTO 변환] Order 엔티티를 OrderResponseDto로 변환
      */
     private OrderResponseDto convertToOrderResponseDto(Order order) {
-        // TODO: OrderItem, DeliveryAddressInfo 등 연관 관계 DTO 변환 및 합치는 로직 필요
-        // 현재는 필수 필드만 반환
-        
+        // OrderItem, DeliveryAddress 등 연관 관계 DTO 변환 및 합치는 로직
+        // 1. OrderItemDetailDto 리스트 생성 (외부 데이터 조회 필요)
+        List<Long> bookIds = orderItemRepository.findByOrder_OrderId(order.getOrderId()).stream()
+                .map(OrderItem::getBookId) // OrderItem에서 bookId 추출
+                .collect(Collectors.toList());
+        // BookClient를 통해 외부에서 BookTitle 등 정보 조회
+        List<BookOrderResponse> bookInfos = bookServiceClient.getBooksForOrder(bookIds);
+        Map<Long, BookOrderResponse> bookMap = bookInfos.stream()
+                .collect(Collectors.toMap(BookOrderResponse::getBookId, Function.identity()));
+
         // OrderItemDetailDto 리스트는 OrderItem 엔티티를 조회하여 만들어야 함
         List<OrderItemDetailDto> itemDetails = order.getOrderItems().stream()
-            .map(this::convertToOrderItemDetailDto)
-            .collect(Collectors.toList());
-            
+                .map(item -> convertToOrderItemDetailDto(item, bookMap.get(item.getBookId()))) // ⬅️ Map에서 Book 정보 전달
+                .collect(Collectors.toList());
+
         // DeliveryAddressRequestDto는 DeliveryAddress 엔티티를 조회하여 만들어야 함
         DeliveryAddress deliveryAddress = deliveryAddressRepository.findByOrder_OrderId(order.getOrderId()).orElse(null);
         DeliveryAddressRequestDto addressDto = convertToDeliveryAddressRequestDto(deliveryAddress);
@@ -334,6 +341,61 @@ public class OrderService {
             addressDto
         );
     }
+
+    /**
+     * [DTO 변환] Order 엔티티를 OrderSimpleDto로 변환합니다.
+     */
+    private OrderSimpleDto convertToOrderSimpleDto(Order order) {
+        // 1. OrderItem 목록이 있는지 확인
+        if (order.getOrderItems() == null || order.getOrderItems().isEmpty()) {
+            // 주문 항목이 없으면 기본값으로 반환
+            return new OrderSimpleDto(
+                    order.getOrderId(),
+                    order.getOrderNumber(),
+                    order.getOrderStatus(),
+                    order.getOrderDatetime(),
+                    order.getTotalAmount(),
+                    "상품 없음"
+            );
+        }
+
+        // 2. 대표 상품 ID 추출 (첫 번째 OrderItem의 bookId 사용)
+        Long representativeBookId = order.getOrderItems().stream()
+                .findFirst()
+                .map(OrderItem::getBookId)
+                .orElse(null);
+
+        String representativeTitle = "제목 없음";
+
+        if (representativeBookId != null) {
+            try {
+                // 3. FeignClient 호출: BookService에서 해당 도서의 정보만 조회
+                // List<Long>을 받는 API를 사용하므로 Collections.singletonList() 사용
+                List<BookOrderResponse> bookInfos = bookServiceClient.getBooksForOrder(
+                        Collections.singletonList(representativeBookId)
+                );
+
+                // 4. 제목 추출
+                if (!bookInfos.isEmpty()) {
+                    representativeTitle = bookInfos.get(0).getTitle();
+                }
+            } catch (FeignException e) {
+                // 외부 통신 실패 시에도 주문 목록은 볼 수 있도록 예외를 던지지 않고 로그만 남김
+                System.err.println("WARN: Best seller list generation failed due to Feign communication error: " + e.getMessage());
+                representativeTitle = "조회 오류";
+            }
+        }
+
+        // 5. OrderSimpleDto 객체 생성 및 반환
+        return new OrderSimpleDto(
+                order.getOrderId(),
+                order.getOrderNumber(),
+                order.getOrderStatus(),
+                order.getOrderDatetime(),
+                order.getTotalAmount(),
+                representativeTitle // 조회된 제목 사용
+        );
+    }
     
     // ----------------------------------------------------------------------
     // DTO 변환 헬퍼 (OrderResponseDto를 위한 하위 객체 생성)
@@ -342,11 +404,10 @@ public class OrderService {
     /**
      * OrderItem 엔티티를 OrderItemDetailDto로 변환
      */
-    private OrderItemDetailDto convertToOrderItemDetailDto(OrderItem item) {
-        // TODO: BookTitle, WrappingPaperName은 외부 모듈/엔티티에서 조회 필요
-        String bookTitle = "Book Title (lookup needed)";
+    private OrderItemDetailDto convertToOrderItemDetailDto(OrderItem item, BookOrderResponse bookInfo) {
+        String bookTitle = bookInfo != null ? bookInfo.getTitle() : "제목 없음";
         String wrappingPaperName = item.getWrappingPaper() != null ? item.getWrappingPaper().getWrappingPaperName() : null;
-        
+
         return new OrderItemDetailDto(
             item.getOrderItemId(),
             bookTitle,
@@ -523,11 +584,11 @@ public class OrderService {
         return policy.getDeliveryFee();
     }
 
-    boolean existsOrder(String orderNumber, Long userId){
+    public boolean existsOrder(String orderNumber, Long userId){
         return orderRepository.existsByOrderNumberAndUserId(orderNumber, userId);
     }
 
-    Integer getTotalAmount(String orderNumber){
+    public Integer getTotalAmount(String orderNumber){
         return orderRepository.findTotalAmount(orderNumber).orElseThrow(()->new NotFoundOrderException("Not Found Order : " + orderNumber));
     }
 
