@@ -46,5 +46,6 @@ public class DeliveryPolicyService {
         );
 
         deliveryPolicyRepository.save(policy);
+        log.info("배송정책 생성 성공 deliveryPolicyId: {}", policy.getDeliveryPolicyId());
     }
 }
