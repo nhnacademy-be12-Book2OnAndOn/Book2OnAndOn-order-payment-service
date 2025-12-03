@@ -43,7 +43,7 @@ public class OrderItem {
 
     @Column(name = "order_item_quantity", columnDefinition = "TINYINT")
     @NotNull
-    private Byte orderItemQuantity = 1;
+    private Integer orderItemQuantity = 1;
 
     @Column(name = "unit_price")
     @NotNull

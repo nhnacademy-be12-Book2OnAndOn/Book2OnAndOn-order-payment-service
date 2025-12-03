@@ -1,8 +1,10 @@
 package com.nhnacademy.Book2OnAndOn_order_payment_service.order.service;
 
+import com.nhnacademy.Book2OnAndOn_order_payment_service.exception.OrderVerificationException;
 import com.nhnacademy.Book2OnAndOn_order_payment_service.order.dto.order.guest.GuestOrderCreateDto;
 import com.nhnacademy.Book2OnAndOn_order_payment_service.order.dto.order.orderitem.OrderItemDetailDto;
 import com.nhnacademy.Book2OnAndOn_order_payment_service.order.dto.order.orderitem.OrderItemRequestDto;
+import com.nhnacademy.Book2OnAndOn_order_payment_service.order.exception.NotFoundOrderException;
 import com.nhnacademy.Book2OnAndOn_order_payment_service.order.exception.OrderNotFoundException;
 import com.nhnacademy.Book2OnAndOn_order_payment_service.order.entity.order.*;
 import com.nhnacademy.Book2OnAndOn_order_payment_service.order.entity.delivery.*;
@@ -16,11 +18,12 @@ import com.nhnacademy.Book2OnAndOn_order_payment_service.order.repository.order.
 import com.nhnacademy.Book2OnAndOn_order_payment_service.order.repository.order.OrderRepository;
 import com.nhnacademy.Book2OnAndOn_order_payment_service.order.repository.wrapping.WrappingPaperRepository;
 
-// 외부 모듈 관련 (컴파일을 위해 임시 주석 처리)
-// import com.nhnacademy.Book2OnAndOn_order_payment_service.book.repository.BookRepository;
-// import com.nhnacademy.Book2OnAndOn_order_payment_service.book.service.StockService;
-// import com.nhnacademy.Book2OnAndOn_order_payment_service.book.entity.Book;
+// 외부 모듈 관련 FeignClient 및 외부 DTO Import
+import com.nhnacademy.Book2OnAndOn_order_payment_service.order.client.BookServiceClient;
+import com.nhnacademy.Book2OnAndOn_order_payment_service.order.client.dto.BookOrderResponse;
+import com.nhnacademy.Book2OnAndOn_order_payment_service.order.client.dto.StockDecreaseRequest;
 
+import java.util.Map;
 import java.util.Optional;
 import lombok.AllArgsConstructor;
 import lombok.Getter;
@@ -32,6 +35,8 @@ import org.springframework.security.access.AccessDeniedException;
 import org.springframework.security.crypto.password.PasswordEncoder;
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
+import feign.FeignException;
+import java.util.function.Function;
 
 import java.time.LocalDateTime;
 import java.util.Collections;
@@ -52,8 +57,7 @@ public class OrderService {
     private final WrappingPaperRepository wrappingPaperRepository;
     private final DeliveryPolicyRepository deliveryPolicyRepository;
     private final PasswordEncoder passwordEncoder;
-    // private final BookRepository bookRepository;
-    // private final StockService stockService;
+    private final BookServiceClient bookServiceClient;
 
 
     // ======================================================================
@@ -68,13 +72,34 @@ public class OrderService {
         if (request.getOrderItems() == null || request.getOrderItems().isEmpty()) {
             throw new IllegalArgumentException("주문 항목은 반드시 존재해야 합니다.");
         }
-        
         OrderPriceCalculationDto priceDto = calculateOrderPrices(request);
-        Order order = buildAndSaveOrder(request, priceDto);
-        saveOrderItems(request.getOrderItems(), order);
-        saveDeliveryAddress(request.getDeliveryAddress(), order);
+        // 1. 재고 차감 요청 DTO 생성
+        List<StockDecreaseRequest> stockRequests = request.getOrderItems().stream()
+                .map(item -> StockDecreaseRequest.builder()
+                        .bookId(item.getBookId())
+                        .quantity(item.getQuantity())
+                        .build())
+                .collect(Collectors.toList());
+        try {
+            // 2. FeignClient 호출: 재고 차감 요청 (409 Conflict 발생 가능)
+            bookServiceClient.decreaseStock(stockRequests);
 
-        return convertToOrderResponseDto(order);
+            // 3. 성공 시 주문 생성 계속 진행
+            Order order = buildAndSaveOrder(request, priceDto);
+            saveOrderItems(request.getOrderItems(), order, priceDto.getBookMap()); //  saveOrderItems에서는 재고 차감 로직 제거
+            saveDeliveryAddress(request.getDeliveryAddress(), order);
+
+            return convertToOrderResponseDto(order);
+
+        } catch (FeignException e) {
+            // 409 Conflict 예외 처리 (재고 부족)
+            if (e.status() == 409) {
+                throw new IllegalStateException("재고 부족으로 주문에 실패했습니다.");
+            }
+            // 기타 통신 오류 처리
+            throw new RuntimeException("도서 서비스와의 통신 오류가 발생했습니다.", e);
+        }
+
     }
 
     /**
@@ -88,16 +113,32 @@ public class OrderService {
         
         // GuestOrderCreateDto를 OrderCreateRequestDto로 변환하여 로직 재사용
         OrderCreateRequestDto orderRequest = convertToOrderRequest(request);
-        
         OrderPriceCalculationDto priceDto = calculateOrderPrices(orderRequest);
-        Order order = buildAndSaveOrder(orderRequest, priceDto);
-        saveOrderItems(orderRequest.getOrderItems(), order);
-        saveDeliveryAddress(orderRequest.getDeliveryAddress(), order);
-        
-        // 비회원 정보 저장
-        saveGuestOrderInfo(request, order); 
 
-        return convertToOrderResponseDto(order);
+        List<StockDecreaseRequest> stockRequests = orderRequest.getOrderItems().stream()
+                .map(item -> new StockDecreaseRequest(item.getBookId(), item.getQuantity()))
+                .collect(Collectors.toList());
+
+        try {
+            // 2. FeignClient 호출: 재고 차감 요청 (409 Conflict 발생 가능)
+            bookServiceClient.decreaseStock(stockRequests);
+
+            // 3. 성공 시 주문 생성 계속 진행
+            Order order = buildAndSaveOrder(orderRequest, priceDto);
+            saveOrderItems(orderRequest.getOrderItems(), order, priceDto.getBookMap());
+            saveDeliveryAddress(orderRequest.getDeliveryAddress(), order);
+
+            // 비회원 정보 저장
+            saveGuestOrderInfo(request, order);
+
+            return convertToOrderResponseDto(order);
+
+        } catch (FeignException e) {
+            if (e.status() == 409) {
+                throw new IllegalStateException("재고 부족으로 주문에 실패했습니다.");
+            }
+            throw new RuntimeException("도서 서비스 통신 오류가 발생했습니다.", e);
+        }
     }
 
 
@@ -191,8 +232,16 @@ public class OrderService {
         }
         
         order.setOrderStatus(OrderStatus.CANCELED);
-        
-        // TODO: 재고 복구 (stockService.increaseStock) 로직 호출 필요
+
+        // 재고 복구 (increaseStock) 로직 호출
+        List<StockDecreaseRequest> stockRestoreRequests = orderItemRepository.findByOrder_OrderId(orderId).stream()
+                .map(item -> new StockDecreaseRequest(item.getBookId(), item.getOrderItemQuantity()))
+                .collect(Collectors.toList());
+        try{
+            bookServiceClient.increaseStock(stockRestoreRequests);
+        } catch (FeignException e) {
+            throw new RuntimeException("도서 서비스 재고 복구 오류가 발생했습니다.", e);
+        }
         // TODO: 취소 정보를 PaymentInfo 등에 기록하는 로직 추가 필요
         
         return convertToOrderResponseDto(order);
@@ -371,45 +420,40 @@ public class OrderService {
     /**
      * OrderItem 엔티티 리스트를 생성하여 DB에 저장-> 재고 차감
      */
-    private void saveOrderItems(List<OrderItemRequestDto> itemRequests, Order order) {
+    private void saveOrderItems(List<OrderItemRequestDto> itemRequests, Order order, Map<Long, BookOrderResponse> bookMap) {
         for (OrderItemRequestDto itemRequest : itemRequests) {
             
             // 1. 포장지 조회
             WrappingPaper wrappingPaper = itemRequest.getWrappingPaperId() != null ? 
                 wrappingPaperRepository.findById(itemRequest.getWrappingPaperId()).orElse(null) : 
                 null;
-            
+
+            BookOrderResponse book = bookMap.get(itemRequest.getBookId());
+
             // 2. OrderItem 엔티티 생성
             OrderItem orderItem = OrderItem.builder()
                     .order(order)
-                    //.book(book)
-                    .orderItemQuantity((byte) itemRequest.getQuantity())
-                    .unitPrice(10000) // 임시 단가
+                    .bookId(itemRequest.getBookId())
+                    .orderItemQuantity(itemRequest.getQuantity())
+                    .unitPrice(book.getPriceSales()) // 임시 단가
                     .isWrapped(itemRequest.isWrapped())
                     .orderItemStatus(OrderItemStatus.PREPARING)
                     .wrappingPaper(wrappingPaper)
-
-                    //  bookId 필드에 DTO에서 받은 Long 값을 직접 할당 (NOT NULL 제약 만족)
-                    .bookId(itemRequest.getBookId())
-
                     .build();
 
             orderItemRepository.save(orderItem);
-
-            // TODO: 재고 차감 로직 (stockService.decreaseStock) 호출 필요
         }
     }
 
     private void saveDeliveryAddress(DeliveryAddressRequestDto addressRequest, Order order) {
 
-        DeliveryAddress addressInfo = DeliveryAddress.builder() // ⚠ DeliveryAddressInfo가 아닌 DeliveryAddress라고 가정
+        DeliveryAddress addressInfo = DeliveryAddress.builder()
                 .order(order)
                 .deliveryAddress(addressRequest.getDeliveryAddress())
                 .deliveryAddressDetail(addressRequest.getDeliveryAddressDetail())
                 .deliveryMessage(addressRequest.getDeliveryMessage())
                 .recipient(addressRequest.getRecipient())
-                // ⬇️ 🚨 최종 수정: DTO의 Getter를 사용하여 엔티티 필드에 할당합니다.
-                .recipientPhonenumber(addressRequest.getRecipientPhonenumber()) // ️ DTO의 정확한 Getter를 호출해야 합니다.
+                .recipientPhonenumber(addressRequest.getRecipientPhonenumber())
                 .build();
 
         deliveryAddressRepository.save(addressInfo);
@@ -433,15 +477,32 @@ public class OrderService {
         int totalItemPrice = 0;
         int totalWrappingFee = 0;
 
+        // 1. 주문 항목에서 Book ID 리스트 추출
+        List<Long> bookIds = request.getOrderItems().stream()
+                .map(OrderItemRequestDto::getBookId)
+                .collect(Collectors.toList());
+
+        // 2. FeignClient 호출: Book-Service에서 도서 정보 목록 조회
+        List<BookOrderResponse> bookInfos = bookServiceClient.getBooksForOrder(bookIds);
+        Map<Long, BookOrderResponse> bookMap = bookInfos.stream()
+                .collect(Collectors.toMap(BookOrderResponse::getBookId, Function.identity()));
+
+        // 3. 가격 계산 및 포장비 조회
         for (OrderItemRequestDto itemRequest : request.getOrderItems()) {
-            // TODO: 실제 BookRepository에서 가격 정보를 조회해야 함
-            int bookPrice = 10000;
-            totalItemPrice += (bookPrice * itemRequest.getQuantity());
+            BookOrderResponse book = bookMap.get(itemRequest.getBookId());
+            if (book == null) {
+                throw new OrderVerificationException("유효하지 않은 상품 ID가 포함되었습니다: " + itemRequest.getBookId());
+            }
+
+            // 실제 판매가(priceSales)를 사용
+            totalItemPrice += (book.getPriceSales() * itemRequest.getQuantity());
 
             if (itemRequest.isWrapped()) {
-                // TODO: 실제 WrappingPaperRepository에서 가격 정보를 조회해야 함
-                int wrappingPrice = 2000;
-                totalWrappingFee += wrappingPrice;
+                // 실제 WrappingPaperRepository에서 가격 정보 조회
+                WrappingPaper wrappingPaper = wrappingPaperRepository.findById(itemRequest.getWrappingPaperId())
+                        .orElseThrow(() -> new IllegalArgumentException("포장지 가격 조회를 위해 포장지 ID를 찾을 수 없습니다."));
+
+                totalWrappingFee += wrappingPaper.getWrappingPaperPrice();
             }
         }
 
@@ -451,7 +512,7 @@ public class OrderService {
 
         int deliveryFee = calculateDeliveryCost(totalItemPrice, defaultPolicy);
 
-        return new OrderPriceCalculationDto(totalItemPrice, totalWrappingFee, deliveryFee);
+        return new OrderPriceCalculationDto(totalItemPrice, totalWrappingFee, deliveryFee, bookMap);
     }
 
     /**총 상품 가격과 정책 기반 배송비 계산*/
@@ -462,6 +523,14 @@ public class OrderService {
         return policy.getDeliveryFee();
     }
 
+    boolean existsOrder(String orderNumber, Long userId){
+        return orderRepository.existsByOrderNumberAndUserId(orderNumber, userId);
+    }
+
+    Integer getTotalAmount(String orderNumber){
+        return orderRepository.findTotalAmount(orderNumber).orElseThrow(()->new NotFoundOrderException("Not Found Order : " + orderNumber));
+    }
+
     // 이 DTO는 Service 내부에서만 사용
     @Getter
     @AllArgsConstructor
@@ -469,5 +538,6 @@ public class OrderService {
         private final int totalItemPrice;
         private final int totalWrappingFee;
         private final int deliveryFee;
+        private final Map<Long, BookOrderResponse> bookMap;
     }
 }

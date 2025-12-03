@@ -269,7 +269,7 @@ class OrderServiceTest {
 
         // OrderItemMocking (재고 복구 검증을 위해 필요)
         OrderItem orderItem = OrderItem.builder()
-                .orderItemId(1L).orderItemQuantity((byte) 5)
+                .orderItemId(1L).orderItemQuantity(5)
                 .bookId(500L).build(); // bookId와 quantity를 가진 OrderItem 가정
 
         when(orderRepository.findById(TEST_ORDER_ID)).thenReturn(Optional.of(existingOrder));
