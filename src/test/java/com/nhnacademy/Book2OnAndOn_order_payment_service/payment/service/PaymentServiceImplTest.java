@@ -190,7 +190,7 @@ public class PaymentServiceImplTest {
     void updatePayment_ChangePaymentStatus(){
         PaymentCreateRequest req = new PaymentCreateRequest(
                 "testkey",
-                "B20000000005",
+                "B20000000001",
                 10000,
                 "CARD",
                 "TOSS",
