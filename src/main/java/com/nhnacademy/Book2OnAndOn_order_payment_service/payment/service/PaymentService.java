@@ -18,9 +18,7 @@ public interface PaymentService {
     PaymentDeleteResponse deletePayment(PaymentDeleteRequest req);
     PaymentResponse updateRefundAmount(PaymentUpdateRefundAmountRequest req);
     PaymentResponse updatePaymentStatus(PaymentUpdatePaymentStatusRequest req);
-    boolean validateOrderAmount(String orderNumber, Integer amount);
-    boolean validateOrderNumber(String orderNumber, String paymentKey);
-    String getOrderNumber(String paymentKey);
+    String getProvider(String orderNumber);
 
     // 결제 취소
     List<PaymentCancelResponse> createPaymentCancel(PaymentCancelCreateRequest req);

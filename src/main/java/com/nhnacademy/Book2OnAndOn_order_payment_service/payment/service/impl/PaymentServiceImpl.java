@@ -2,6 +2,7 @@ package com.nhnacademy.Book2OnAndOn_order_payment_service.payment.service.impl;
 
 import com.nhnacademy.Book2OnAndOn_order_payment_service.order.exception.NotFoundOrderException;
 import com.nhnacademy.Book2OnAndOn_order_payment_service.order.repository.order.OrderRepository;
+import com.nhnacademy.Book2OnAndOn_order_payment_service.order.service.OrderService;
 import com.nhnacademy.Book2OnAndOn_order_payment_service.payment.domain.dto.api.Cancel;
 import com.nhnacademy.Book2OnAndOn_order_payment_service.payment.domain.dto.request.PaymentCancelCreateRequest;
 import com.nhnacademy.Book2OnAndOn_order_payment_service.payment.domain.dto.request.PaymentCreateRequest;
@@ -37,7 +38,6 @@ public class PaymentServiceImpl implements PaymentService {
 
     private final PaymentRepository paymentRepository;
     private final PaymentCancelRepository paymentCancelRepository;
-    private final OrderRepository orderRepository;
 
     // 주문조회시 결제정보도 출력
     @Override
@@ -105,7 +105,6 @@ public class PaymentServiceImpl implements PaymentService {
     }
 
 
-
     private Payment validateAndGetPayment(String orderNumber, boolean shouldExist){
         Payment payment = paymentRepository.findByOrderNumber(orderNumber);
 
@@ -158,26 +157,11 @@ public class PaymentServiceImpl implements PaymentService {
                 .collect(Collectors.toList());
     }
 
-    // 주문 금액과 결제 금액 검증
-//    @Override
-    public boolean validateOrderAmount(String orderNumber, Integer amount){
-//        Integer totalAmount = orderRepository.getAmount(orderNumber).orElseThrow(() ->
-//                new NotFoundOrderException("Not Found Order : " + orderNumber));
-//        log.info("금액 비교 : totalAmount : {}, amount : {}", totalAmount, amount);
-//        return Objects.equals(totalAmount, amount);
-        return false;
-    }
 
     @Override
-    public boolean validateOrderNumber(String orderNumber, String paymentKey) {
-        return false;
-    }
-
-    @Override
-    public String getOrderNumber(String paymentKey) {
-        String orderNumber = paymentRepository.findOrderNumberByPaymentKey(paymentKey)
-                .orElseThrow(() -> new NotFoundPaymentException("Not Found Payment : " + paymentKey));
-        return "";
+    public String getProvider(String orderNumber) {
+        return paymentRepository.findProviderByOrderNumber(orderNumber)
+                .orElseThrow(() -> new NotFoundPaymentException("Not Found Payment : " + orderNumber));
     }
 
 }

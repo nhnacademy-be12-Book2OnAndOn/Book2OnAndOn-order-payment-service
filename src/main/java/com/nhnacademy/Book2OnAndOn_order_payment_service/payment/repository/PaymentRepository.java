@@ -10,6 +10,6 @@ public interface PaymentRepository extends JpaRepository<Payment, String> {
     // 최초 결제
     Payment findByOrderNumber(String orderNumber);
 
-    @Query("SELECT p.orderNumber FROM Payment p WHERE p.paymentKey = :paymentKey")
-    Optional<String> findOrderNumberByPaymentKey(String paymentKey);
+    @Query("SELECT p.paymentProvider FROM Payment p WHERE p.orderNumber = :orderNumber")
+    Optional<String> findProviderByOrderNumber(String orderNumber);
 }

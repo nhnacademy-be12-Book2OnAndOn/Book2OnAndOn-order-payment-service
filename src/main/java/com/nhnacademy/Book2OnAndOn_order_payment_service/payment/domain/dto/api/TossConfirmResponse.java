@@ -1,6 +1,7 @@
 package com.nhnacademy.Book2OnAndOn_order_payment_service.payment.domain.dto.api;
 
 import com.fasterxml.jackson.annotation.JsonFormat;
+import com.nhnacademy.Book2OnAndOn_order_payment_service.payment.domain.dto.CommonConfirmResponse;
 import java.time.LocalDateTime;
 
 public record TossConfirmResponse(String orderId,
@@ -13,4 +14,17 @@ public record TossConfirmResponse(String orderId,
                                   String paymentKey
 ) {
     public record Receipt(String url){}
+
+    // 공용 응답 변환
+    public CommonConfirmResponse toCommonConfirmResponse(){
+        return new CommonConfirmResponse(
+                this.paymentKey,
+                this.orderId,
+                this.totalAmount,
+                this.method,
+                this.status,
+                this.requestedAt,
+                this.receipt.url
+        );
+    }
 }
