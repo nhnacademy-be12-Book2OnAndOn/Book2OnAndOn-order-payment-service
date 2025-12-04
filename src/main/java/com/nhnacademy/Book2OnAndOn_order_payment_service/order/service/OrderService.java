@@ -23,8 +23,12 @@ import com.nhnacademy.Book2OnAndOn_order_payment_service.order.client.BookServic
 import com.nhnacademy.Book2OnAndOn_order_payment_service.order.client.dto.BookOrderResponse;
 import com.nhnacademy.Book2OnAndOn_order_payment_service.order.client.dto.StockDecreaseRequest;
 
+import com.nhnacademy.Book2OnAndOn_order_payment_service.payment.domain.dto.api.Cancel;
 import com.nhnacademy.Book2OnAndOn_order_payment_service.payment.domain.dto.request.PaymentCancelCreateRequest;
+import com.nhnacademy.Book2OnAndOn_order_payment_service.payment.domain.dto.request.PaymentUpdatePaymentStatusRequest;
 import com.nhnacademy.Book2OnAndOn_order_payment_service.payment.domain.dto.request.PaymentUpdateRefundAmountRequest;
+import com.nhnacademy.Book2OnAndOn_order_payment_service.payment.domain.entity.Payment;
+import com.nhnacademy.Book2OnAndOn_order_payment_service.payment.domain.entity.PaymentStatus;
 import com.nhnacademy.Book2OnAndOn_order_payment_service.payment.service.PaymentService;
 import java.util.Map;
 import java.util.Optional;
@@ -88,7 +92,7 @@ public class OrderService {
 
             // 3. 성공 시 주문 생성 계속 진행
             Order order = buildAndSaveOrder(request, priceDto);
-            saveOrderItems(request.getOrderItems(), order, priceDto.getBookMap()); //  saveOrderItems에서는 재고 차감 로직 제거
+            saveOrderItems(request.getOrderItems(), order, priceDto.getBookMap());
             saveDeliveryAddress(request.getDeliveryAddress(), order);
 
             return convertToOrderResponseDto(order);
@@ -195,8 +199,6 @@ public class OrderService {
     @Transactional(readOnly = true)
     public Page<OrderSimpleDto> findOrderList(Long userId, Pageable pageable) {
         Page<Order> orderPage = orderRepository.findByUserId(userId, pageable);
-        
-        // DTO 반환
         return orderPage.map(this::convertToOrderSimpleDto);
     }
 
@@ -205,18 +207,16 @@ public class OrderService {
      */
     @Transactional(readOnly = true)
     public Page<OrderSimpleDto> findAllOrderList(Pageable pageable) {
-        // DTO 반환
         Page<Order> orderPage = orderRepository.findAll(pageable);
         return  orderPage.map(this::convertToOrderSimpleDto);
     }
-
 
     // ======================================================================
     // 3. 주문 취소 및 관리자 API
     // ======================================================================
 
     /**
-     * [회원] 주문을 취소
+     * [회원] 주문 취소
      */
     @Transactional
     public OrderResponseDto cancelOrder(Long orderId, Long userId, OrderCancelRequestDto request) {
@@ -242,8 +242,9 @@ public class OrderService {
         } catch (FeignException e) {
             throw new RuntimeException("도서 서비스 재고 복구 오류가 발생했습니다.", e);
         }
-        // TODO: 취소 정보를 PaymentInfo 등에 기록하는 로직 추가 필요
-        
+        //  취소 정보를 PaymentInfo 등에 기록하는 로직 추가
+        processPaymentCancellation(order, request);
+
         return convertToOrderResponseDto(order);
     }
 
@@ -279,11 +280,11 @@ public class OrderService {
     // 4. 헬퍼 메서드 및 DTO 변환
     // ======================================================================
 
-    // 주문 상태 변경 (public API 역할, 테스트 대상)
-    // 이 메서드를 통해 테스트 코드가 접근하게 됩니다.
+    // 주문 상태 변경
+    // 이 메서드를 통해 테스트 코드가 접근
     @Transactional
     public void updateOrderStatus(Long orderId, OrderStatus newStatus) {
-        // 내부 헬퍼 메서드를 호출하여 로직을 실행합니다.
+        // 내부 헬퍼 메서드를 호출하여 로직 실행
         updateOrderStatusInternal(orderId, newStatus);
     }
 
@@ -318,7 +319,7 @@ public class OrderService {
 
         // OrderItemDetailDto 리스트는 OrderItem 엔티티를 조회하여 만들어야 함
         List<OrderItemDetailDto> itemDetails = order.getOrderItems().stream()
-                .map(item -> convertToOrderItemDetailDto(item, bookMap.get(item.getBookId()))) // ⬅️ Map에서 Book 정보 전달
+                .map(item -> convertToOrderItemDetailDto(item, bookMap.get(item.getBookId()))) // Map에서 Book 정보 전달
                 .collect(Collectors.toList());
 
         // DeliveryAddressRequestDto는 DeliveryAddress 엔티티를 조회하여 만들어야 함
@@ -337,6 +338,7 @@ public class OrderService {
             order.getWrappingFee(),
             order.getCouponDiscount(),
             order.getPointDiscount(),
+            order.getWantDeliveryDate(),
             itemDetails,
             addressDto
         );
@@ -396,6 +398,48 @@ public class OrderService {
                 representativeTitle // 조회된 제목 사용
         );
     }
+
+    @Transactional
+    protected void processPaymentCancellation(Order order, OrderCancelRequestDto request) {
+
+        String orderNumber = order.getOrderNumber();
+        Integer cancelAmount = order.getTotalAmount(); // 전액 취소 가정
+
+        // 1. Payment 엔티티 조회 (OrderNumber로 조회)
+        // Payment 엔티티를 찾지 못하면 여기서 NotFoundPaymentException 발생
+        // Payment payment = paymentRepository.findByOrderNumber(orderNumber);
+
+        // 2. PaymentCancelCreateRequest DTO 구성 (취소 내역 기록)
+        // Payment 엔티티에서 paymentKey를 가져와야 합니다. (findByOrderNumber 호출 후)
+        String paymentKey = "TOSS_PK_MOCKED"; // TODO: 임시 PaymentKey 교체해야함
+
+        PaymentCancelCreateRequest cancelRequest = new PaymentCancelCreateRequest(
+                paymentKey,
+                PaymentStatus.CANCEL.name(), // 최종 결제 상태
+                List.of(
+                        new Cancel(
+                                cancelAmount, // 취소할 금액
+                                request.getCancelReason(),
+                                LocalDateTime.now()
+                        )
+                )
+        );
+        paymentService.createPaymentCancel(cancelRequest);
+
+        // 3. 환불 금액 업데이트 요청
+        PaymentUpdateRefundAmountRequest refundRequest = new PaymentUpdateRefundAmountRequest(
+                orderNumber,
+                paymentKey
+        );
+        paymentService.updateRefundAmount(refundRequest);
+
+        // 4. 결제 상태 업데이트 요청
+        PaymentUpdatePaymentStatusRequest statusRequest = new PaymentUpdatePaymentStatusRequest(
+                orderNumber,
+                PaymentStatus.CANCEL.name() // 최종 상태를 CANCEL로 설정
+        );
+        paymentService.updatePaymentStatus(statusRequest);
+    }
     
     // ----------------------------------------------------------------------
     // DTO 변환 헬퍼 (OrderResponseDto를 위한 하위 객체 생성)
@@ -430,7 +474,7 @@ public class OrderService {
             info.getDeliveryAddressDetail(),
             info.getDeliveryMessage(),
             info.getRecipient(),
-            "010-0000-0000" // 임시 전화번호
+            info.getRecipientPhonenumber()
         );
     }
 
