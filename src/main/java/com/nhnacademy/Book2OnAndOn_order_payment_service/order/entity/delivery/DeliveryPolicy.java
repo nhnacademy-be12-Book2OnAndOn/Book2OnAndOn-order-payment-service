@@ -21,7 +21,7 @@ import lombok.Setter;
 @NoArgsConstructor(access = AccessLevel.PROTECTED)
 @AllArgsConstructor
 @Builder
-@Table(name = "DeliveryPolicy")
+@Table(name = "delivery_policy")
 public class DeliveryPolicy {
     @Id
     @GeneratedValue(strategy = GenerationType.IDENTITY)
