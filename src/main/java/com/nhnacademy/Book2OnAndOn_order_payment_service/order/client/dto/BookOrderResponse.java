@@ -11,7 +11,7 @@ import lombok.NoArgsConstructor;
 public class BookOrderResponse {
     private Long bookId;
     private String title;
-    private int priceSales; // int로 가정
+    private int priceSales;
     private Integer stockCount;
     // ... (나머지 필드 생략)
 }

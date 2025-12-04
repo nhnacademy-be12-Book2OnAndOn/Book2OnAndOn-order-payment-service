@@ -27,6 +27,7 @@ public interface BookServiceClient {
     @PatchMapping("/internal/books/stock/decrease")
     void decreaseStock(@RequestBody List<StockDecreaseRequest> request);
 
+    //재고 증감 요청
     @PatchMapping("/internal/books/stock/increase")
     void  increaseStock(@RequestBody List<StockDecreaseRequest> request);
 }

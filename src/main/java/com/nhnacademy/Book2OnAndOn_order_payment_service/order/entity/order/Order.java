@@ -76,6 +76,9 @@ public class Order {
     @Column(name = "point_discount")
     private Integer pointDiscount = 0;
 
+    @Column(name = "want_delivery_date")
+    private LocalDateTime wantDeliveryDate;
+
 
     // 양방향 연관관계
     @OneToMany(mappedBy = "order", cascade = CascadeType.ALL, orphanRemoval = true)
