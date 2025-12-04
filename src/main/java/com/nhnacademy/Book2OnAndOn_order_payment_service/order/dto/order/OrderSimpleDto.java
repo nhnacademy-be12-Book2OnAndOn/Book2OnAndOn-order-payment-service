@@ -22,5 +22,5 @@ public class OrderSimpleDto {
     private LocalDateTime orderDatetime;
     private int totalAmount; // 최종 결제 금액
     /** 대표 상품명  */
-    private String representativeBookTitle; 
+//    private String representativeBookTitle;
 }

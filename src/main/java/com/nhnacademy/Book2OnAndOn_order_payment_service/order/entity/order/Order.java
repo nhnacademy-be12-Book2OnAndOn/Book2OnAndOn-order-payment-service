@@ -1,6 +1,7 @@
 package com.nhnacademy.Book2OnAndOn_order_payment_service.order.entity.order;
 
 import com.nhnacademy.Book2OnAndOn_order_payment_service.order.converter.OrderStatusConverter;
+import com.nhnacademy.Book2OnAndOn_order_payment_service.order.dto.order.OrderSimpleDto;
 import com.nhnacademy.Book2OnAndOn_order_payment_service.order.entity.delivery.Delivery;
 import com.nhnacademy.Book2OnAndOn_order_payment_service.order.entity.delivery.DeliveryAddress;
 import com.nhnacademy.Book2OnAndOn_order_payment_service.order.entity.return1.Return;
@@ -44,12 +45,13 @@ public class Order {
     @NotNull
     private Long userId;
 
-    @Column(name = "order_number", unique = true, columnDefinition = "CHAR(12)")
+    @Column(name = "order_number", unique = true, columnDefinition = "CHAR(13)")
     @NotNull
     private String orderNumber;
 
     @Column(name = "order_datatime")
     @NotNull
+    @Builder.Default
     private LocalDateTime orderDatetime = LocalDateTime.now();
 
     @Column(name = "order_status")
@@ -101,5 +103,15 @@ public class Order {
 
     public void updateStatus(OrderStatus status){
         this.orderStatus = status;
+    }
+
+    public OrderSimpleDto toOrderSimpleDto(){
+        return new OrderSimpleDto(
+                this.orderId,
+                this.orderNumber,
+                this.orderStatus,
+                this.orderDatetime,
+                this.totalAmount
+        );
     }
 }

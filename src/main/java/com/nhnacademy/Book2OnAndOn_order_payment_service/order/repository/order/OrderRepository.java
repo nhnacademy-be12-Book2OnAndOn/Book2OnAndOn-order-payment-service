@@ -21,5 +21,8 @@ public interface OrderRepository extends JpaRepository<Order, Long> {
     // 결제 검증용
     @Query("SELECT o.totalAmount FROM Order o WHERE o.orderNumber = :orderNumber")
     Optional<Integer> findTotalAmount(String orderNumber);
+
+    // OrderNumber 존재하는지
+    boolean existsByOrderNumber(String orderNumber);
 }
 

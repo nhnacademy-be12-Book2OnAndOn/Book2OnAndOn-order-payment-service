@@ -14,7 +14,7 @@ public class SmartDeliveryClient {
 
     private final WebClient webClient;
 
-    @Value("${smart-delivery.api-key}")
+//    @Value("${smart-delivery.api-key}")
     private String apiKey; // application.properties에 설정 필요
 
     /**

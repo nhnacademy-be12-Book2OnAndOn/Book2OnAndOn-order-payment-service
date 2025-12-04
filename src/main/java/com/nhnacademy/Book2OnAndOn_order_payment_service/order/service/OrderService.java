@@ -1,6 +1,7 @@
 package com.nhnacademy.Book2OnAndOn_order_payment_service.order.service;
 
 import com.nhnacademy.Book2OnAndOn_order_payment_service.exception.OrderVerificationException;
+import com.nhnacademy.Book2OnAndOn_order_payment_service.order.config.OrderNumberGenerator;
 import com.nhnacademy.Book2OnAndOn_order_payment_service.order.dto.order.guest.GuestOrderCreateDto;
 import com.nhnacademy.Book2OnAndOn_order_payment_service.order.dto.order.orderitem.OrderItemDetailDto;
 import com.nhnacademy.Book2OnAndOn_order_payment_service.order.dto.order.orderitem.OrderItemRequestDto;
@@ -257,7 +258,7 @@ public class OrderService {
         findGuestOrderDetails(orderId, password); 
 
         // 2. 취소 로직 (취소 사유 DTO가 없으므로 임시로 null 사용)
-        return cancelOrder(orderId, null, new OrderCancelRequestDto(null, null, null)); 
+        return cancelOrder(orderId, null, new OrderCancelRequestDto(null, null, null));
     }
     
     /**
@@ -356,8 +357,8 @@ public class OrderService {
                     order.getOrderNumber(),
                     order.getOrderStatus(),
                     order.getOrderDatetime(),
-                    order.getTotalAmount(),
-                    "상품 없음"
+                    order.getTotalAmount()
+//                    "상품 없음"
             );
         }
 
@@ -394,8 +395,8 @@ public class OrderService {
                 order.getOrderNumber(),
                 order.getOrderStatus(),
                 order.getOrderDatetime(),
-                order.getTotalAmount(),
-                representativeTitle // 조회된 제목 사용
+                order.getTotalAmount()
+//                representativeTitle // 조회된 제목 사용
         );
     }
 
@@ -495,8 +496,10 @@ public class OrderService {
     /**
      * Order 엔티티를 생성 -> 초기 상태로 저장
      */
+
+    private final OrderNumberGenerator generator;
     private Order buildAndSaveOrder(OrderCreateRequestDto request, OrderPriceCalculationDto priceDto) {
-        String orderNumber = "B2" + UUID.randomUUID().toString().substring(0, 10).toUpperCase();
+        String orderNumber = generator.generate();
 
         int totalDiscount = request.getCouponDiscountAmount() + request.getPointDiscountAmount();
         
@@ -645,4 +648,8 @@ public class OrderService {
         private final int deliveryFee;
         private final Map<Long, BookOrderResponse> bookMap;
     }
+
+
+    // 새로운 로직
+
 }
