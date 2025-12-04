@@ -21,11 +21,11 @@ public final class CartConstants {
     public static final long GUEST_CART_MAX_LIFETIME_DAYS = 7L;
 
     // Redis 키 prefix
-    public static final String USER_CART_KEY_PREFIX = "cart:user:";
-    public static final String GUEST_CART_KEY_PREFIX  = "cart:guest:";
+    public static final String USER_CART_KEY_PREFIX = "cart-service:user:";
+    public static final String GUEST_CART_KEY_PREFIX  = "cart-service:guest:";
 
     // Dirty set key (회원 장바구니 write-behind용)
-    public static final String USER_CART_DIRTY_SET_KEY = "cart:user:dirty";
+    public static final String USER_CART_DIRTY_SET_KEY = "cart-service:user:dirty";
 
     // 회원 장바구니 데이터는 일반적인 Key-Value 방식이 아니라, 하나의 Key 안에 여러 필드를 갖는 "Hash 형태"로 저장됩니다.
     // - 메인 Key (장바구니 ID): userKey(userId) (예: cart:user:123 = 사용자 ID 123의 장바구니 전체) -> 엔티티_종류 : 식별자 : 필드

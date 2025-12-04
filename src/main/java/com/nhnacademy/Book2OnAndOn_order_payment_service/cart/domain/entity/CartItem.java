@@ -63,12 +63,9 @@ public class CartItem extends BaseTimeEntity {
         this.quantity = newQuantity;
     }
 
-    public void updateSelected(boolean selected) {
-        this.selected = selected;
-    }
-
     private void validateQuantityRange(int quantity) {
-        validate(quantity >= MIN_QUANTITY && quantity <= MAX_QUANTITY, "수량은 최소 " +MIN_QUANTITY+ "개에서 최대 "+MAX_QUANTITY+"개까지 입니다. : " + quantity);
+        validate(quantity >= MIN_QUANTITY && quantity <= MAX_QUANTITY,
+                "수량은 최소 " +MIN_QUANTITY+ "개에서 최대 "+MAX_QUANTITY+"개까지 입니다. : " + quantity);
     }
 
     private void validate(boolean condition, String message) {

@@ -39,7 +39,7 @@ public class CartRedisRepositoryImpl implements CartRedisRepository {
     }
     private String guestKey(String uuid) { return GUEST_CART_KEY_PREFIX + uuid; }
 
-    // 3) 수량(quantity)을 1~99 범위 안으로 강제하는 로직
+    // 3) 수량(quantity)을 min~max 범위 안으로 강제하는 로직
     private int capQuantity(int quantity) {
         return Math.max(MIN_QUANTITY, Math.min(quantity, MAX_QUANTITY));
     }
@@ -52,9 +52,10 @@ public class CartRedisRepositoryImpl implements CartRedisRepository {
             return; // 장바구니 자체가 없음
         }
 
-        // createdAt이 0이면 그냥 TTL만 연장
+        // 현재 시간 및 생성 시간 조회
         long now = System.currentTimeMillis();
         long createdAt = items.values().iterator().next().getCreatedAt();
+        // 절대 수명 검사
         if (createdAt != 0) {
             long maxLifetimeMillis = GUEST_CART_MAX_LIFETIME_DAYS * 24L * 60L * 60L * 1000L;
             if (createdAt + maxLifetimeMillis < now) {
@@ -63,6 +64,7 @@ public class CartRedisRepositoryImpl implements CartRedisRepository {
                 return;
             }
         }
+        // 활동 기반 수명 연장 (createdAt이 0이면 그냥 TTL만 연장)
         redisTemplate.expire(key, Duration.ofHours(GUEST_CART_TTL_HOURS));
     }
 
@@ -70,21 +72,21 @@ public class CartRedisRepositoryImpl implements CartRedisRepository {
     // ======================
     // 1. 회원 장바구니
     // ======================
-    // 1) Redis 캐시에 저장된 회원 장바구니를 한 번에 불러옴
+    // 1) 캐시 조회 : Redis 캐시에 저장된 회원 장바구니를 한 번에 불러옴
     @Override
     public Map<Long, CartRedisItem> getUserCartItems(Long userId) {
         Map<Long, CartRedisItem> map = hashOps().entries(userKey(userId));
         return map != null ? map : Collections.emptyMap(); // 비어있는 불변 Map 객체
     }
 
-    // 2) DB → Redis 캐시로 복사
+    // 2) 캐시 채워넣기 : DB → Redis 캐시로 복사
     @Override
     public void putUserItem(Long userId, CartRedisItem cartRedisItem) {
         if (userId == null || cartRedisItem == null || cartRedisItem.getBookId() == null) {
             throw new IllegalArgumentException("사용자 ID와 장바구니 항목 정보는 반드시 제공되어야 합니다.");
         }
         String key = userKey(userId);
-        cartRedisItem.setQuantity(capQuantity(cartRedisItem.getQuantity()));
+        cartRedisItem.setQuantity(capQuantity(cartRedisItem.getQuantity())); // 수량이 정해진 최대/최소 허용 범위를 벗어나지 않도록
 
         // cart 레벨 createdAt 유지: 기존 아이템이 있으면 createdAt 재사용
         Map<Long, CartRedisItem> existingItems = hashOps().entries(key);
@@ -102,22 +104,25 @@ public class CartRedisRepositoryImpl implements CartRedisRepository {
         hashOps().put(key, cartRedisItem.getBookId(), cartRedisItem);
     }
 
-    // 3) 회원 장바구니를 DB에서 수정(담기, 변경, 삭제)할 때마다 호출
-    @Override
-    public void clearUserCart(Long userId) {
-        redisTemplate.delete(userKey(userId));
-    }
-
+    // 3) 캐시 단일 삭제 : 회원 장바구니에서 특정 상품을 삭제
     @Override
     public void deleteUserCartItem(Long userId, long bookId) {
         hashOps().delete(userKey(userId), bookId);
     }
 
+    // 4) 캐시 무효화 : Merge, flush 후 Redis 캐시 삭제(리셋)
+    @Override
+    public void clearUserCart(Long userId) {
+        redisTemplate.delete(userKey(userId));
+    }
+
+    // 5) Dirty Mark 등록 : 회원 카트 Redis가 수정될 때마다 userId를 “Dirty Set”에 추가
     @Override
     public void markUserCartDirty(Long userId) {
         stringRedisTemplate.opsForSet().add(USER_CART_DIRTY_SET_KEY, String.valueOf(userId));
     }
 
+    // 6) Dirty ID 목록 조회 : Dirty Set에 들어있는 userId에 대해서만 DB flush가 발생. (Scheduler 사용)
     @Override
     public Set<Long> getDirtyUserIds() {
         Set<String> members = stringRedisTemplate.opsForSet().members(USER_CART_DIRTY_SET_KEY);
@@ -129,6 +134,7 @@ public class CartRedisRepositoryImpl implements CartRedisRepository {
                 .collect(Collectors.toSet());
     }
 
+    // 7) Dirty Mark 해제 : flush 완료 후, Dirty Set에서 해당 userId 제거
     @Override
     public void clearUserCartDirty(Long userId) {
         stringRedisTemplate.opsForSet().remove(USER_CART_DIRTY_SET_KEY, String.valueOf(userId));
@@ -207,7 +213,7 @@ public class CartRedisRepositoryImpl implements CartRedisRepository {
         extendGuestTtl(uuid);
     }
 
-    // 5) 전체 삭제 (로그인 후 병합 완료, 주문 완료, 세션/UUID 만료 등..)
+    // 5) 전체 삭제(리셋) (로그인 후 병합 완료, 주문 완료, 세션/UUID 만료 등..)
     @Override
     public void clearGuestCart(String uuid) {
         redisTemplate.delete(guestKey(uuid));

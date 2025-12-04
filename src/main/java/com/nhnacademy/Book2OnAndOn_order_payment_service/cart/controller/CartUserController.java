@@ -6,13 +6,11 @@ import com.nhnacademy.Book2OnAndOn_order_payment_service.cart.domain.dto.request
 import com.nhnacademy.Book2OnAndOn_order_payment_service.cart.domain.dto.request.CartItemSelectAllRequestDto;
 import com.nhnacademy.Book2OnAndOn_order_payment_service.cart.domain.dto.request.CartItemSelectRequestDto;
 import com.nhnacademy.Book2OnAndOn_order_payment_service.cart.domain.dto.response.CartItemCountResponseDto;
-import com.nhnacademy.Book2OnAndOn_order_payment_service.cart.domain.dto.response.CartItemResponseDto;
 import com.nhnacademy.Book2OnAndOn_order_payment_service.cart.domain.dto.response.CartItemsResponseDto;
 import com.nhnacademy.Book2OnAndOn_order_payment_service.cart.domain.dto.response.CartMergeResultResponseDto;
 import com.nhnacademy.Book2OnAndOn_order_payment_service.cart.domain.dto.response.CartMergeStatusResponseDto;
 import com.nhnacademy.Book2OnAndOn_order_payment_service.cart.domain.entity.CartRedisItem;
 import com.nhnacademy.Book2OnAndOn_order_payment_service.cart.repository.CartRedisRepository;
-import com.nhnacademy.Book2OnAndOn_order_payment_service.cart.repository.CartRedisRepositoryImpl;
 import com.nhnacademy.Book2OnAndOn_order_payment_service.cart.service.CartService;
 import jakarta.validation.Valid;
 import java.util.Map;
@@ -55,23 +53,23 @@ public class CartUserController {
     // 3. 회원 장바구니 수량 변경 (절대값 변경; +1/-1는 프론트에서 계산 후 quantity로 전달)
     // PATCH /cart/items/quantity
     @PatchMapping("/items/quantity")
-    public ResponseEntity<Void> updateUserItemQuantity(
+    public ResponseEntity<Void> updateQuantityUserCartItem(
             @RequestHeader(USER_ID_HEADER) Long userId,
             @Valid @RequestBody CartItemQuantityUpdateRequestDto requestDto
     ) {
-        cartService.updateUserItemQuantity(userId, requestDto);
+        cartService.updateQuantityUserCartItem(userId, requestDto);
         return ResponseEntity.ok().build();
     }
 
     // 4. 회원 장바구니 단일 아이템 삭제
     // DELETE /cart/items/{bookId}
     @DeleteMapping("/items/{bookId}")
-    public ResponseEntity<Void> removeItemFromUserCart(
+    public ResponseEntity<Void> deleteUserCartItem(
             @RequestHeader(USER_ID_HEADER) Long userId,
             @PathVariable Long bookId
     ) {
         CartItemDeleteRequestDto dto = new CartItemDeleteRequestDto(bookId);
-        cartService.removeItemFromUserCart(userId, dto);
+        cartService.deleteUserCartItem(userId, dto);
         return ResponseEntity.ok().build();
     }
 
@@ -91,7 +89,7 @@ public class CartUserController {
     public ResponseEntity<Void> deleteSelectedUserCartItems(
             @RequestHeader(USER_ID_HEADER) Long userId
     ) {
-        cartService.deleteSelectedUserCartItem(userId);
+        cartService.deleteSelectedUserCartItems(userId);
         return ResponseEntity.ok().build();
     }
 
@@ -149,6 +147,7 @@ public class CartUserController {
     }
 
     // 12. 머지 체크용
+    // -> 로그인한 사용자가 장바구니 페이지에 들어왔을 때 머지 여부를 물어보는 모달 생성용
     @GetMapping("/merge-status")
     public ResponseEntity<CartMergeStatusResponseDto> getMergeStatus(
             @RequestHeader(USER_ID_HEADER) Long userId,

@@ -76,6 +76,7 @@ public class CartServiceImpl implements CartService {
     }
 
     private void flushSingleUserCart(Long userId) {
+        // 장바구니의 모든 아이템 불러오기
         Map<Long, CartRedisItem> redisItems = cartRedisRepository.getUserCartItems(userId);
 
         // Cart 엔티티 확보 또는 생성
@@ -84,13 +85,13 @@ public class CartServiceImpl implements CartService {
                         Cart.builder().userId(userId).build()
                 ));
 
-        // 기존 CartItem 전부 삭제
+        // DB의 기존 CartItem 전부 삭제 -> 트랜잭션에 의해 삭제와 삽입 사이에 데이터 유실의 위험은 없다.
         List<CartItem> existingItems = cartItemRepository.findByCart(cart);
         if (!existingItems.isEmpty()) {
             cartItemRepository.deleteAllInBatch(existingItems);
         }
 
-        // Redis가 비어있다면, DB도 비운 상태로 끝
+        // Redis가 비어있다면, DB도 비운 상태로 끝 (DB Flush 과정을 안전하게 종료하는 논리)
         if (redisItems == null || redisItems.isEmpty()) {
             cartRedisRepository.clearUserCartDirty(userId);
             return;
@@ -120,7 +121,8 @@ public class CartServiceImpl implements CartService {
     @Override
     @Transactional(readOnly = true)
     public CartItemsResponseDto getUserCart(Long userId) {
-        // 회원 Redis 카트 우선 조회 (로그인 여부와는 별개로, 장바구니 기능이 움직이기 시작하면 Redis에도 데이터가 쌓인다)
+        // 회원 Redis 카트 우선 조회
+        // -> 로그인 여부와는 별개로, 장바구니 기능이 움직이기 시작하면 Redis에도 데이터가 쌓인다
         Map<Long, CartRedisItem> cachedItems = cartRedisRepository.getUserCartItems(userId);
         if (cachedItems != null && !cachedItems.isEmpty()) {
             // 캐시 기반으로 바로 응답 구성
@@ -150,8 +152,8 @@ public class CartServiceImpl implements CartService {
         validateQuantity(requestDto.getQuantity());
 
         Map<Long, CartRedisItem> userItems = cartRedisRepository.getUserCartItems(userId);
-        CartRedisItem existingItem = userItems.get(requestDto.getBookId());
-        boolean isNewItem = (existingItem == null);
+        CartRedisItem item = userItems.get(requestDto.getBookId());
+        boolean isNewItem = (item == null);
 
         if (isNewItem && (userItems.size() >= MAX_CART_SIZE)) {
             throw new CartBusinessException(
@@ -160,7 +162,7 @@ public class CartServiceImpl implements CartService {
             );
         }
 
-        int baseQuantity = (existingItem != null) ? existingItem.getQuantity() : 0;
+        int baseQuantity = (item != null) ? item.getQuantity() : 0;
         int requestedTotal = baseQuantity + requestDto.getQuantity();  // 기존 + 신규
         int capped = capQuantity(requestedTotal);  // 시스템 상한(예: 99) 적용
 
@@ -170,11 +172,11 @@ public class CartServiceImpl implements CartService {
 
         CartRedisItem newItem;
 
-        if (existingItem != null) {
-            existingItem.setQuantity(capped);
-            existingItem.setSelected(requestDto.isSelected());
-            existingItem.touchUpdatedAt();
-            newItem = existingItem;
+        if (item != null) {
+            item.setQuantity(capped);
+            item.setSelected(requestDto.isSelected());
+            item.touchUpdatedAt();
+            newItem = item;
         } else {
             newItem = CartRedisItem.newItem(
                     requestDto.getBookId(),
@@ -187,14 +189,14 @@ public class CartServiceImpl implements CartService {
         cartRedisRepository.markUserCartDirty(userId);
     }
 
-    // 3. 회원 장바구니 내에서 단건 상품 수량 변경
+    // 3. 회원 장바구니 단건 상품 수량 변경
     @Override
-    public void updateUserItemQuantity(Long userId, CartItemQuantityUpdateRequestDto requestDto) {
+    public void updateQuantityUserCartItem(Long userId, CartItemQuantityUpdateRequestDto requestDto) {
         validateQuantity(requestDto.getQuantity());
 
         Map<Long, CartRedisItem> userItems = cartRedisRepository.getUserCartItems(userId);
-        CartRedisItem existingItem = userItems.get(requestDto.getBookId());
-        if (existingItem == null) {
+        CartRedisItem item = userItems.get(requestDto.getBookId());
+        if (item == null) {
             throw new CartItemNotFoundException(
                     CartErrorCode.CART_ITEM_NOT_FOUND,
                     "Cart item을 찾을 수 없습니다. bookId=" + requestDto.getBookId()
@@ -207,54 +209,32 @@ public class CartServiceImpl implements CartService {
         validateBookAvailableForCart(snapshot);
         validateStockForQuantity(snapshot, capped);
 
-        existingItem.setQuantity(capped);
-        existingItem.touchUpdatedAt();
+        item.setQuantity(capped);
+        item.touchUpdatedAt(); // 장바구니 항목이 수정될 때 갱신 시간을 기록
 
-        cartRedisRepository.putUserItem(userId, existingItem);
+        cartRedisRepository.putUserItem(userId, item);
         cartRedisRepository.markUserCartDirty(userId);
     }
 
-    // 4. 회원 장바구니 단건 상품 제거
-    @Override
-    public void removeItemFromUserCart(Long userId, CartItemDeleteRequestDto requestDto) {
-        cartRedisRepository.deleteUserCartItem(userId, requestDto.getBookId());
-        cartRedisRepository.markUserCartDirty(userId);
-    }
-
-    // 5. 회원 장바구니 특정 상품 선택/해제
+    // 4. 회원 장바구니 단건 상품 선택/해제
     @Override
     public void selectUserCartItem(Long userId, CartItemSelectRequestDto requestDto) {
         Map<Long, CartRedisItem> userItems = cartRedisRepository.getUserCartItems(userId);
-        CartRedisItem existingItem = userItems.get(requestDto.getBookId());
-        if (existingItem == null) {
+        CartRedisItem item = userItems.get(requestDto.getBookId());
+        if (item == null) {
             throw new CartItemNotFoundException(
                     CartErrorCode.CART_ITEM_NOT_FOUND,
                     "Cart item을 찾을 수 없습니다. bookId=" + requestDto.getBookId()
             );
         }
 
-        existingItem.setSelected(requestDto.isSelected());
-        existingItem.touchUpdatedAt();
-        cartRedisRepository.putUserItem(userId, existingItem);
+        item.setSelected(requestDto.isSelected());
+        item.touchUpdatedAt();
+        cartRedisRepository.putUserItem(userId, item);
         cartRedisRepository.markUserCartDirty(userId);
     }
 
-    // 6. 회원 장바구니에서 선택된 모든 항목 제거
-    @Override
-    public void deleteSelectedUserCartItem(Long userId) {
-        Map<Long, CartRedisItem> userItems = cartRedisRepository.getUserCartItems(userId);
-        if (userItems == null || userItems.isEmpty()) {
-            return;
-        }
-        for (CartRedisItem item : userItems.values()) {
-            if (item.isSelected()) {
-                cartRedisRepository.deleteUserCartItem(userId, item.getBookId());
-            }
-        }
-        cartRedisRepository.markUserCartDirty(userId);
-    }
-
-    // 7. 회원 장바구니 상품 전체 선택/해제
+    // 5. 회원 장바구니 상품 전체 선택/해제
     @Override
     public void selectAllUserCartItems(Long userId, CartItemSelectAllRequestDto requestDto) {
         Map<Long, CartRedisItem> userItems = cartRedisRepository.getUserCartItems(userId);
@@ -269,12 +249,37 @@ public class CartServiceImpl implements CartService {
         cartRedisRepository.markUserCartDirty(userId);
     }
 
-    // 8. 회원 장바구니 전체 항목 비우기(결제 완료 시)
-    // -> 주문 서비스와 연동하면서 “결제 성공 시 clearGuestCart 호출”로 연결
+    // 6. 회원 장바구니 단건 상품 제거
     @Override
-    public void clearUserCart(Long userId) {
-        cartRedisRepository.clearUserCart(userId); // Redis에서 전체 삭제
-        cartRedisRepository.markUserCartDirty(userId); // DB에서도 비워야 함
+    public void deleteUserCartItem(Long userId, CartItemDeleteRequestDto requestDto) {
+        cartRedisRepository.deleteUserCartItem(userId, requestDto.getBookId());
+        cartRedisRepository.markUserCartDirty(userId);
+    }
+
+    // 7. 회원 장바구니에서 선택된 모든 항목 제거
+    @Override
+    public void deleteSelectedUserCartItems(Long userId) {
+        Map<Long, CartRedisItem> userItems = cartRedisRepository.getUserCartItems(userId);
+        if (userItems == null || userItems.isEmpty()) {
+            return;
+        }
+        for (CartRedisItem item : userItems.values()) {
+            if (item.isSelected()) {
+                cartRedisRepository.deleteUserCartItem(userId, item.getBookId());
+            }
+        }
+        cartRedisRepository.markUserCartDirty(userId);
+    }
+
+    // 8. 회원 장바구니 선택된 항목 조회(주문)
+    @Override
+    @Transactional(readOnly = true)
+    public CartItemsResponseDto getUserSelectedCart(Long userId) {
+        // 1) 회원용 전체 장바구니 먼저 조회 (캐시/DB 로직 재사용)
+        CartItemsResponseDto full = getUserCart(userId);
+
+        // 2) 선택된 항목만 필터링해서 새 DTO 생성
+        return filterSelectedOnly(full);
     }
 
     // 9. 회원 장바구니에 담긴 품목 개수 조회 (헤더 아이콘용)
@@ -295,19 +300,17 @@ public class CartServiceImpl implements CartService {
         return new CartItemCountResponseDto(0,0);
     }
 
-    // 10. 회원 장바구니 선택된 항목 주문
+    // 10. 회원 장바구니 전체 항목 비우기(결제 완료 시)
+    // -> 주문 서비스와 연동하면서 “결제 성공 시 clearGuestCart 호출”로 연결
     @Override
-    @Transactional(readOnly = true)
-    public CartItemsResponseDto getUserSelectedCart(Long userId) {
-        // 1) 회원용 전체 장바구니 먼저 조회 (캐시/DB 로직 재사용)
-        CartItemsResponseDto full = getUserCart(userId);
-
-        // 2) 선택된 항목만 필터링해서 새 DTO 생성
-        return filterSelectedOnly(full);
+    public void clearUserCart(Long userId) {
+        cartRedisRepository.clearUserCart(userId); // Redis에서 전체 삭제
+        cartRedisRepository.markUserCartDirty(userId); // DB에서도 비워야 함
     }
 
+
     // ==========================
-    // 비회원(guest) 장바구니 (Redis + uuid)
+    // 비회원(guest) 장바구니 (Redis)
     // ==========================
     // 1. 비회원 장바구니 전체 목록 조회
     @Override
@@ -352,7 +355,7 @@ public class CartServiceImpl implements CartService {
 
     // 3. 비회원 장바구니 내에서 단건 상품 수량 변경
     @Override
-    public void updateGuestItemQuantity(String uuid, CartItemQuantityUpdateRequestDto requestDto) {
+    public void updateQuantityGuestCartItem(String uuid, CartItemQuantityUpdateRequestDto requestDto) {
         validateQuantity(requestDto.getQuantity());
 
         Map<Long, CartRedisItem> redisItems = cartRedisRepository.getGuestCartItems(uuid);
@@ -376,13 +379,7 @@ public class CartServiceImpl implements CartService {
         cartRedisRepository.putGuestItem(uuid, existing);
     }
 
-    // 4. 비회원 장바구니 단건 상품 제거
-    @Override
-    public void removeItemFromGuestCart(String uuid, CartItemDeleteRequestDto requestDto) {
-        cartRedisRepository.deleteGuestItem(uuid, requestDto.getBookId());
-    }
-
-    // 5. 비회원 장바구니 특정 상품 선택/해제
+    // 4. 비회원 장바구니 단건 상품 선택/해제
     @Override
     public void selectGuestCartItem(String uuid, CartItemSelectRequestDto requestDto) {
         Map<Long, CartRedisItem> redisItems = cartRedisRepository.getGuestCartItems(uuid);
@@ -398,21 +395,7 @@ public class CartServiceImpl implements CartService {
         cartRedisRepository.putGuestItem(uuid, item);
     }
 
-    // 6. 비회원 장바구니 선택된 항목 제거
-    @Override
-    public void deleteSelectedGuestCartItem(String uuid) {
-        Map<Long, CartRedisItem> redisItems = cartRedisRepository.getGuestCartItems(uuid);
-        if (redisItems == null || redisItems.isEmpty()) {
-            return;
-        }
-        for (CartRedisItem item : redisItems.values()) {
-            if (item.isSelected()) {
-                cartRedisRepository.deleteGuestItem(uuid, item.getBookId());
-            }
-        }
-    }
-
-    // 7. 비회원 장바구니 상품 전체 선택/해제
+    // 5. 비회원 장바구니 상품 전체 선택/해제
     @Override
     public void selectAllGuestCartItems(String uuid, CartItemSelectAllRequestDto requestDto) {
         Map<Long, CartRedisItem> redisItems = cartRedisRepository.getGuestCartItems(uuid);
@@ -424,10 +407,32 @@ public class CartServiceImpl implements CartService {
         }
     }
 
-    // 8. 비회원 장바구니 전체 항목 비우기 (로그인 후 병합 완료 시)
+    // 6. 비회원 장바구니 단건 상품 제거
     @Override
-    public void clearGuestCart(String uuid) {
-        cartRedisRepository.clearGuestCart(uuid);
+    public void deleteGuestCartItem(String uuid, CartItemDeleteRequestDto requestDto) {
+        cartRedisRepository.deleteGuestItem(uuid, requestDto.getBookId());
+    }
+
+    // 7. 비회원 장바구니 선택된 항목 제거
+    @Override
+    public void deleteSelectedGuestCartItems(String uuid) {
+        Map<Long, CartRedisItem> redisItems = cartRedisRepository.getGuestCartItems(uuid);
+        if (redisItems == null || redisItems.isEmpty()) {
+            return;
+        }
+        for (CartRedisItem item : redisItems.values()) {
+            if (item.isSelected()) {
+                cartRedisRepository.deleteGuestItem(uuid, item.getBookId());
+            }
+        }
+    }
+
+    // 8. 비회원 장바구니 선택된 항목 조회(주문)
+    @Override
+    @Transactional(readOnly = true)
+    public CartItemsResponseDto getGuestSelectedCart(String uuid) {
+        CartItemsResponseDto full = getGuestCart(uuid);
+        return filterSelectedOnly(full);
     }
 
     // 9. 비회원 장바구니의 품목 개수 조회
@@ -447,21 +452,22 @@ public class CartServiceImpl implements CartService {
         return new CartItemCountResponseDto(itemCount, totalQuantity);
     }
 
-    // 10. 비회원 장바구니 선택된 항목 주문
+    // 10. 비회원 장바구니 전체 항목 비우기 (로그인 후 병합 완료 시)
     @Override
-    @Transactional(readOnly = true)
-    public CartItemsResponseDto getGuestSelectedCart(String uuid) {
-        CartItemsResponseDto full = getGuestCart(uuid);
-        return filterSelectedOnly(full);
+    public void clearGuestCart(String uuid) {
+        cartRedisRepository.clearGuestCart(uuid);
     }
+
 
     // ==========================
     // guest(uuid) → user(DB) 병합(Merge)
     // ==========================
+
     // 1. 비회원 장바구니 데이터를 회원 장바구니(DB)로 병합 처리 (localStorage의 uuid + 로그인 후 userId)
     @Override
     public CartMergeResultResponseDto mergeGuestCartToUserCart(Long userId, String uuid) {
 
+        // 1) 비회원 장바구니 조회 및 예외 처리
         Map<Long, CartRedisItem> guestItems = cartRedisRepository.getGuestCartItems(uuid);
 
         if (guestItems == null || guestItems.isEmpty()) {
@@ -474,11 +480,11 @@ public class CartServiceImpl implements CartService {
             );
         }
 
-        // 1) guest 도서 상태 스냅샷
+        // 2) 비회원 장바구니의 상품 상태 스냅샷
         List<Long> guestBookIds = new ArrayList<>(guestItems.keySet());
         Map<Long, BookSnapshot> guestSnapshotMap = bookServiceClient.getBookSnapshots(guestBookIds);
 
-        // 2) 회원 카트 및 기존 아이템 조회
+        // 3) 회원 카트 및 기존 아이템 조회
         Cart userCart = getOrCreateCart(userId);
         List<CartItem> userItems = cartItemRepository.findByCart(userCart);
         Map<Long, CartItem> userItemMap = userItems.stream()
@@ -490,21 +496,23 @@ public class CartServiceImpl implements CartService {
         List<MergeIssueItemDto> unavailableItems = new ArrayList<>();
         List<MergeIssueItemDto> failedToMergeItems = new ArrayList<>();
 
+        // 4) 비회원 장바구니의 각 아이템(guestItem)을 순회하며 회원 장바구니(userCart)에 반영
+        // -> 최대 장바구니 항목 개수가 max_size로 제한되므로 for문으로도 충분히 커버 가능
         for (Map.Entry<Long, CartRedisItem> entry : guestItems.entrySet()) {
             Long bookId = entry.getKey();
             CartRedisItem guestItem = entry.getValue();
-            int guestQuantity = guestItem.getQuantity();
+            int guestQuantity = guestItem.getQuantity(); // 수량 계산
 
             CartItem userItem = userItemMap.get(bookId);
             int originalUserQuantity = (userItem != null) ? userItem.getQuantity() : 0;
 
             int requestedMergedQuantity = originalUserQuantity + guestQuantity;
-            int finalMergedQuantity = Math.min(requestedMergedQuantity, MAX_QUANTITY);
+            int finalMergedQuantity = Math.min(requestedMergedQuantity, MAX_QUANTITY); // 최종 수량 결정
 
             BookSnapshot snapshot = guestSnapshotMap.get(bookId);
             boolean isUnavailable = isBookUnavailable(snapshot); // 품절/삭제/판매종료/숨김 등
 
-            // 2-1) 장바구니 최대 품목 수 체크 (새로 들어오는 bookId만 품목 수 증가)
+            // 4-1) 장바구니 최대 품목 수 체크 (새로 들어오는 bookId만 품목 수 증가)
             boolean isNewItem = (userItem == null);
             if (isNewItem && currentDistinctCount >= MAX_CART_SIZE) {
                 // 용량 제한으로 아예 담을 수 없는 경우 → failedToMerge 목록에 기록
@@ -521,7 +529,7 @@ public class CartServiceImpl implements CartService {
                 continue;
             }
 
-            // 2-2) 최대 수량 초과 이슈 기록
+            // 4-2) 재고 초과 이슈 기록
             MergeIssueReason quantityIssueReason = null;
 
             if (snapshot != null && snapshot.getStockCount() > 0) {
@@ -534,13 +542,13 @@ public class CartServiceImpl implements CartService {
                     quantityIssueReason = MergeIssueReason.EXCEEDED_MAX_QUANTITY;
                 }
             } else {
-                // 재고 정보 없거나, 품절/판매종료 등인 경우에는
-                // MAX_QUANTITY만 적용하고, STOCK_LIMIT_EXCEEDED는 의미 없음.
+                // 재고 정보 없거나, 품절/판매종료 등인 경우
+                // -> MAX_QUANTITY만 적용하고, STOCK_LIMIT_EXCEEDED는 의미 없음.
                 if (requestedMergedQuantity > MAX_QUANTITY) {
                     quantityIssueReason = MergeIssueReason.EXCEEDED_MAX_QUANTITY;
                 }
             }
-            // 이후에 한 번만 push
+            // 이후에 한 번만 push (둘 중 하나의 이슈만 등록하기 위함)
             if (quantityIssueReason != null) {
                 exceededMaxQuantityItems.add(
                         new MergeIssueItemDto(
@@ -553,7 +561,20 @@ public class CartServiceImpl implements CartService {
                 );
             }
 
-            // 2-2) Cart에 최종 수량 반영 (정상/품절 모두 동일하게 처리)
+            // 4-2) 최대 수량 초과 이슈 기록
+//            if (requestedMergedQuantity > MAX_QUANTITY) {
+//                exceededMaxQuantityItems.add(
+//                        new MergeIssueItemDto(
+//                                bookId,
+//                                guestQuantity,
+//                                originalUserQuantity,
+//                                finalMergedQuantity,
+//                                MergeIssueReason.EXCEEDED_MAX_QUANTITY
+//                        )
+//                );
+//            }
+
+            // 4-3) Cart에 최종 수량 반영 (정상/품절 모두 동일하게 처리)
             if (userItem != null) {
                 userItem.updateQuantity(finalMergedQuantity);
             } else {
@@ -568,20 +589,7 @@ public class CartServiceImpl implements CartService {
                 currentDistinctCount++; // 신규 품목 추가
             }
 
-            // 2-3) 최대 수량 초과 이슈 기록
-//            if (requestedMergedQuantity > MAX_QUANTITY) {
-//                exceededMaxQuantityItems.add(
-//                        new MergeIssueItemDto(
-//                                bookId,
-//                                guestQuantity,
-//                                originalUserQuantity,
-//                                finalMergedQuantity,
-//                                MergeIssueReason.EXCEEDED_MAX_QUANTITY
-//                        )
-//                );
-//            }
-
-            // 2-4) 구매 불가 이슈 기록 (Cart에는 들어간 상태지만, 조회 시 available=false 처리됨)
+            // 4-4) 구매 불가 이슈 기록 (Cart에는 들어간 상태지만, 조회 시 available=false 처리됨)
             if (isUnavailable) {
                 unavailableItems.add(
                         new MergeIssueItemDto(
@@ -595,15 +603,15 @@ public class CartServiceImpl implements CartService {
             }
         }
 
-        // 3) guest cart 삭제
+        // 5) guest cart 삭제
         cartRedisRepository.clearGuestCart(uuid);
 
-        // 4) merge 이후 user 장바구니 응답 구성
+        // 6) merge 이후 user 장바구니 응답 구성
         List<CartItem> mergedItems = cartItemRepository.findByCart(userCart);
         CartItemsResponseDto mergedCartDto = buildCartItemsResponse(mergedItems);
         List<CartItemResponseDto> mergedItemDtos = mergedCartDto.getItems();
 
-        // 5) merge 후 회원 캐시 무효화 (다음 조회 시 DB → Redis 재적재)
+        // 7) merge 후 회원 캐시 무효화 (다음 조회 시 DB → Redis 재적재)
         cartRedisRepository.clearUserCart(userId);
 
         return new CartMergeResultResponseDto(
@@ -618,8 +626,11 @@ public class CartServiceImpl implements CartService {
     // ==========================
     // 내부 유틸 메서드들
     // ==========================
+
     // 1. 선택 + 구매 가능(available=true) 아이템만 필터
     private CartItemsResponseDto filterSelectedOnly(CartItemsResponseDto responseDto) {
+
+        // 1) 초기 예외 처리 및 필터
         if (responseDto == null || responseDto.getItems() == null || responseDto.getItems().isEmpty()) {
             return new CartItemsResponseDto(
                     Collections.emptyList(),
@@ -631,12 +642,12 @@ public class CartServiceImpl implements CartService {
             );
         }
 
-        // 1) 선택 + 구매 가능(available=true) 아이템만 필터
+        // 2) 선택 + 구매 가능(available=true) 아이템만 필터
+        // -> 필터링을 통과한 selectedItems만을 기준으로 장바구니의 합계 금액을 새로 계산
         List<CartItemResponseDto> selectedItems = responseDto.getItems().stream()
                 .filter(CartItemResponseDto::isSelected)
                 .filter(CartItemResponseDto::isAvailable) // 품절/삭제/판매종료 제외
                 .collect(Collectors.toList());
-
         if (selectedItems.isEmpty()) {
             return new CartItemsResponseDto(
                     Collections.emptyList(),
@@ -648,16 +659,14 @@ public class CartServiceImpl implements CartService {
             );
         }
 
-        // 2) 합계 다시 계산
+        // 3) 합계 다시 계산
         int totalItemCount = selectedItems.size();
         int totalQuantity = selectedItems.stream()
                 .mapToInt(CartItemResponseDto::getQuantity)
                 .sum();
-
         int totalPrice = selectedItems.stream()
                 .mapToInt(item -> item.getPrice() * item.getQuantity())
                 .sum();
-
         // selected 계열은 "전체=선택"으로 간주
         int selectedQuantity = totalQuantity;
         int selectedTotalPrice = totalPrice;
@@ -672,14 +681,16 @@ public class CartServiceImpl implements CartService {
         );
     }
 
-    // 2. DB 결과를 Redis에 싱크(캐시 warm-up)
+    // 2. DB 결과를 Redis에 싱크
     private void syncUserCartCache(Long userId, List<CartItem> cartItems) {
+
         // 1) 기존 캐시 삭제 후, DB 값으로 다시 채워 넣기 (Cache Invalidation)
         cartRedisRepository.clearUserCart(userId);
         if (cartItems == null || cartItems.isEmpty()) {
             return;
         }
-        // 2) 조회 결과를 Redis 캐시에 적재 (write-through 초기화)
+
+        // 2) 조회 결과를 Redis 캐시에 적재
         for (CartItem item : cartItems) {
             long updatedAt = (item.getUpdatedAt() != null)
                     ? item.getUpdatedAt().toInstant(ZoneOffset.UTC).toEpochMilli()
@@ -721,15 +732,17 @@ public class CartServiceImpl implements CartService {
         }
     }
 
-    // 4-2. 요청 수량을 MIN_QUANTITY와 MAX_QUANTITY 범위 내로 강제 조정하여 반환
+    // 4-2. 요청 수량을 MIN_QUANTITY와 MAX_QUANTITY 범위 내로 "강제" 조정하여 반환
     private int capQuantity(int quantity) {
         return Math.max(MIN_QUANTITY, Math.min(quantity, MAX_QUANTITY));
     }
 
-    // 4-3. 외부 서비스에서 도서 ID에 대한 최신 스냅샷(가격, 재고 등)을 조회하고 반환
+    // 4-3. 도서 ID에 대한 최신 스냅샷(가격, 재고 등)을 조회하고 반환
     private BookSnapshot requireBookSnapshot(Long bookId) {
+        // “이 리스트는 그냥 전달만 하고 수정되지 않아야 한다”는 의도가 보장되어야 하기 때문에 singletonList 사용
         Map<Long, BookSnapshot> map =
-                bookServiceClient.getBookSnapshots(Collections.singletonList(bookId)); // “이 리스트는 그냥 전달만 하고 수정되지 않아야 한다”는 의도가 보장되어야 하기 때문에 singletonList 사용
+                bookServiceClient.getBookSnapshots(Collections.singletonList(bookId));
+
         BookSnapshot snapshot = map.get(bookId);
         if (snapshot == null) {
             throw new CartBusinessException(
@@ -785,9 +798,11 @@ public class CartServiceImpl implements CartService {
     }
 
     // ===== 응답 DTO(CartItemsResponseDto) 빌더 =====
+
     // 1. DB 결과 기반 응답 DTO
     // -> DB (CartItem) 결과를 기반으로 최신 스냅샷(가격, 재고) 정보를 포함한 최종 응답 DTO를 구성
     private CartItemsResponseDto buildCartItemsResponse(List<CartItem> items) {
+
         // 0) 배송 정책 조회
 //        int baseDeliveryFee = deliveryPolicyService.getDeliveryFee();
 //        int freeDeliveryThreshold = deliveryPolicyService.getFreeDeliveryThreshold();
@@ -873,7 +888,7 @@ public class CartServiceImpl implements CartService {
         // 6) 배송비 및 최종 결제 금액 계산
 //        int deliveryFeeApplied = 0;
 //        if (selectedTotalPrice > 0 && selectedTotalPrice < freeDeliveryThreshold) {
-            // 선택된 상품 금액이 무료배송 기준 미만이면 배송비 부과
+//            // 선택된 상품 금액이 무료배송 기준 미만이면 배송비 부과
 //            deliveryFeeApplied = baseDeliveryFee;
 //        }
 //        int finalPaymentAmount = selectedTotalPrice + deliveryFeeApplied;
