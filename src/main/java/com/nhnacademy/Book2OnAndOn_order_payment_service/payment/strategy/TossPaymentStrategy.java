@@ -48,7 +48,7 @@ public class TossPaymentStrategy implements PaymentStrategy{
         Integer totalAmount = orderService.getTotalAmount(req.orderId());
 
         // 금액 검증
-        if(Objects.equals(totalAmount, req.amount())){
+        if(!Objects.equals(totalAmount, req.amount())){
             log.error("결제금액과 주문금액이 같지 않습니다");
             throw new AmountMismatchException("결제 금액과 주문금액이 같지 않습니다");
         }

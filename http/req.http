@@ -1,5 +1,5 @@
 ### 결제 취소 test
-POST http://localhost:8080/payment/cancel?orderNumber=B20000000011
+POST http://localhost:10421/payment/cancel?orderNumber=B20000000011
 Content-Type: application/json
 X-User-ID:1
 
