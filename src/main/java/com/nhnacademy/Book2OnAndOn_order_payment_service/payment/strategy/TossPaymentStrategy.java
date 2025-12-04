@@ -1,5 +1,6 @@
 package com.nhnacademy.Book2OnAndOn_order_payment_service.payment.strategy;
 
+import com.nhnacademy.Book2OnAndOn_order_payment_service.order.service.OrderService;
 import com.nhnacademy.Book2OnAndOn_order_payment_service.payment.client.TossPaymentsApiClient;
 import com.nhnacademy.Book2OnAndOn_order_payment_service.payment.domain.dto.CommonCancelRequest;
 import com.nhnacademy.Book2OnAndOn_order_payment_service.payment.domain.dto.CommonCancelResponse;
@@ -18,6 +19,7 @@ import java.nio.charset.StandardCharsets;
 import java.util.Base64;
 import java.util.List;
 
+import java.util.Objects;
 import lombok.RequiredArgsConstructor;
 import lombok.extern.slf4j.Slf4j;
 import org.springframework.stereotype.Component;
@@ -28,6 +30,7 @@ import org.springframework.stereotype.Component;
 public class TossPaymentStrategy implements PaymentStrategy{
 
     private final PaymentService paymentService;
+    private final OrderService orderService;
     private final TossPaymentsApiClient tossPaymentsApiClient;
     private final TossPaymentsProperties properties;
 
@@ -37,50 +40,37 @@ public class TossPaymentStrategy implements PaymentStrategy{
     }
 
     @Override
-    public CommonConfirmResponse confirmAndProcessPayment(CommonConfirmRequest confirmRequest) {
-        String orderId = confirmRequest.orderId();
-        String paymentKey = confirmRequest.paymentKey();
-        Integer amount = confirmRequest.amount();
+    public CommonConfirmResponse confirmAndProcessPayment(CommonConfirmRequest req) {
+        log.info("토스 결제 승인 시작\norderId : {}\npaymentKey : {}\namount : {}", req.orderId(), req.paymentKey(), req.amount());
         // 보안 헤더 생성
         String authorization = buildAuthorizationHeader();
+
+        Integer totalAmount = orderService.getTotalAmount(req.orderId());
+
         // 금액 검증
-        if(!paymentService.validateOrderAmount(orderId, amount)){
+        if(Objects.equals(totalAmount, req.amount())){
             log.error("결제금액과 주문금액이 같지 않습니다");
             throw new AmountMismatchException("결제 금액과 주문금액이 같지 않습니다");
         }
 
-        log.info("토스 결제 승인 시작\norderId : {}\npaymentKey : {}\namount : {}",
-                orderId, paymentKey, amount);
-
         // 공통 요청 -> 토스 승인 요청 변환
-        TossConfirmRequest req = new TossConfirmRequest(orderId, paymentKey, amount);
+        TossConfirmRequest tossConfirmRequest = req.toTossConfirmRequest();
 
         // API 호출
         log.info("Toss Payments API 승인 요청");
-        TossConfirmResponse tossConfirmResponse = tossPaymentsApiClient.confirmPayment(authorization, req);
+        TossConfirmResponse tossConfirmResponse = tossPaymentsApiClient.confirmPayment(authorization, tossConfirmRequest);
         log.info("Toss Payments API 승인 성공");
 
-
         // 결제사 응답값 -> 공용 db 처리
-        return new CommonConfirmResponse(
-                tossConfirmResponse.paymentKey(),
-                tossConfirmResponse.orderId(),
-                tossConfirmResponse.totalAmount(),
-                tossConfirmResponse.method(),
-                tossConfirmResponse.status(),
-                tossConfirmResponse.requestedAt(),
-                tossConfirmResponse.receipt().url()
-        );
+        return tossConfirmResponse.toCommonConfirmResponse();
     }
 
     @Override
     public CommonCancelResponse cancelPayment(CommonCancelRequest req, String orderNumber) {
         log.info("토스 결제 취소 시작 : (paymentKey : {}, orderNumber : {}, cancelReason : {}, cancelAmount : {})", req.paymentKey(), orderNumber, req.cancelReason(), req.cancelAmount());
 
-//        String orderNumber = paymentService.getOrderNumber(req.paymentKey());
-
         String authorization = buildAuthorizationHeader();
-        TossCancelRequest cancelRequest = new TossCancelRequest(req.cancelReason(), req.cancelAmount());
+        TossCancelRequest cancelRequest = req.toTossCancelRequest();
         TossCancelResponse cancelResponse = tossPaymentsApiClient.cancelPayment(authorization, req.paymentKey(), cancelRequest);
 
         // 결제 취소시 결제 상태 변경
@@ -92,9 +82,7 @@ public class TossPaymentStrategy implements PaymentStrategy{
 
         // TODO 이벤트 핸들러 작성
 
-        return new CommonCancelResponse(cancelResponse.paymentKey(),
-                                        cancelResponse.status(),
-                                        cancelResponse.cancels());
+        return cancelResponse.toCommonCancelResponse();
     }
 
     private String buildAuthorizationHeader(){

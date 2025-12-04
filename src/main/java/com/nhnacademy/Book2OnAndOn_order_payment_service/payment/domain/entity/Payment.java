@@ -35,6 +35,7 @@ public class Payment {
     private Integer totalAmount;
 
     @Column(name = "payment_method")
+    @Enumerated(value = EnumType.STRING)
     @NotNull
     private PaymentMethod paymentMethod;
 

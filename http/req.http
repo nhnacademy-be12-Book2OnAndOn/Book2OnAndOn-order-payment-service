@@ -1,0 +1,9 @@
+### 결제 취소 test
+POST http://localhost:8080/payment/cancel?orderNumber=B20000000011
+Content-Type: application/json
+X-User-ID:1
+
+{
+  "paymentKey": "tviva20251203172029n3Pl5",
+  "cancelReason": "test"
+}

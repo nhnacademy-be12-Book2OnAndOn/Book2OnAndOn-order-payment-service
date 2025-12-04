@@ -25,17 +25,14 @@ public interface CartItemRepository extends JpaRepository<CartItem, Long> {
 
     // 4. 장바구니 안의 특정 아이템 1개를 삭제
     @Modifying
-//    @Transactional
     void deleteByCartAndBookId(Cart cart, Long bookId);
 
     // 5. 선택된 모든 아이템 삭제
     @Modifying
-//    @Transactional
     void deleteByCartAndSelectedTrue(Cart cart);
 
     // 6. 전체 선택/해제 bulk update
     @Modifying(clearAutomatically = true, flushAutomatically = true)
-//    @Transactional
     @Query("update CartItem ci set ci.selected = :selected where ci.cart = :cart")
     void updateSelectedAllByCart(@Param("cart") Cart cart,
                                  @Param("selected") boolean selected);

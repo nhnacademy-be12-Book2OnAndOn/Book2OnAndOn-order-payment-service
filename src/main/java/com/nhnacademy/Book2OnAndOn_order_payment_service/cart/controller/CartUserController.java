@@ -5,24 +5,31 @@ import com.nhnacademy.Book2OnAndOn_order_payment_service.cart.domain.dto.request
 import com.nhnacademy.Book2OnAndOn_order_payment_service.cart.domain.dto.request.CartItemRequestDto;
 import com.nhnacademy.Book2OnAndOn_order_payment_service.cart.domain.dto.request.CartItemSelectAllRequestDto;
 import com.nhnacademy.Book2OnAndOn_order_payment_service.cart.domain.dto.request.CartItemSelectRequestDto;
-import com.nhnacademy.Book2OnAndOn_order_payment_service.cart.domain.dto.request.CartMergeRequestDto;
 import com.nhnacademy.Book2OnAndOn_order_payment_service.cart.domain.dto.response.CartItemCountResponseDto;
+import com.nhnacademy.Book2OnAndOn_order_payment_service.cart.domain.dto.response.CartItemResponseDto;
 import com.nhnacademy.Book2OnAndOn_order_payment_service.cart.domain.dto.response.CartItemsResponseDto;
 import com.nhnacademy.Book2OnAndOn_order_payment_service.cart.domain.dto.response.CartMergeResultResponseDto;
+import com.nhnacademy.Book2OnAndOn_order_payment_service.cart.domain.dto.response.CartMergeStatusResponseDto;
+import com.nhnacademy.Book2OnAndOn_order_payment_service.cart.domain.entity.CartRedisItem;
+import com.nhnacademy.Book2OnAndOn_order_payment_service.cart.repository.CartRedisRepository;
+import com.nhnacademy.Book2OnAndOn_order_payment_service.cart.repository.CartRedisRepositoryImpl;
 import com.nhnacademy.Book2OnAndOn_order_payment_service.cart.service.CartService;
 import jakarta.validation.Valid;
+import java.util.Map;
 import lombok.RequiredArgsConstructor;
 import org.springframework.http.ResponseEntity;
 import org.springframework.web.bind.annotation.*;
 
 @RestController
-@RequestMapping("/cart")
+@RequestMapping("/cart/user")
 @RequiredArgsConstructor
 public class CartUserController {
 
-    private static final String USER_ID_HEADER = "X-USER-ID";
+    private static final String USER_ID_HEADER = "X-User-Id";
+    private static final String GUEST_ID_HEADER = "X-Guest-Id";
 
     private final CartService cartService;
+    private final CartRedisRepository cartRedisRepository;
 
     // 1. 회원 장바구니 조회
     // GET /cart
@@ -111,8 +118,8 @@ public class CartUserController {
     }
 
     // 9. 아이콘용 장바구니 개수 조회 (회원)
-    // GET /cart/count
-    @GetMapping("/count")
+    // GET /cart/items/count
+    @GetMapping("/items/count")
     public ResponseEntity<CartItemCountResponseDto> getUserCartCount(
             @RequestHeader(USER_ID_HEADER) Long userId
     ) {
@@ -121,7 +128,7 @@ public class CartUserController {
     }
 
     // 10. 회원 장바구니 중 "선택된 + 구매 가능한" 항목만 조회 (주문용)
-    @GetMapping("/selected")
+    @GetMapping("/items/selected")
     public ResponseEntity<CartItemsResponseDto> getUserSelectedCart(
             @RequestHeader(USER_ID_HEADER) Long userId
     ) {
@@ -131,13 +138,38 @@ public class CartUserController {
 
     // 11. 비회원 → 회원 장바구니 병합
     // POST /cart/merge
-    // Body: { "guestUuid": "uuid-xxxx" }
+    // Body: { "uuid": "uuid-xxxx" }
     @PostMapping("/merge")
     public ResponseEntity<CartMergeResultResponseDto> mergeGuestCartToUserCart(
             @RequestHeader(USER_ID_HEADER) Long userId,
-            @Valid @RequestBody CartMergeRequestDto requestDto
+            @RequestHeader(GUEST_ID_HEADER) String uuid
     ) {
-        CartMergeResultResponseDto cartMergeResult = cartService.mergeGuestCartToUserCart(userId, requestDto);
+        CartMergeResultResponseDto cartMergeResult = cartService.mergeGuestCartToUserCart(userId, uuid);
         return ResponseEntity.ok().body(cartMergeResult);
+    }
+
+    // 12. 머지 체크용
+    @GetMapping("/merge-status")
+    public ResponseEntity<CartMergeStatusResponseDto> getMergeStatus(
+            @RequestHeader(USER_ID_HEADER) Long userId,
+            @RequestHeader(GUEST_ID_HEADER) String uuid
+    ) {
+        // 1) guest cart 존재 여부
+        Map<Long, CartRedisItem> guestItems = cartRedisRepository.getGuestCartItems(uuid);
+        boolean hasGuestCart = guestItems != null && !guestItems.isEmpty();
+
+        // 2) user cart 존재 여부 (DB or Redis)
+        CartItemsResponseDto userCart = cartService.getUserCart(userId);
+        boolean hasUserCart = userCart.getTotalItemCount() > 0;
+
+        int guestItemCount = hasGuestCart ? guestItems.size() : 0;
+
+        return ResponseEntity.ok(
+                new CartMergeStatusResponseDto(
+                        hasGuestCart,
+                        hasUserCart,
+                        guestItemCount
+                )
+        );
     }
 }

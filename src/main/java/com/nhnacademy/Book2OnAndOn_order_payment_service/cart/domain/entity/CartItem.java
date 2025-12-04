@@ -52,6 +52,7 @@ public class CartItem extends BaseTimeEntity {
     private boolean selected;
 
     // 낙관적 락은 반드시 JPA를 통해 UPDATE가 나갈 때만 동작한다.
+    // 보류
     @Version
     @Column(name = "version")
     private Long version;
