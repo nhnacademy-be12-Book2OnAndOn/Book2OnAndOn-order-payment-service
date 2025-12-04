@@ -25,7 +25,7 @@ public class DeliveryController {
 
     // admin 배송 목록 조회
     // 관리자가 '배송 준비 중인 건만 조회하여 운송장을 입력할 때 사용
-    @GetMapping("/api/admin/deliveries")
+    @GetMapping("/admin/deliveries")
     public ResponseEntity<Page<DeliveryResponseDto>> getDeliveries(Pageable pageable,
                                                                    @RequestParam(required = false) OrderStatus status) {
         
@@ -44,7 +44,7 @@ public class DeliveryController {
     }
 
     //admin 택배사, 운송장 번호 수정
-    @PutMapping("/api/admin/deliveries/{deliveryId}/info")
+    @PutMapping("/admin/deliveries/{deliveryId}/info")
     public ResponseEntity<Void> updateDeliveryInfo(
             @PathVariable Long deliveryId,
             @Valid @RequestBody DeliveryWaybillUpdateDto requestDto) {
