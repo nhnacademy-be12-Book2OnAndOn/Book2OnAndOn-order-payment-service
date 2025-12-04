@@ -8,6 +8,7 @@ import jakarta.persistence.CascadeType;
 import jakarta.persistence.Column;
 import jakarta.persistence.Convert;
 import jakarta.persistence.Entity;
+import jakarta.persistence.FetchType;
 import jakarta.persistence.GeneratedValue;
 import jakarta.persistence.GenerationType;
 import jakarta.persistence.Id;
@@ -76,6 +77,9 @@ public class Order {
     @Column(name = "point_discount")
     private Integer pointDiscount = 0;
 
+    @Column(name = "want_delivery_date")
+    private LocalDateTime wantDeliveryDate;
+
 
     // 양방향 연관관계
     @OneToMany(mappedBy = "order", cascade = CascadeType.ALL, orphanRemoval = true)
@@ -88,9 +92,14 @@ public class Order {
     @OneToOne(mappedBy = "order", cascade = CascadeType.ALL)
     private GuestOrder guestOrder;
 
-    @OneToMany(mappedBy = "order", cascade = CascadeType.ALL)
-    private List<Delivery> deliveries = new ArrayList<>();
+    // order - delivery 1:1 수정
+    @OneToOne(mappedBy = "order")
+    private Delivery delivery;
 
     @OneToMany(mappedBy = "order", cascade = CascadeType.ALL, orphanRemoval = true)
     private List<Return> returns = new ArrayList<>();
+
+    public void updateStatus(OrderStatus status){
+        this.orderStatus = status;
+    }
 }

@@ -8,12 +8,8 @@ import com.nhnacademy.Book2OnAndOn_order_payment_service.payment.domain.dto.Comm
 import com.nhnacademy.Book2OnAndOn_order_payment_service.payment.domain.dto.CommonConfirmResponse;
 import com.nhnacademy.Book2OnAndOn_order_payment_service.payment.domain.dto.request.PaymentCancelCreateRequest;
 import com.nhnacademy.Book2OnAndOn_order_payment_service.payment.domain.dto.request.PaymentCreateRequest;
-import com.nhnacademy.Book2OnAndOn_order_payment_service.payment.domain.dto.request.PaymentDeleteRequest;
-import com.nhnacademy.Book2OnAndOn_order_payment_service.payment.domain.dto.request.PaymentRequest;
 import com.nhnacademy.Book2OnAndOn_order_payment_service.payment.domain.dto.response.PaymentCancelResponse;
-import com.nhnacademy.Book2OnAndOn_order_payment_service.payment.domain.dto.response.PaymentDeleteResponse;
 import com.nhnacademy.Book2OnAndOn_order_payment_service.payment.domain.dto.response.PaymentResponse;
-import com.nhnacademy.Book2OnAndOn_order_payment_service.payment.domain.entity.PaymentCancel;
 import com.nhnacademy.Book2OnAndOn_order_payment_service.payment.service.PaymentService;
 import com.nhnacademy.Book2OnAndOn_order_payment_service.payment.strategy.PaymentStrategy;
 import com.nhnacademy.Book2OnAndOn_order_payment_service.payment.strategy.PaymentStrategyFactory;
@@ -22,8 +18,6 @@ import java.util.Map;
 import lombok.RequiredArgsConstructor;
 import lombok.extern.slf4j.Slf4j;
 import org.springframework.http.ResponseEntity;
-import org.springframework.stereotype.Controller;
-import org.springframework.web.bind.annotation.DeleteMapping;
 import org.springframework.web.bind.annotation.GetMapping;
 import org.springframework.web.bind.annotation.PathVariable;
 import org.springframework.web.bind.annotation.PostMapping;
@@ -73,10 +67,10 @@ public class PaymentController {
     // 결제 취소 ( 사용자 / 관리자 ) 사용자 : 전체 취소, 관리자 : 부분 취소
     @PostMapping("/cancel")
     public ResponseEntity<List<PaymentCancelResponse>> cancelPayment(
-            @RequestHeader("X-USER-ID") Long userId,
+            @RequestHeader("X-User-Id") Long userId,
             @RequestParam("orderNumber") String orderNumber,
             @RequestBody CommonCancelRequest req){
-        log.info("GET /payment/cancel 요청 수신 (주문번호 : {})", orderNumber);
+        log.info("GET /payment/cancel 요청 수신 (주문번호 : {}, 사용자 아이디 : {})", orderNumber, userId);
 
         // 해당 유저가 해당 주문 번호를 가지고있어야함
         if(!orderService.existsOrder(orderNumber, userId)){

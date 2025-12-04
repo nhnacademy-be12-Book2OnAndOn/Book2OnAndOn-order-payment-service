@@ -33,6 +33,9 @@ public class OrderResponseDto {
     private int couponDiscount;
     private int pointDiscount;
 
+    // 배송 희망 날짜
+    private LocalDateTime wantDeliveryDate;
+
     // 3. 주문 상품 목록 (상세 조회용)
     private List<OrderItemDetailDto> orderItems;
 

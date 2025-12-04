@@ -23,6 +23,10 @@ public enum ReturnStatus {
         return code;
     }
 
+    public String getDescription(){
+        return description;
+    }
+
     public static ReturnStatus fromCode(int code) {
         for (ReturnStatus status : ReturnStatus.values()) {
             if (status.getCode() == code) {

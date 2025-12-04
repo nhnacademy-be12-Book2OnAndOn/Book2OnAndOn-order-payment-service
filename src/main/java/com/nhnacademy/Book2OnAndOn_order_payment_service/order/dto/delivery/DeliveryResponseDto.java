@@ -1,25 +1,39 @@
 package com.nhnacademy.Book2OnAndOn_order_payment_service.order.dto.delivery;
 
+import com.nhnacademy.Book2OnAndOn_order_payment_service.order.entity.delivery.Delivery;
 import lombok.Getter;
-import lombok.Setter;
 import lombok.NoArgsConstructor;
 import lombok.AllArgsConstructor;
 import java.time.LocalDateTime;
 
-/**
- * 배송 상세 정보 조회.
- */
 @Getter
-@Setter
 @NoArgsConstructor
 @AllArgsConstructor
 public class DeliveryResponseDto {
+
     private Long deliveryId;
     private Long orderId;
     private String deliveryCompany;
     private String waybill;
-    private String deliveryStatus; // DeliveryStatus Enum의 설명 필드
-    private LocalDateTime deliveryStartAt; // Delivery 엔티티 필드 가정
-    private LocalDateTime deliveryCompleteAt; // Delivery 엔티티 필드 가정
-    // TODO: 배송 항목 리스트 (DeliveryItem)는 제외하고 단순 배송 정보만 제공합니다.
+    private String trackingUrl;
+
+    public DeliveryResponseDto(Delivery delivery, String sweetTrackerApiKey) {
+        this.deliveryId = delivery.getDeliveryId();
+        this.orderId = delivery.getOrder().getOrderId();
+
+        // 배송사 정보가 있을 때만 세팅
+        if (delivery.getDeliveryCompany() != null) {
+            this.deliveryCompany = delivery.getDeliveryCompany().getName();
+            this.waybill = delivery.getWaybill();
+
+            if (this.waybill != null && sweetTrackerApiKey != null && !sweetTrackerApiKey.isBlank()) {
+                this.trackingUrl = String.format(
+                        "http://info.sweettracker.co.kr/tracking/5?t_key=%s&t_code=%s&t_invoice=%s",
+                        sweetTrackerApiKey,
+                        delivery.getDeliveryCompany().getCode(),
+                        this.waybill
+                );
+            }
+        }
+    }
 }
