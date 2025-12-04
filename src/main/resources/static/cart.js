@@ -711,8 +711,3 @@ async function mergeGuestCart(isAuto = false) {
 // ============================
 
 initCartPage();
-// if (USE_DUMMY) {
-//     renderCart();
-// } else {
-//     loadCartFromServer();
-// }

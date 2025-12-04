@@ -23,7 +23,7 @@ public class CartGuestController {
     private final CartService cartService;
 
     // 1. 비회원 장바구니 조회
-    // GET /cart/guest?uuid=xxx
+    // GET /cart/guest
     @GetMapping
     public ResponseEntity<CartItemsResponseDto> getGuestCart(
             @RequestHeader(GUEST_ID_HEADER) String uuid
@@ -32,8 +32,8 @@ public class CartGuestController {
         return ResponseEntity.ok().body(guestCart);
     }
 
-    // 2. 비회원 장바구니 담기
-    // POST /cart/guest/items?uuid=xxx
+    // 2. 비회원 장바구니 추가
+    // POST /cart/guest/items
     @PostMapping("/items")
     public ResponseEntity<Void> addItemToGuestCart(
             @RequestHeader(GUEST_ID_HEADER) String uuid,
@@ -44,50 +44,18 @@ public class CartGuestController {
     }
 
     // 3. 비회원 장바구니 수량 변경
-    // PATCH /cart/guest/items/quantity?uuid=xxx
+    // PATCH /cart/guest/items/quantity
     @PatchMapping("/items/quantity")
-    public ResponseEntity<Void> updateGuestItemQuantity(
+    public ResponseEntity<Void> updateQuantityGuestCartItem(
             @RequestHeader(GUEST_ID_HEADER) String uuid,
             @Valid @RequestBody CartItemQuantityUpdateRequestDto requestDto
     ) {
-        cartService.updateGuestItemQuantity(uuid, requestDto);
+        cartService.updateQuantityGuestCartItem(uuid, requestDto);
         return ResponseEntity.ok().build();
     }
 
-    // 4. 비회원 장바구니 단일 아이템 삭제
-    // DELETE /cart/guest/items/{bookId}?uuid=xxx
-    @DeleteMapping("/items/{bookId}")
-    public ResponseEntity<Void> removeItemFromGuestCart(
-            @RequestHeader(GUEST_ID_HEADER) String uuid,
-            @PathVariable Long bookId
-    ) {
-        CartItemDeleteRequestDto dto = new CartItemDeleteRequestDto(bookId);
-        cartService.removeItemFromGuestCart(uuid, dto);
-        return ResponseEntity.ok().build();
-    }
-
-    // 5. 비회원 장바구니 전체 항목 삭제
-    // DELETE /cart/guest/items?uuid=xxx
-    @DeleteMapping("/items")
-    public ResponseEntity<Void> clearGuestCart(
-            @RequestHeader(GUEST_ID_HEADER) String uuid
-    ) {
-        cartService.clearGuestCart(uuid);
-        return ResponseEntity.ok().build();
-    }
-
-    // 6. 비회원 장바구니 "선택된" 항목 삭제
-    // DELETE /cart/guest/items/selected?uuid=xxx
-    @DeleteMapping("/items/selected")
-    public ResponseEntity<Void> deleteSelectedGuestCartItems(
-            @RequestHeader(GUEST_ID_HEADER) String uuid
-    ) {
-        cartService.deleteSelectedGuestCartItem(uuid);
-        return ResponseEntity.ok().build();
-    }
-
-    // 7. 비회원 장바구니 단건 선택/해제
-    // PATCH /cart/guest/items/select?uuid=xxx
+    // 4. 비회원 장바구니 단건 아이템 선택/해제
+    // PATCH /cart/guest/items/select
     @PatchMapping("/items/select")
     public ResponseEntity<Void> selectGuestCartItem(
             @RequestHeader(GUEST_ID_HEADER) String uuid,
@@ -97,8 +65,8 @@ public class CartGuestController {
         return ResponseEntity.ok().build();
     }
 
-    // 8. 비회원 장바구니 전체 선택/해제
-    // PATCH /cart/guest/items/select-all?uuid=xxx
+    // 5. 비회원 장바구니 전체 선택/해제
+    // PATCH /cart/guest/items/select-all
     @PatchMapping("/items/select-all")
     public ResponseEntity<Void> selectAllGuestCartItems(
             @RequestHeader(GUEST_ID_HEADER) String uuid,
@@ -108,8 +76,39 @@ public class CartGuestController {
         return ResponseEntity.ok().build();
     }
 
+    // 6. 비회원 장바구니 단건 아이템 삭제
+    // DELETE /cart/guest/items/{bookId}
+    @DeleteMapping("/items/{bookId}")
+    public ResponseEntity<Void> deleteGuestCartItem(
+            @RequestHeader(GUEST_ID_HEADER) String uuid,
+            @PathVariable Long bookId
+    ) {
+        CartItemDeleteRequestDto dto = new CartItemDeleteRequestDto(bookId);
+        cartService.deleteGuestCartItem(uuid, dto);
+        return ResponseEntity.ok().build();
+    }
+
+    // 7. 비회원 장바구니 "선택된" 항목 삭제
+    // DELETE /cart/guest/items/selected
+    @DeleteMapping("/items/selected")
+    public ResponseEntity<Void> deleteSelectedGuestCartItems(
+            @RequestHeader(GUEST_ID_HEADER) String uuid
+    ) {
+        cartService.deleteSelectedGuestCartItems(uuid);
+        return ResponseEntity.ok().build();
+    }
+
+    // 8. 비회원 장바구니 중 "선택된 + 구매 가능한" 항목만 조회 (주문용)
+    @GetMapping("/items/selected")
+    public ResponseEntity<CartItemsResponseDto> getGuestSelectedCart(
+            @RequestHeader(GUEST_ID_HEADER) String uuid
+    ) {
+        CartItemsResponseDto selectedCart = cartService.getGuestSelectedCart(uuid);
+        return ResponseEntity.ok(selectedCart);
+    }
+
     // 9. 아이콘용 장바구니 개수 조회 (비회원)
-    // GET /api/cart/guest/count?uuid=xxx
+    // GET /api/cart/guest/count
     @GetMapping("/items/count")
     public ResponseEntity<CartItemCountResponseDto> getGuestCartCount(
             @RequestHeader(GUEST_ID_HEADER) String uuid
@@ -118,12 +117,13 @@ public class CartGuestController {
         return ResponseEntity.ok().body(guestCartCount);
     }
 
-    // 10. 비회원 장바구니 중 "선택된 + 구매 가능한" 항목만 조회 (주문용)
-    @GetMapping("/items/selected")
-    public ResponseEntity<CartItemsResponseDto> getGuestSelectedCart(
+    // 10. 비회원 장바구니 전체 항목 비우기
+    // DELETE /cart/guest/items
+    @DeleteMapping("/items")
+    public ResponseEntity<Void> clearGuestCart(
             @RequestHeader(GUEST_ID_HEADER) String uuid
     ) {
-        CartItemsResponseDto selectedCart = cartService.getGuestSelectedCart(uuid);
-        return ResponseEntity.ok(selectedCart);
+        cartService.clearGuestCart(uuid);
+        return ResponseEntity.ok().build();
     }
 }
