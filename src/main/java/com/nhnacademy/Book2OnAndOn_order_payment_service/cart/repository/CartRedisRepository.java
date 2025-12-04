@@ -16,17 +16,19 @@ public interface CartRedisRepository {
     // 2) 회원 장바구니를 한 번에 채워넣기
     void putUserItem(Long userId, CartRedisItem cartRedisItem);
 
-    // 3) merge 후 회원 장바구니 캐시 무효화
-    void clearUserCart(Long userId);
-
-    // 4) 회원 장바구니 단일 삭제 (write-behind용 추가)
+    // 3) 회원 장바구니 단일 삭제 (write-behind용 추가)
     void deleteUserCartItem(Long userId, long bookId);
 
-    // 5) 회원 장바구니 dirty set 관리
+    // 4) merge 후 회원 장바구니 캐시 무효화
+    void clearUserCart(Long userId);
+
+    // 5) Dirty Mark 등록
     void markUserCartDirty(Long userId);
 
+    // 6) Dirty ID 목록 조회
     Set<Long> getDirtyUserIds();
 
+    // 7) Dirty Mark 해제
     void clearUserCartDirty(Long userId);
 
 
@@ -42,7 +44,7 @@ public interface CartRedisRepository {
     // 3) 장바구니 항목 수량을 변경. TTL 연장
     void updateGuestItemQuantity(String uuid, long bookId, int quantity);
 
-    // 4) 장바구니에서 특정 책 제거. TTL 연장
+    // 4) 장바구니에서 항목 삭제. TTL 연장
     void deleteGuestItem(String uuid, long bookId);
 
     // 5) 비회원 세션 종료나 로그인 후 병합 시, 비회원 카트 전체 삭제
