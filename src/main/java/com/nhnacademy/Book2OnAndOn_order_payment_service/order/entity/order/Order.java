@@ -80,9 +80,8 @@ public class Order {
     @Column(name = "want_delivery_date")
     private LocalDateTime wantDeliveryDate;
 
-
     // 양방향 연관관계
-    @OneToMany(mappedBy = "order", cascade = CascadeType.ALL, orphanRemoval = true)
+    @OneToMany(mappedBy = "order", fetch = FetchType.LAZY, cascade = CascadeType.ALL, orphanRemoval = true)
     @Builder.Default
     private List<OrderItem> orderItems = new ArrayList<>();
 
@@ -92,11 +91,7 @@ public class Order {
     @OneToOne(mappedBy = "order", cascade = CascadeType.ALL)
     private GuestOrder guestOrder;
 
-    // order - delivery 1:1 수정
-    @OneToOne(mappedBy = "order")
-    private Delivery delivery;
-
-    @OneToMany(mappedBy = "order", cascade = CascadeType.ALL, orphanRemoval = true)
+    @OneToMany(mappedBy = "order", fetch = FetchType.LAZY, cascade = CascadeType.ALL, orphanRemoval = true)
     private List<Return> returns = new ArrayList<>();
 
     public void updateStatus(OrderStatus status){
