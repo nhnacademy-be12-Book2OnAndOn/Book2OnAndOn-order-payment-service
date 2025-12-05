@@ -1,6 +1,7 @@
 package com.nhnacademy.Book2OnAndOn_order_payment_service.order.entity.order;
 
 import com.nhnacademy.Book2OnAndOn_order_payment_service.order.converter.OrderStatusConverter;
+import com.nhnacademy.Book2OnAndOn_order_payment_service.order.dto.order.OrderResponseDto;
 import com.nhnacademy.Book2OnAndOn_order_payment_service.order.dto.order.OrderSimpleDto;
 import com.nhnacademy.Book2OnAndOn_order_payment_service.order.entity.delivery.Delivery;
 import com.nhnacademy.Book2OnAndOn_order_payment_service.order.entity.delivery.DeliveryAddress;
@@ -49,14 +50,17 @@ public class Order {
     @NotNull
     private String orderNumber;
 
-    @Column(name = "order_datatime")
+    @Column(name = "order_date_time")
     @NotNull
     @Builder.Default
-    private LocalDateTime orderDatetime = LocalDateTime.now();
+    private LocalDateTime orderDateTime = LocalDateTime.now();
 
     @Column(name = "order_status")
     @NotNull
     private OrderStatus orderStatus;
+
+    @Column(name = "order_title")
+    private String orderTitle;
 
     @Column(name = "total_amount")
     private Integer totalAmount;
@@ -105,8 +109,31 @@ public class Order {
                 this.orderId,
                 this.orderNumber,
                 this.orderStatus,
-                this.orderDatetime,
-                this.totalAmount
+                this.orderDateTime,
+                this.totalAmount,
+                this.orderTitle
+        );
+    }
+
+    public OrderResponseDto toOrderResponseDto(){
+        return new OrderResponseDto(
+                this.orderId,
+                this.orderNumber,
+                this.orderStatus,
+                this.orderDateTime,
+                this.totalAmount,
+                this.totalDiscountAmount,
+                this.totalItemAmount,
+                this.deliveryFee,
+                this.wrappingFee,
+                this.couponDiscount,
+                this.pointDiscount,
+                this.wantDeliveryDate,
+null,
+null,
+null
+//                this.orderItems,
+//                this.deliveryAddress
         );
     }
 }

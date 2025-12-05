@@ -1,6 +1,7 @@
 package com.nhnacademy.Book2OnAndOn_order_payment_service.order.dto.order;
 
 import com.nhnacademy.Book2OnAndOn_order_payment_service.order.dto.order.orderitem.OrderItemDetailDto;
+import com.nhnacademy.Book2OnAndOn_order_payment_service.payment.domain.dto.response.PaymentResponse;
 import lombok.Getter;
 import lombok.Setter;
 import lombok.NoArgsConstructor;
@@ -42,6 +43,7 @@ public class OrderResponseDto {
     // 4. 배송지 정보
     private DeliveryAddressRequestDto deliveryAddress;
 
-
+    // 5. 결제 정보
+    private PaymentResponse paymentResponse;
 
 }

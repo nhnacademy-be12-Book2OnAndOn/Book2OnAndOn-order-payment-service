@@ -19,8 +19,8 @@ public class OrderSimpleDto {
     private Long orderId;
     private String orderNumber;
     private OrderStatus orderStatus;
-    private LocalDateTime orderDatetime;
+    private LocalDateTime orderDateTime;
     private int totalAmount; // 최종 결제 금액
     /** 대표 상품명  */
-//    private String representativeBookTitle;
+    private String orderTitle;
 }

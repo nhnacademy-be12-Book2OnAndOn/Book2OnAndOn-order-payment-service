@@ -77,7 +77,7 @@ class PaymentServiceUnitTest {
         Payment existingPayment = new Payment(req);
 
         // Mock: 이미 결제 정보가 존재함
-        given(paymentRepository.findByOrderNumber("ORDER_DUP")).willReturn(existingPayment);
+        given(paymentRepository.findByOrderNumber("ORDER_DUP").orElse(null)).willReturn(existingPayment);
 
         // when & then
         assertThatThrownBy(() -> paymentService.createPayment(req))

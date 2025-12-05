@@ -1,5 +1,7 @@
 package com.nhnacademy.Book2OnAndOn_order_payment_service.order.config;
 
+import java.time.LocalDateTime;
+import java.time.ZoneId;
 import org.springframework.stereotype.Component;
 
 @Component
@@ -8,7 +10,8 @@ public class Snowflake {
     private final long workerId;
     private final long datacenterId;
 
-    private final static long twepoch = 1288834974657L;
+    private final static long twepoch = LocalDateTime.of(2025, 12, 5, 0, 0, 0)
+            .atZone(ZoneId.systemDefault()).toInstant().toEpochMilli();
 
     private final static long workerIdBits = 5L;
     private final static long datacenterIdBits = 5L;

@@ -8,7 +8,7 @@ import org.springframework.data.jpa.repository.Query;
 
 public interface PaymentRepository extends JpaRepository<Payment, String> {
     // 최초 결제
-    Payment findByOrderNumber(String orderNumber);
+    Optional<Payment> findByOrderNumber(String orderNumber);
 
     @Query("SELECT p.paymentProvider FROM Payment p WHERE p.orderNumber = :orderNumber")
     Optional<String> findProviderByOrderNumber(String orderNumber);

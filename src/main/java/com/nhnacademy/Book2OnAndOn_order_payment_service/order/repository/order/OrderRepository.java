@@ -1,8 +1,12 @@
 package com.nhnacademy.Book2OnAndOn_order_payment_service.order.repository.order;
 
+import com.nhnacademy.Book2OnAndOn_order_payment_service.order.dto.order.OrderSimpleDto;
+import java.time.LocalDateTime;
+import java.util.List;
 import java.util.Optional;
 import org.springframework.data.domain.Page;
 import org.springframework.data.domain.Pageable;
+import org.springframework.data.jpa.repository.EntityGraph;
 import org.springframework.data.jpa.repository.JpaRepository;
 import org.springframework.data.jpa.repository.Query;
 import org.springframework.stereotype.Repository;
@@ -24,5 +28,39 @@ public interface OrderRepository extends JpaRepository<Order, Long> {
 
     // OrderNumber 존재하는지
     boolean existsByOrderNumber(String orderNumber);
+
+
+    /*
+        TODO 새로 만들 작업
+     */
+
+    // 일반 사용자용
+    // 일반 사용자 주문 리스트 조회용
+    @Query("""
+        SELECT new com.nhnacademy.Book2OnAndOn_order_payment_service.order.dto.order.OrderSimpleDto(
+                o.orderId, o.orderNumber, o.orderStatus, o.orderDateTime, o.totalAmount, o.orderTitle
+            )
+        FROM Order o
+        WHERE o.userId = :userId
+    """)
+    Page<OrderSimpleDto> findAllByUserId(Long userId, Pageable pageable);
+
+    // 주문 번호로 조회
+    @EntityGraph(attributePaths = {"orderItems", "deliveryAddress", "delivery"})
+    @Query("SELECT o FROM Order o WHERE o.userId = :userId AND o.orderNumber = :orderNumber")
+    Optional<Order> findByUserIdAndOrderNumber(Long userId, String orderNumber);
+
+    // 스케줄러 작업
+    @Query("SELECT o FROM Order o WHERE o.orderStatus = :status AND o.orderDateTime < :thresholdTime")
+    Page<Order> findAllByOrderStatusAndOrderDateTimeBefore(OrderStatus status, LocalDateTime thresholdTime, Pageable pageable);
+
+    // API 호출
+    @Query("""
+        SELECT CASE WHEN COUNT(o) > 0 THEN true ELSE false END
+        FROM Order o
+        JOIN o.orderItems oi
+        WHERE o.userId = :userId AND oi.bookId = :bookId
+    """)
+    boolean existsPurchase(Long userId, Long bookId);
 }
 
