@@ -1,5 +1,6 @@
 package com.nhnacademy.Book2OnAndOn_order_payment_service.order.service;
 
+import com.nhnacademy.Book2OnAndOn_order_payment_service.exception.NotSupportedException;
 import com.nhnacademy.Book2OnAndOn_order_payment_service.order.dto.delivery.DeliveryResponseDto;
 import com.nhnacademy.Book2OnAndOn_order_payment_service.order.dto.delivery.DeliveryWaybillUpdateDto;
 import com.nhnacademy.Book2OnAndOn_order_payment_service.order.entity.delivery.Delivery;
@@ -15,6 +16,7 @@ import lombok.extern.slf4j.Slf4j;
 import org.springframework.beans.factory.annotation.Value;
 import org.springframework.data.domain.Page;
 import org.springframework.data.domain.Pageable;
+import org.springframework.security.access.AccessDeniedException;
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
 
@@ -72,9 +74,13 @@ public class DeliveryService {
 
     // 배송 정보 단일 조회
     @Transactional(readOnly = true)
-    public DeliveryResponseDto getDelivery(Long orderId) {
+    public DeliveryResponseDto getDelivery(Long orderId, Long userId) {
         Delivery delivery = deliveryRepository.findByOrder_OrderId(orderId)
                 .orElseThrow(() -> new DeliveryNotFoundException("배송 정보를 찾을 수 없습니다. Order ID: " + orderId));
+
+        if(!delivery.getOrder().getUserId().equals(userId)) {
+            throw new AccessDeniedException("본인의 배송정보만 조회할 수 있습니다.");
+        }
 
         // API 키 주입하여 DTO 생성 (추적 URL 포함)
         return new DeliveryResponseDto(delivery, sweetTrackerApiKey);

@@ -1,6 +1,8 @@
 package com.nhnacademy.Book2OnAndOn_order_payment_service.order.service;
 
 import com.nhnacademy.Book2OnAndOn_order_payment_service.order.client.BookServiceClient;
+import com.nhnacademy.Book2OnAndOn_order_payment_service.order.client.dto.BookOrderResponse;
+import com.nhnacademy.Book2OnAndOn_order_payment_service.order.client.dto.StockDecreaseRequest;
 import com.nhnacademy.Book2OnAndOn_order_payment_service.order.dto.return1.ReturnItemDetailDto;
 import com.nhnacademy.Book2OnAndOn_order_payment_service.order.dto.return1.ReturnItemRequestDto;
 import com.nhnacademy.Book2OnAndOn_order_payment_service.order.dto.return1.ReturnRequestDto;
@@ -8,17 +10,18 @@ import com.nhnacademy.Book2OnAndOn_order_payment_service.order.dto.return1.Retur
 import com.nhnacademy.Book2OnAndOn_order_payment_service.order.dto.return1.ReturnStatusUpdateDto;
 import com.nhnacademy.Book2OnAndOn_order_payment_service.order.entity.order.Order;
 import com.nhnacademy.Book2OnAndOn_order_payment_service.order.entity.order.OrderItem;
-import com.nhnacademy.Book2OnAndOn_order_payment_service.order.entity.order.OrderItemStatus;
 import com.nhnacademy.Book2OnAndOn_order_payment_service.order.entity.order.OrderStatus;
 import com.nhnacademy.Book2OnAndOn_order_payment_service.order.entity.return1.Return;
 import com.nhnacademy.Book2OnAndOn_order_payment_service.order.entity.return1.ReturnItem;
-import com.nhnacademy.Book2OnAndOn_order_payment_service.order.entity.return1.ReturnReason;
 import com.nhnacademy.Book2OnAndOn_order_payment_service.order.entity.return1.ReturnStatus;
 import com.nhnacademy.Book2OnAndOn_order_payment_service.order.exception.OrderNotFoundException;
 import com.nhnacademy.Book2OnAndOn_order_payment_service.order.repository.order.OrderItemRepository;
 import com.nhnacademy.Book2OnAndOn_order_payment_service.order.repository.order.OrderRepository;
 import com.nhnacademy.Book2OnAndOn_order_payment_service.order.repository.return1.ReturnItemRepository;
 import com.nhnacademy.Book2OnAndOn_order_payment_service.order.repository.return1.ReturnRepository;
+import feign.FeignException;
+import java.util.Collections;
+import java.util.function.Function;
 import lombok.RequiredArgsConstructor;
 import org.springframework.security.access.AccessDeniedException;
 import org.springframework.stereotype.Service;
@@ -118,16 +121,29 @@ public class ReturnService {
                 .orElseThrow(() -> new ReturnNotFoundException("반품 내역을 찾을 수 없습니다. (ID: " + returnId + ")"));
 
         ReturnStatus newStatus = ReturnStatus.fromCode(request.getStatusCode());
-        returnEntity.setReturnStatus(newStatus.getCode());
-        
-        // TODO: 상태에 따른 추가 비즈니스 로직 (예: REFUND_COMPLETED 시 결제 환불 처리)
 
-        // 주문 상태 업데이트 (간단히 구현)
+        // 1. 상태 업데이트
+        returnEntity.setReturnStatus(newStatus.getCode());
+
         if (newStatus == ReturnStatus.REFUND_COMPLETED) {
-            // 주문의 최종 반품 처리가 완료되면 주문 상태를 RETURN_COMPLETED 또는 PARTIAL_RETURN으로 변경
-            // 복잡한 로직은 생략하고 일단 RETURN_COMPLETED로 가정
+            // [환불 완료] - 필수 로직: 재고 복구 및 주문 상태 확정
+
+            // 1) 재고 복구 (BookClient 호출)
+            List<StockDecreaseRequest> stockRestoreRequests = returnEntity.getReturnItem().stream()
+                    .map(item -> new StockDecreaseRequest(item.getOrderItem().getBookId(), item.getReturnQuantity()))
+                    .collect(Collectors.toList());
+            bookServiceClient.increaseStock(stockRestoreRequests);
+
+            // 2) 주문 상태 최종 변경
             returnEntity.getOrder().setOrderStatus(OrderStatus.RETURN_COMPLETED);
+
+        } else if (newStatus == ReturnStatus.REJECTED) {
+            // [반품 거부] - 필수 로직: 주문 상태 원복
+            returnEntity.getOrder().setOrderStatus(OrderStatus.DELIVERED); // 배송 완료 상태로 원복 가정
         }
+
+        // 2. 엔티티 저장
+        returnRepository.save(returnEntity);
 
         return convertToReturnResponseDto(returnEntity);
     }
@@ -137,23 +153,34 @@ public class ReturnService {
      * Return 엔티티를 ReturnResponseDto로 변환
      */
     private ReturnResponseDto convertToReturnResponseDto(Return returnEntity) {
-        // 1. OrderItem ID 리스트 추출 (도서 제목 조회를 위해 필요)
-        List<Long> orderItemIds = returnEntity.getReturnItem().stream()
-                .map(item -> item.getOrderItem().getOrderItemId())
-                .collect(Collectors.toList());
-        
-        // 2. 도서 정보 조회 (OrderService의 로직을 재사용하거나, 별도의 BookClient 호출 필요)
-        // 여기서는 간단히 제목을 하드코딩하거나, Mock/Stub 처리했다고 가정합니다.
-        // 실제 구현에서는 bookServiceClient를 주입받아 사용해야 합니다.
-        
-        // TODO: BookServiceClient를 사용하여 도서 제목을 가져오는 로직 구현 필요
-        Map<Long, String> bookTitleMap = Map.of(); // 임시 Map
 
+        // 1. OrderItem ID 리스트 추출
+        List<Long> bookIds = returnEntity.getReturnItem().stream()
+                .map(item -> item.getOrderItem().getBookId())
+                .collect(Collectors.toList());
+
+        // 2. BookServiceClient를 사용하여 도서 제목 조회
+        Map<Long, BookOrderResponse> tempBookMap; // 임시 변수 선언
+
+        try {
+            List<BookOrderResponse> bookInfos = bookServiceClient.getBooksForOrder(bookIds);
+            tempBookMap = bookInfos.stream().collect(Collectors.toMap(BookOrderResponse::getBookId, Function.identity()));
+        } catch (FeignException e) {
+            tempBookMap = Collections.emptyMap(); // 빈 Map 할당
+            System.err.println("WARN: Failed to fetch book titles for return: " + e.getMessage());
+        }
+
+        // 람다 내부에서 참조할 final 변수를 선언하고 할당
+        final Map<Long, BookOrderResponse> finalBookMap = tempBookMap;
+
+        // 3. ReturnItem 상세 정보 DTO 변환
         List<ReturnItemDetailDto> itemDetails = returnEntity.getReturnItem().stream()
                 .map(item -> {
-                    // Long bookId = item.getOrderItem().getBookId(); // OrderItem에서 bookId를 가져올 수 있음
-                    String bookTitle = "제목 조회 필요"; // bookTitleMap.get(bookId)를 사용해야 함
-                    
+                    Long bookId = item.getOrderItem().getBookId();
+
+                    // finalBookMap을 사용하여 안전하게 참조
+                    String bookTitle = finalBookMap.getOrDefault(bookId, new BookOrderResponse()).getTitle();
+
                     return new ReturnItemDetailDto(
                             item.getReturnItemId(),
                             item.getOrderItem().getOrderItemId(),
