@@ -46,7 +46,7 @@ public class WrappingPaperService {
     }
 
     /**
-     * 기존 포장지 정보를 수정
+     * 기존 포장지 정보 수정
      */
     @Transactional
     public WrapPaperResponseDto updateWrappingPaper(Long wrappingPaperId, WrapPaperRequestDto request) {

@@ -1,7 +1,7 @@
 package com.nhnacademy.Book2OnAndOn_order_payment_service.payment;
 
 import com.fasterxml.jackson.databind.ObjectMapper;
-import com.nhnacademy.Book2OnAndOn_order_payment_service.order.config.SecurityConfig;
+import com.nhnacademy.Book2OnAndOn_order_payment_service.config.SecurityConfig;
 import com.nhnacademy.Book2OnAndOn_order_payment_service.order.service.OrderService;
 import com.nhnacademy.Book2OnAndOn_order_payment_service.payment.controller.PaymentController;
 import com.nhnacademy.Book2OnAndOn_order_payment_service.payment.domain.dto.CommonCancelRequest;
