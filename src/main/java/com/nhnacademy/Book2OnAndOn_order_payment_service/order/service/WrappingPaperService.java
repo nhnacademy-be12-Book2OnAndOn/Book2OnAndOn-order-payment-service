@@ -1,6 +1,6 @@
 package com.nhnacademy.Book2OnAndOn_order_payment_service.order.service;
 
-import com.nhnacademy.Book2OnAndOn_order_payment_service.exception.WrappingPaperNotFoundException;
+import com.nhnacademy.Book2OnAndOn_order_payment_service.order.exception.WrappingPaperNotFoundException;
 import com.nhnacademy.Book2OnAndOn_order_payment_service.order.entity.wrappingpaper.WrappingPaper;
 import com.nhnacademy.Book2OnAndOn_order_payment_service.order.dto.wrapping.*;
 import com.nhnacademy.Book2OnAndOn_order_payment_service.order.repository.order.OrderItemRepository;
@@ -13,7 +13,7 @@ import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
 
 /**
- * 포장지 정보 생성, 수정, 조회, 삭제를 담당하는 서비스
+ * 포장지 정보 생성, 수정, 조회, 삭제 담당 서비스
  */
 @Service
 @RequiredArgsConstructor
@@ -28,7 +28,7 @@ public class WrappingPaperService {
     // ======================================================================
 
     /**
-     * 새로운 포장지 정보를 생성
+     * 새로운 포장지 정보 생성, 저장
      */
     @Transactional
     public WrapPaperResponseDto createWrappingPaper(WrapPaperRequestDto request) {
@@ -113,6 +113,7 @@ public class WrappingPaperService {
     // 4. DTO 변환 헬퍼
     // ======================================================================
 
+    //생성, 저장, 수정, 상세조회시 사용
     private WrapPaperResponseDto convertToResponseDto(WrappingPaper entity) {
         return new WrapPaperResponseDto(
                 entity.getWrappingPaperId(),
@@ -122,6 +123,7 @@ public class WrappingPaperService {
         );
     }
 
+    // 목록 조회시 사용
     private WrapPaperSimpleResponseDto convertToSimpleResponseDto(WrappingPaper entity) {
         return new WrapPaperSimpleResponseDto(
                 entity.getWrappingPaperId(),

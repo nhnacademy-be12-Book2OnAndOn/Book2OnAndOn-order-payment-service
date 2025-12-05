@@ -1,4 +1,4 @@
-package com.nhnacademy.Book2OnAndOn_order_payment_service.exception;
+package com.nhnacademy.Book2OnAndOn_order_payment_service.order.exception;
 
 /**
  * WrappingPaper 엔티티를 찾을 수 없을 때 발생하는 예외

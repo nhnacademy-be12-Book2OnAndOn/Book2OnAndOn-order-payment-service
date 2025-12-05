@@ -54,7 +54,7 @@ public class ReturnService {
             throw new AccessDeniedException("본인의 주문에 대해서만 반품을 신청할 수 있습니다.");
         }
 
-        // 반품 가능 상태 확인: 배송 완료(DELIVERED) 또는 주문 완료(COMPLETED) 상태만 허용
+        // 반품 가능 상태 확인: 배송 완료 또는 주문 완료 상태만 허용
         if (order.getOrderStatus() != OrderStatus.DELIVERED && order.getOrderStatus() != OrderStatus.COMPLETED) {
             throw new IllegalStateException("배송 완료된 주문만 반품 신청이 가능합니다. (현재 상태: " + order.getOrderStatus().getDescription() + ")");
         }
@@ -90,7 +90,7 @@ public class ReturnService {
             returnEntity.getReturnItem().add(returnItem);
         }
         
-        // 3. 주문 상태를 반품 신청(RETURN_REQUESTED)으로 변경
+        // 3. 주문 상태를 반품 신청으로 변경
         order.setOrderStatus(OrderStatus.RETURN_REQUESTED);
 
         return convertToReturnResponseDto(returnEntity);

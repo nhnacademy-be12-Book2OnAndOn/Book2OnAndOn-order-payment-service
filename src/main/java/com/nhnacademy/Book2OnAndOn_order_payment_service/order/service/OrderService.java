@@ -153,7 +153,7 @@ public class OrderService {
     // ======================================================================
 
     /**
-     * [회원/관리자 공통] 주문 상세 정보를 조회
+     * [회원/관리자 공통] 주문 상세 정보 조회
      */
     @Transactional(readOnly = true)
     public OrderResponseDto findOrderDetails(Long orderId, Long userId) {
@@ -194,20 +194,20 @@ public class OrderService {
     }
 
     /**
-     * [회원] 본인의 주문 목록을 조회 (Pagination 구현)
+     * [회원] 본인의 주문 목록 조회 (Pagination 구현)
      */
     @Transactional(readOnly = true)
     public Page<OrderSimpleDto> findOrderList(Long userId, Pageable pageable) {
-        Page<Order> orderPage = orderRepository.findByUserId(userId, pageable);
-        return orderPage.map(this::convertToOrderSimpleDto);
+        Page<Order> orderPage = orderRepository.findByUserId(userId, pageable); // 데이터 조회
+        return orderPage.map(this::convertToOrderSimpleDto); // 민감 정보 노출 방지
     }
 
     /**
-     * [관리자] 모든 주문 목록을 조회(Pagination 구현)
+     * [관리자] 모든 주문 목록 조회(Pagination 구현)
      */
     @Transactional(readOnly = true)
     public Page<OrderSimpleDto> findAllOrderList(Pageable pageable) {
-        Page<Order> orderPage = orderRepository.findAll(pageable);
+        Page<Order> orderPage = orderRepository.findAll(pageable); // 데이터 조회
         return  orderPage.map(this::convertToOrderSimpleDto);
     }
 
@@ -249,7 +249,7 @@ public class OrderService {
     }
 
     /**
-     * [비회원] 주문을 취소 (비밀번호 검증 포함)
+     * [비회원] 주문 취소 (비밀번호 검증 포함)
      */
     @Transactional
     public OrderResponseDto cancelGuestOrder(Long orderId, String password) {
@@ -261,7 +261,7 @@ public class OrderService {
     }
     
     /**
-     * [관리자] 주문 상태를 변경
+     * [관리자] 주문 상태 변경
      */
     @Transactional
     public OrderResponseDto updateOrderStatusByAdmin(Long orderId, OrderStatusUpdateDto request) {
@@ -306,6 +306,7 @@ public class OrderService {
     /**
      * [DTO 변환] Order 엔티티를 OrderResponseDto로 변환
      */
+    // 주문 생성,취소,상태변경시 사용
     private OrderResponseDto convertToOrderResponseDto(Order order) {
         // OrderItem, DeliveryAddress 등 연관 관계 DTO 변환 및 합치는 로직
         // 1. OrderItemDetailDto 리스트 생성 (외부 데이터 조회 필요)
@@ -345,8 +346,9 @@ public class OrderService {
     }
 
     /**
-     * [DTO 변환] Order 엔티티를 OrderSimpleDto로 변환합니다.
+     * [DTO 변환] Order 엔티티를 OrderSimpleDto로 변환
      */
+    // 목록 조회시 사용
     private OrderSimpleDto convertToOrderSimpleDto(Order order) {
         // 1. OrderItem 목록이 있는지 확인
         if (order.getOrderItems() == null || order.getOrderItems().isEmpty()) {
@@ -399,6 +401,7 @@ public class OrderService {
         );
     }
 
+    // 주문 취소시 사용
     @Transactional
     protected void processPaymentCancellation(Order order, OrderCancelRequestDto request) {
 
@@ -481,6 +484,7 @@ public class OrderService {
     /**
      * [DTO 변환] GuestOrderCreateDto를 OrderCreateRequestDto로 변환
      */
+    // 비회원 주문 생성시 사용
     private OrderCreateRequestDto convertToOrderRequest(GuestOrderCreateDto guestRequest) {
         return new OrderCreateRequestDto(
             null, // 비회원이므로 userId는 null
@@ -495,6 +499,7 @@ public class OrderService {
     /**
      * Order 엔티티를 생성 -> 초기 상태로 저장
      */
+    // 회원, 비회원 주문생성시 사용
     private Order buildAndSaveOrder(OrderCreateRequestDto request, OrderPriceCalculationDto priceDto) {
         String orderNumber = "B2" + UUID.randomUUID().toString().substring(0, 10).toUpperCase();
 
@@ -525,6 +530,7 @@ public class OrderService {
     /**
      * OrderItem 엔티티 리스트를 생성하여 DB에 저장-> 재고 차감
      */
+    // 회원, 비회원 주문생성시 사용
     private void saveOrderItems(List<OrderItemRequestDto> itemRequests, Order order, Map<Long, BookOrderResponse> bookMap) {
         for (OrderItemRequestDto itemRequest : itemRequests) {
             
@@ -550,6 +556,7 @@ public class OrderService {
         }
     }
 
+    //회원 ,비회원 주문시 사용
     private void saveDeliveryAddress(DeliveryAddressRequestDto addressRequest, Order order) {
 
         DeliveryAddress addressInfo = DeliveryAddress.builder()
@@ -564,6 +571,7 @@ public class OrderService {
         deliveryAddressRepository.save(addressInfo);
     }
 
+    // 비회원 주문 생성시 사용
     private void saveGuestOrderInfo(GuestOrderCreateDto guestRequest, Order order) {
         String encryptedPassword = passwordEncoder.encode(guestRequest.getGuestPassword());
 
@@ -577,6 +585,7 @@ public class OrderService {
         guestOrderRepository.save(guestOrder);
     }
 
+    // 회원 , 비회원 주문시 사용
     /** OrderItem, WrappingPaper 정보를 조회하여 모든 금액 계산 */
     private OrderPriceCalculationDto calculateOrderPrices(OrderCreateRequestDto request) {
         int totalItemPrice = 0;
