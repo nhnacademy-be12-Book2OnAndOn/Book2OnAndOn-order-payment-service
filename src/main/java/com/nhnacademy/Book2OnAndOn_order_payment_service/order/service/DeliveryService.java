@@ -11,12 +11,12 @@ import com.nhnacademy.Book2OnAndOn_order_payment_service.order.exception.Deliver
 import com.nhnacademy.Book2OnAndOn_order_payment_service.order.exception.OrderNotFoundException;
 import com.nhnacademy.Book2OnAndOn_order_payment_service.order.repository.delivery.DeliveryRepository;
 import com.nhnacademy.Book2OnAndOn_order_payment_service.order.repository.order.OrderRepository;
-import java.nio.file.AccessDeniedException;
 import lombok.RequiredArgsConstructor;
 import lombok.extern.slf4j.Slf4j;
 import org.springframework.beans.factory.annotation.Value;
 import org.springframework.data.domain.Page;
 import org.springframework.data.domain.Pageable;
+import org.springframework.security.access.AccessDeniedException;
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
 
@@ -79,7 +79,7 @@ public class DeliveryService {
                 .orElseThrow(() -> new DeliveryNotFoundException("배송 정보를 찾을 수 없습니다. Order ID: " + orderId));
 
         if(!delivery.getOrder().getUserId().equals(userId)) {
-            throw new NotSupportedException("본인의 배송정보만 조회할 수 있습니다.");
+            throw new AccessDeniedException("본인의 배송정보만 조회할 수 있습니다.");
         }
 
         // API 키 주입하여 DTO 생성 (추적 URL 포함)

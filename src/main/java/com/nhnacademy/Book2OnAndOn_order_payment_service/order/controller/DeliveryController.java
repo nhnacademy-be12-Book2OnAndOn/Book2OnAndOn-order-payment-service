@@ -17,7 +17,7 @@ public class DeliveryController {
 
     private final DeliveryService deliveryService;
 
-    @GetMapping("/api/deliveries")
+    @GetMapping("/deliveries")
     public ResponseEntity<DeliveryResponseDto> getDeliveryByOrder(
             @RequestParam Long orderId,
             @RequestHeader("X-USER-ID") Long userId) { // [추가] 헤더 받기
