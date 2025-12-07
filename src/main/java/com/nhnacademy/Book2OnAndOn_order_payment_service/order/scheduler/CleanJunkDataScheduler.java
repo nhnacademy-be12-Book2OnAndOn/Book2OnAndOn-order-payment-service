@@ -11,6 +11,7 @@ import org.springframework.data.domain.Page;
 import org.springframework.data.domain.PageRequest;
 import org.springframework.data.domain.Pageable;
 import org.springframework.data.domain.Sort;
+import org.springframework.data.jpa.repository.Modifying;
 import org.springframework.scheduling.annotation.Scheduled;
 import org.springframework.stereotype.Component;
 import org.springframework.transaction.annotation.Transactional;
@@ -21,36 +22,29 @@ import org.springframework.transaction.annotation.Transactional;
 public class CleanJunkDataScheduler {
 
     private final OrderRepository orderRepository;
-    private final int PAGE_SIZE = 500;
+    private final int DELETE_SIZE = 10000;
 
     /*
         매일 정각에 발생하는 주문 정크 데이터들을 삭제합니다
      */
-    @Scheduled(cron = "0 0 0 * * *")
+    @Scheduled(cron = "0 0 3 * * *")
     @SchedulerLock(
             name = "cleaningOldPendingOrders",
             lockAtLeastFor = "PT10S",
             lockAtMostFor = "PT5M"
     )
-    @Transactional
+    @Modifying
     public void cleaningJunkOrderData(){
         log.info("주문 정크 데이터 삭제 스케줄러 시작");
 
         LocalDateTime thresholdTime = LocalDateTime.now().minusMinutes(30);
 
-        int deletedCount = 0;
+        int totalDeleted = 0;
+        int deleted = 0;
 
-        Pageable pageable = PageRequest.of(0, PAGE_SIZE, Sort.by("orderDateTime").ascending());
+        while(true)
 
-        Page<Order> page;
-
-        do{
-            page = orderRepository.findAllByOrderStatusAndOrderDateTimeBefore(OrderStatus.PENDING, thresholdTime, pageable);
-
-            page.forEach(order -> {
-                orderRepository.delete(order);
-            });
-        }while (page.hasNext());
+        int deletedCount = orderRepository.deleteJunkOrder(OrderStatus.PENDING, LocalDateTime.now().minusMinutes(30), DELETE_SIZE);
 
     }
 }

@@ -8,9 +8,12 @@ import org.springframework.data.domain.Page;
 import org.springframework.data.domain.Pageable;
 import org.springframework.data.jpa.repository.EntityGraph;
 import org.springframework.data.jpa.repository.JpaRepository;
+import org.springframework.data.jpa.repository.Modifying;
 import org.springframework.data.jpa.repository.Query;
+import org.springframework.data.repository.query.Param;
 import org.springframework.stereotype.Repository;
 import com.nhnacademy.Book2OnAndOn_order_payment_service.order.entity.order.*;
+import org.springframework.transaction.annotation.Transactional;
 
 @Repository
 public interface OrderRepository extends JpaRepository<Order, Long> {
@@ -34,7 +37,10 @@ public interface OrderRepository extends JpaRepository<Order, Long> {
         TODO 새로 만들 작업
      */
 
-    // 일반 사용자용
+    /*
+        일반 사용자
+     */
+
     // 일반 사용자 주문 리스트 조회용
     @Query("""
         SELECT new com.nhnacademy.Book2OnAndOn_order_payment_service.order.dto.order.OrderSimpleDto(
@@ -50,11 +56,33 @@ public interface OrderRepository extends JpaRepository<Order, Long> {
     @Query("SELECT o FROM Order o WHERE o.userId = :userId AND o.orderNumber = :orderNumber")
     Optional<Order> findByUserIdAndOrderNumber(Long userId, String orderNumber);
 
-    // 스케줄러 작업
-    @Query("SELECT o FROM Order o WHERE o.orderStatus = :status AND o.orderDateTime < :thresholdTime")
-    Page<Order> findAllByOrderStatusAndOrderDateTimeBefore(OrderStatus status, LocalDateTime thresholdTime, Pageable pageable);
+    /*
+        스케쥴러 작업
+     */
+    
+    // 주문 정크 데이터 삭제
+    @Modifying
+    @Transactional
+    @Query(
+        value = """
+            DELETE FROM Order
+            WHERE orderStatus = :status
+                AND orderDateTime < :thresholdTime
+            LIMIT :batchSize
+        """,
+        nativeQuery = true
+    )
+    int deleteJunkOrder(
+            @Param("status") String status,
+            @Param("thresholdTime") LocalDateTime thresholdTime,
+            @Param("batchSize") int batchSize
+    );
 
-    // API 호출
+    /*
+        API 호출
+     */
+
+    // Book Service 사용자 책 구매 여부
     @Query("""
         SELECT CASE WHEN COUNT(o) > 0 THEN true ELSE false END
         FROM Order o

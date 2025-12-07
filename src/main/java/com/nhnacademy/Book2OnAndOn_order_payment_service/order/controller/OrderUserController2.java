@@ -66,6 +66,7 @@ public class OrderUserController2 {
     @GetMapping("/check-purchase/{bookId}")
     public ResponseEntity<Boolean> hasPurchasedBook(@RequestHeader("X-USER-ID") Long userId,
                                                     @PathVariable("bookId") Long bookId){
+        log.info("GET /order/check-purchase/{} 호출 : 유저 책 구매 여부 반환", bookId);
         Boolean hasPurchased = orderService.existsPurchase(userId, bookId);
         return ResponseEntity.ok(hasPurchased);
     }
