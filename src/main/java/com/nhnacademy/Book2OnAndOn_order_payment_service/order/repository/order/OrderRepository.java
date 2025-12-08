@@ -60,23 +60,30 @@ public interface OrderRepository extends JpaRepository<Order, Long> {
         스케쥴러 작업
      */
     
-    // 주문 정크 데이터 삭제
-    @Modifying
-    @Transactional
-    @Query(
-        value = """
-            DELETE FROM Order
-            WHERE orderStatus = :status
-                AND orderDateTime < :thresholdTime
-            LIMIT :batchSize
-        """,
-        nativeQuery = true
-    )
-    int deleteJunkOrder(
-            @Param("status") String status,
+    // 주문 정크 데이터 조회
+    @Query(value = """
+        SELECT o.order_id
+        FROM Orders o
+        WHERE order_status = :status
+          AND order_date_time < :thresholdTime
+          AND order_id > :lastId
+        ORDER BY order_id ASC
+        LIMIT :batchSize
+    """, nativeQuery = true)
+    List<Long> findNextBatch(
+            @Param("status") Integer status,
             @Param("thresholdTime") LocalDateTime thresholdTime,
+            @Param("lastId") Long lastId,
             @Param("batchSize") int batchSize
     );
+
+    // 주문 정크 데이터 삭제
+    @Modifying
+    @Query(value = """
+        DELETE FROM Orders
+        WHERE order_id In :ids
+    """, nativeQuery = true)
+    int deleteByIds(List<Long> ids);
 
     /*
         API 호출

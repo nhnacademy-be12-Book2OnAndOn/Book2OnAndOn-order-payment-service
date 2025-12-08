@@ -1,5 +1,6 @@
 package com.nhnacademy.Book2OnAndOn_order_payment_service.order.controller;
 
+import com.nhnacademy.Book2OnAndOn_order_payment_service.order.dto.order.OrderCreateRequestDto;
 import com.nhnacademy.Book2OnAndOn_order_payment_service.order.dto.order.OrderResponseDto;
 import com.nhnacademy.Book2OnAndOn_order_payment_service.order.dto.order.OrderSimpleDto;
 import com.nhnacademy.Book2OnAndOn_order_payment_service.order.service.OrderService2;
@@ -28,9 +29,9 @@ public class OrderUserController2 {
 
     // 사전 주문 데이터 생성
     @PostMapping
-    public ResponseEntity<OrderSimpleDto> createPreOrder(@RequestHeader(value = "X-USER-ID") Long userId){
+    public ResponseEntity<OrderSimpleDto> createPreOrder(@RequestHeader(value = "X-USER-ID") Long userId, OrderCreateRequestDto req){
         log.info("POST /order 호출 : 사전 주문 데이터 생성");
-        OrderSimpleDto orderSimpleDto = orderService.createPreOrder(userId);
+        OrderSimpleDto orderSimpleDto = orderService.createOrder(userId, req);
         return ResponseEntity.ok(orderSimpleDto);
     }
 
@@ -55,12 +56,8 @@ public class OrderUserController2 {
         return ResponseEntity.ok(orderResponseDto);
     }
 
-    // TODO DELETE OrderSimpleDto
+    // TODO PATCH OrderResponseDto 주문 임시 저장 타이밍을 언제로?
 
-    // TODO PATCH OrderResponseDto
-
-    // 배치 스케쥴러 사용
-    // 정크 데이터 삭제용
 
     // TODO 유저 책 구매 여부
     @GetMapping("/check-purchase/{bookId}")

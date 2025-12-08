@@ -17,11 +17,8 @@ import java.util.List;
 @NoArgsConstructor
 @AllArgsConstructor
 public class OrderCreateRequestDto {
-    private Long userId;
     private List<OrderItemRequestDto> orderItems;
     private DeliveryAddressRequestDto deliveryAddress;
-
-    // 쿠폰 , 포인트 금액
-    private int couponDiscountAmount;
-    private int pointDiscountAmount;
+    private List<Long> couponId;
+    private Long point;
 }

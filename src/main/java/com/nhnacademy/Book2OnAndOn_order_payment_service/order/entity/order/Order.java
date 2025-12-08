@@ -136,4 +136,14 @@ null
 //                this.deliveryAddress
         );
     }
+
+    public void addOrderItem(OrderItem item){
+        this.orderItems.add(item);
+        item.setOrder(this);
+    }
+
+    public void addDeliveryAddress(DeliveryAddress deliveryAddress){
+        this.deliveryAddress = deliveryAddress;
+        deliveryAddress.setOrder(this);
+    }
 }

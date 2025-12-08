@@ -327,22 +327,23 @@ public class OrderService {
         DeliveryAddress deliveryAddress = deliveryAddressRepository.findByOrder_OrderId(order.getOrderId()).orElse(null);
         DeliveryAddressRequestDto addressDto = convertToDeliveryAddressRequestDto(deliveryAddress);
 
-        return new OrderResponseDto(
-            order.getOrderId(),
-            order.getOrderNumber(),
-            order.getOrderStatus(),
-            order.getOrderDatetime(),
-            order.getTotalAmount(),
-            order.getTotalDiscountAmount(),
-            order.getTotalItemAmount(),
-            order.getDeliveryFee(),
-            order.getWrappingFee(),
-            order.getCouponDiscount(),
-            order.getPointDiscount(),
-            order.getWantDeliveryDate(),
-            itemDetails,
-            addressDto
-        );
+        return null;
+//        return new OrderResponseDto(
+//            order.getOrderId(),
+//            order.getOrderNumber(),
+//            order.getOrderStatus(),
+//            order.getOrderDatetime(),
+//            order.getTotalAmount(),
+//            order.getTotalDiscountAmount(),
+//            order.getTotalItemAmount(),
+//            order.getDeliveryFee(),
+//            order.getWrappingFee(),
+//            order.getCouponDiscount(),
+//            order.getPointDiscount(),
+//            order.getWantDeliveryDate(),
+//            itemDetails,
+//            addressDto
+//        );
     }
 
     /**
@@ -352,14 +353,15 @@ public class OrderService {
         // 1. OrderItem 목록이 있는지 확인
         if (order.getOrderItems() == null || order.getOrderItems().isEmpty()) {
             // 주문 항목이 없으면 기본값으로 반환
-            return new OrderSimpleDto(
-                    order.getOrderId(),
-                    order.getOrderNumber(),
-                    order.getOrderStatus(),
-                    order.getOrderDatetime(),
-                    order.getTotalAmount()
-//                    "상품 없음"
-            );
+//            return new OrderSimpleDto(
+//                    order.getOrderId(),
+//                    order.getOrderNumber(),
+//                    order.getOrderStatus(),
+//                    order.getOrderDatetime(),
+//                    order.getTotalAmount()
+////                    "상품 없음"
+//            );
+            return null;
         }
 
         // 2. 대표 상품 ID 추출 (첫 번째 OrderItem의 bookId 사용)
@@ -390,14 +392,15 @@ public class OrderService {
         }
 
         // 5. OrderSimpleDto 객체 생성 및 반환
-        return new OrderSimpleDto(
-                order.getOrderId(),
-                order.getOrderNumber(),
-                order.getOrderStatus(),
-                order.getOrderDatetime(),
-                order.getTotalAmount()
-//                representativeTitle // 조회된 제목 사용
-        );
+//        return new OrderSimpleDto(
+//                order.getOrderId(),
+//                order.getOrderNumber(),
+//                order.getOrderStatus(),
+//                order.getOrderDatetime(),
+//                order.getTotalAmount()
+////                representativeTitle // 조회된 제목 사용
+//        );
+        return null;
     }
 
     @Transactional
@@ -510,7 +513,7 @@ public class OrderService {
 
         Order order = Order.builder()
             .orderNumber(orderNumber)
-            .orderDatetime(LocalDateTime.now())
+//            .orderDatetime(LocalDateTime.now())
             .orderStatus(OrderStatus.PENDING)
             .userId(request.getUserId())
             .couponDiscount(request.getCouponDiscountAmount())

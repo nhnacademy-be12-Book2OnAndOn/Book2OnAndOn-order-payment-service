@@ -1,9 +1,17 @@
 package com.nhnacademy.Book2OnAndOn_order_payment_service.order.service;
 
+import com.nhnacademy.Book2OnAndOn_order_payment_service.order.client.BookServiceClient;
+import com.nhnacademy.Book2OnAndOn_order_payment_service.order.client.dto.BookOrderResponse;
+import com.nhnacademy.Book2OnAndOn_order_payment_service.order.client.dto.StockDecreaseRequest;
 import com.nhnacademy.Book2OnAndOn_order_payment_service.order.config.OrderNumberGenerator;
+import com.nhnacademy.Book2OnAndOn_order_payment_service.order.dto.order.OrderCreateRequestDto;
 import com.nhnacademy.Book2OnAndOn_order_payment_service.order.dto.order.OrderResponseDto;
 import com.nhnacademy.Book2OnAndOn_order_payment_service.order.dto.order.OrderSimpleDto;
+import com.nhnacademy.Book2OnAndOn_order_payment_service.order.dto.order.orderitem.OrderItemRequestDto;
+import com.nhnacademy.Book2OnAndOn_order_payment_service.order.entity.delivery.DeliveryAddress;
 import com.nhnacademy.Book2OnAndOn_order_payment_service.order.entity.order.Order;
+import com.nhnacademy.Book2OnAndOn_order_payment_service.order.entity.order.OrderItem;
+import com.nhnacademy.Book2OnAndOn_order_payment_service.order.entity.order.OrderItemStatus;
 import com.nhnacademy.Book2OnAndOn_order_payment_service.order.entity.order.OrderStatus;
 import com.nhnacademy.Book2OnAndOn_order_payment_service.order.exception.NotFoundOrderException;
 import com.nhnacademy.Book2OnAndOn_order_payment_service.order.repository.order.OrderRepository;
@@ -11,6 +19,11 @@ import com.nhnacademy.Book2OnAndOn_order_payment_service.payment.domain.dto.resp
 import com.nhnacademy.Book2OnAndOn_order_payment_service.payment.domain.entity.Payment;
 import com.nhnacademy.Book2OnAndOn_order_payment_service.payment.exception.NotFoundPaymentException;
 import com.nhnacademy.Book2OnAndOn_order_payment_service.payment.repository.PaymentRepository;
+import java.time.LocalDateTime;
+import java.util.ArrayList;
+import java.util.List;
+import java.util.Map;
+import java.util.stream.Collectors;
 import lombok.RequiredArgsConstructor;
 import lombok.extern.slf4j.Slf4j;
 import org.springframework.dao.DataIntegrityViolationException;
@@ -29,15 +42,26 @@ public class OrderServiceImpl implements OrderService2 {
 
     private final OrderRepository orderRepository;
     private final PaymentRepository paymentRepository;
+    private final BookServiceClient bookServiceClient;
 
-    private final int MAX_RETRY_COUNT = 5;
-
-    // 주문 생성
-    @Transactional
+    // 주문 생성 (결제 전)
     @Override
-    public OrderSimpleDto createPreOrder(Long userId) {
+    public OrderSimpleDto createOrder(Long userId, OrderCreateRequestDto req) {
         log.info("주문 생성 로직 실행 (유저 아이디 : {})", userId);
-        for(int i=1; i <= 5; i++){
+
+        Order order = generateAndSaveOrder(userId);
+
+        fillOrderDetails(order, req);
+
+        return null;
+
+    }
+
+    // 주문 번호 생성 및 주문 검증을 위한 저장
+    public Order generateAndSaveOrder(Long userId) {
+        int MAX_RETRY_COUNT = 5;
+
+        for(int i = 1; i <= MAX_RETRY_COUNT; i++){
             try{
                 String orderNumber = orderNumberGenerator.generate();
                 Order order = Order.builder()
@@ -48,9 +72,7 @@ public class OrderServiceImpl implements OrderService2 {
 
                 log.info("주문번호 생성 완료 : {}", orderNumber);
 
-                Order saved = orderRepository.save(order);
-
-                return saved.toOrderSimpleDto();
+                return orderRepository.save(order);
             }catch (DuplicateKeyException e){
                 if(isOrderNumberUniqueViolation(e)){
                     log.warn("주문번호 Unique 제약조건 위반 발생 (재시도 남은 횟수 : {})", MAX_RETRY_COUNT - i);
@@ -60,7 +82,7 @@ public class OrderServiceImpl implements OrderService2 {
             }
         }
         log.error("주문 생성 로직 실패 (유저 아이디 : {})", userId);
-        throw new RuntimeException("주문 생성 실패");
+        throw new RuntimeException("주문 생성 실패 (주문번호 중복 5회)");
     }
 
     // 주문 생성을 위한 유니크 키 검증 메서드
@@ -78,6 +100,78 @@ public class OrderServiceImpl implements OrderService2 {
             cause = cause.getCause();
         }
         return false;
+    }
+
+    // 주문 세부 정보 추가
+    @Transactional
+    public void fillOrderDetails(Order order, OrderCreateRequestDto req) {
+
+        // 요청 Book Id 추출
+        List<Long> bookIds = req.getOrderItems().stream()
+                .map(OrderItemRequestDto::getBookId)
+                .toList();
+
+        // BookService에 책 정보 조회
+        List<BookOrderResponse> bookInfos = bookServiceClient.getBooksForOrder(bookIds);
+
+        // (Key : BookId, Value : BookOrderResponse) 맵 변환
+        Map<Long, BookOrderResponse> bookInfoMap = bookInfos.stream()
+                .collect(Collectors.toMap(BookOrderResponse::getBookId, b -> b));
+
+        // 요청된 OrderItem 추가 작업
+        for (OrderItemRequestDto itemReq : req.getOrderItems()) {
+            Long bookId = itemReq.getBookId();
+            BookOrderResponse bookInfo = bookInfoMap.get(bookId);
+
+            if(bookInfo == null){
+                log.error("책 정보가 없습니다. (책 아이디 : {})", bookId);
+                throw new RuntimeException("책 정보가 없습니다. 책 아이디 : " + bookId);
+            }
+
+            OrderItem orderItem = OrderItem.builder()
+                    .bookId(bookId)
+                    .orderItemQuantity(itemReq.getQuantity())
+                    .unitPrice(bookInfo.getPriceSales().intValue())
+                    .isWrapped(itemReq.isWrapped())
+                    .orderItemStatus(OrderItemStatus.PREPARING).build();
+
+            // 양방향 매핑
+            order.addOrderItem(orderItem);
+        }
+
+        // 요청 배송지 설정 저장
+        DeliveryAddress address = DeliveryAddress.builder()
+                .deliveryAddress(req.getDeliveryAddress().getDeliveryAddress())
+                .deliveryAddressDetail(req.getDeliveryAddress().getDeliveryAddressDetail())
+                .deliveryMessage(req.getDeliveryAddress().getDeliveryMessage())
+                .recipient(req.getDeliveryAddress().getRecipient())
+                .recipientPhonenumber(req.getDeliveryAddress().getRecipientPhonenumber())
+                .build();
+
+        order.addDeliveryAddress(address);
+
+        // 주문명 설정
+        Long bookId = order.getOrderItems().stream()
+                        .map(OrderItem::getBookId)
+                        .min(Long::compare)
+                        .orElseThrow();
+
+        String representiveTitle = bookInfoMap.get(bookId).getTitle();
+
+        int totalCount = order.getOrderItems().size();
+
+        String orderTitle = "";
+        if(totalCount == 1){
+            orderTitle = representiveTitle;
+        }else{
+            orderTitle = representiveTitle + " 외 " + (totalCount - 1) + "권";
+        }
+
+        order.setOrderTitle(orderTitle);
+
+        // TODO 쿠폰 적용 및 포인트 적용으로 인한 값 추가
+
+        // TODO 배송 선호 날짜
     }
 
     // 일반 사용자 주문 리스트 조회
@@ -106,7 +200,22 @@ public class OrderServiceImpl implements OrderService2 {
         return orderResponseDto;
     }
 
-    /**
+    /*
+        스케줄러 전용
+    */
+    @Override
+    public List<Long> findNextBatch(LocalDateTime thresholdTime, Long lastId, int batchSize) {
+        return orderRepository.findNextBatch(OrderStatus.PENDING.getCode(), thresholdTime, lastId, batchSize);
+    }
+
+    @Transactional
+    @Override
+    public int deleteJunkOrder(List<Long> ids) {
+        return orderRepository.deleteByIds(ids);
+    }
+
+
+    /*
         API 호출 전용
     */
     @Override
