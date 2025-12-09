@@ -1,6 +1,7 @@
 package com.nhnacademy.Book2OnAndOn_order_payment_service.order.dto.order;
 
 import com.nhnacademy.Book2OnAndOn_order_payment_service.order.dto.order.orderitem.OrderItemRequestDto;
+import java.time.LocalDate;
 import lombok.Getter;
 import lombok.Setter;
 import lombok.NoArgsConstructor;
@@ -19,6 +20,7 @@ import java.util.List;
 public class OrderCreateRequestDto {
     private List<OrderItemRequestDto> orderItems;
     private DeliveryAddressRequestDto deliveryAddress;
+    private LocalDate wantDeliveryDate;
     private List<Long> couponId;
     private Long point;
 }

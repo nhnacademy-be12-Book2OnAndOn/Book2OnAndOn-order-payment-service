@@ -2,6 +2,7 @@ package com.nhnacademy.Book2OnAndOn_order_payment_service.order.dto.order;
 
 import com.nhnacademy.Book2OnAndOn_order_payment_service.order.dto.order.orderitem.OrderItemDetailDto;
 import com.nhnacademy.Book2OnAndOn_order_payment_service.payment.domain.dto.response.PaymentResponse;
+import java.time.LocalDate;
 import lombok.Getter;
 import lombok.Setter;
 import lombok.NoArgsConstructor;
@@ -35,7 +36,7 @@ public class OrderResponseDto {
     private int pointDiscount;
 
     // 배송 희망 날짜
-    private LocalDateTime wantDeliveryDate;
+    private LocalDate wantDeliveryDate;
 
     // 3. 주문 상품 목록 (상세 조회용)
     private List<OrderItemDetailDto> orderItems;

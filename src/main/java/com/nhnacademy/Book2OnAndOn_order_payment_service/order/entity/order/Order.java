@@ -18,6 +18,7 @@ import jakarta.persistence.OneToMany;
 import jakarta.persistence.OneToOne;
 import jakarta.persistence.Table;
 import jakarta.validation.constraints.NotNull;
+import java.time.LocalDate;
 import java.time.LocalDateTime;
 import java.util.ArrayList;
 import java.util.List;
@@ -84,7 +85,7 @@ public class Order {
     private Integer pointDiscount = 0;
 
     @Column(name = "want_delivery_date")
-    private LocalDateTime wantDeliveryDate;
+    private LocalDate wantDeliveryDate;
 
     // 양방향 연관관계
     @OneToMany(mappedBy = "order", fetch = FetchType.LAZY, cascade = CascadeType.ALL, orphanRemoval = true)
