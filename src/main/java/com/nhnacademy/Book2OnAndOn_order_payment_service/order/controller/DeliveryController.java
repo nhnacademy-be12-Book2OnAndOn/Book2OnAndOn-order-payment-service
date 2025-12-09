@@ -18,8 +18,12 @@ public class DeliveryController {
     private final DeliveryService deliveryService;
 
     @GetMapping("/deliveries")
-    public ResponseEntity<DeliveryResponseDto> getDeliveryByOrder(@RequestParam Long orderId) {
-        DeliveryResponseDto response = deliveryService.getDelivery(orderId);
+    public ResponseEntity<DeliveryResponseDto> getDeliveryByOrder(
+            @RequestParam Long orderId,
+            @RequestHeader("X-USER-ID") Long userId) { // [추가] 헤더 받기
+
+        // 서비스에 userId도 같이 전달
+        DeliveryResponseDto response = deliveryService.getDelivery(orderId, userId);
         return ResponseEntity.ok(response);
     }
 

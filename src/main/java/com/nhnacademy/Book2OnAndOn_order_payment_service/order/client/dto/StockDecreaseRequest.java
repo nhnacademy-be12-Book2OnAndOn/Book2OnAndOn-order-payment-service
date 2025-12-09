@@ -1,5 +1,6 @@
 package com.nhnacademy.Book2OnAndOn_order_payment_service.order.client.dto;
 
+import com.nhnacademy.Book2OnAndOn_order_payment_service.order.entity.order.OrderItem;
 import lombok.AllArgsConstructor;
 import lombok.Builder;
 import lombok.Getter;

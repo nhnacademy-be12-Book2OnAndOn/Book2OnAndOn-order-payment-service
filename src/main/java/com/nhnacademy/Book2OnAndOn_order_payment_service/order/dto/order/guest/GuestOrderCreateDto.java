@@ -19,7 +19,7 @@ import java.util.List;
 @AllArgsConstructor
 public class GuestOrderCreateDto {
     private String guestName;
-    private String guestPhonenumber;
+    private String guestPhoneNumber;
     private String guestPassword;
     private List<OrderItemRequestDto> orderItems;
     private DeliveryAddressRequestDto deliveryAddress;
