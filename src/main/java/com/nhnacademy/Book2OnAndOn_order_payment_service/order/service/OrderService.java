@@ -1,7 +1,6 @@
 package com.nhnacademy.Book2OnAndOn_order_payment_service.order.service;
 
 import com.nhnacademy.Book2OnAndOn_order_payment_service.exception.OrderVerificationException;
-import com.nhnacademy.Book2OnAndOn_order_payment_service.order.config.OrderNumberGenerator;
 import com.nhnacademy.Book2OnAndOn_order_payment_service.order.dto.order.guest.GuestOrderCreateDto;
 import com.nhnacademy.Book2OnAndOn_order_payment_service.order.dto.order.orderitem.OrderItemDetailDto;
 import com.nhnacademy.Book2OnAndOn_order_payment_service.order.dto.order.orderitem.OrderItemRequestDto;
@@ -258,7 +257,7 @@ public class OrderService {
         findGuestOrderDetails(orderId, password); 
 
         // 2. 취소 로직 (취소 사유 DTO가 없으므로 임시로 null 사용)
-        return cancelOrder(orderId, null, new OrderCancelRequestDto(null, null, null));
+        return cancelOrder(orderId, null, new OrderCancelRequestDto(null, null, null)); 
     }
     
     /**
@@ -347,7 +346,7 @@ public class OrderService {
     }
 
     /**
-     * [DTO 변환] Order 엔티티를 OrderSimpleDto로 변환합니다.
+     * [DTO 변환] Order 엔티티를 OrderSimpleDto로 변환
      */
     private OrderSimpleDto convertToOrderSimpleDto(Order order) {
         // 1. OrderItem 목록이 있는지 확인
@@ -499,8 +498,6 @@ public class OrderService {
     /**
      * Order 엔티티를 생성 -> 초기 상태로 저장
      */
-
-    private final OrderNumberGenerator generator;
     private Order buildAndSaveOrder(OrderCreateRequestDto request, OrderPriceCalculationDto priceDto) {
         String orderNumber = generator.generate();
 
@@ -531,6 +528,7 @@ public class OrderService {
     /**
      * OrderItem 엔티티 리스트를 생성하여 DB에 저장-> 재고 차감
      */
+    // 회원, 비회원 주문생성시 사용
     private void saveOrderItems(List<OrderItemRequestDto> itemRequests, Order order, Map<Long, BookOrderResponse> bookMap) {
         for (OrderItemRequestDto itemRequest : itemRequests) {
             
