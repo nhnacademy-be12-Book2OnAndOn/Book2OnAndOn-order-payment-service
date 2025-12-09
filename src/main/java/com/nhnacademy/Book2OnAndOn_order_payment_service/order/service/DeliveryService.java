@@ -29,7 +29,7 @@ public class DeliveryService {
     private final DeliveryRepository deliveryRepository;
     private final OrderRepository orderRepository;
 
-    @Value("${smart-delivery.api-key}")
+//    @Value("${smart-delivery.api-key}")
     private String sweetTrackerApiKey;
 
 

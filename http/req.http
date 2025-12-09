@@ -7,3 +7,7 @@ X-User-ID:1
   "paymentKey": "tviva20251203172029n3Pl5",
   "cancelReason": "test"
 }
+
+
+### Snowflake 기반 주문 번호 생성
+GET http://localhost:10421/hello

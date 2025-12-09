@@ -23,6 +23,7 @@ import jakarta.transaction.Transactional;
 import java.util.ArrayList;
 import java.util.List;
 import java.util.Objects;
+import java.util.Optional;
 import java.util.stream.Collectors;
 import lombok.RequiredArgsConstructor;
 import lombok.extern.slf4j.Slf4j;
@@ -103,21 +104,21 @@ public class PaymentServiceImpl implements PaymentService {
 
 
     private Payment validateAndGetPayment(String orderNumber, boolean shouldExist){
-        Payment payment = paymentRepository.findByOrderNumber(orderNumber);
+        Optional<Payment> optionalPayment = paymentRepository.findByOrderNumber(orderNumber);
 
-        if(shouldExist && Objects.isNull(payment)){
+        if(shouldExist && optionalPayment.isEmpty()){
             // 조회 및 삭제 : 데이터가 없으면 안됨
             log.warn("결제 정보를 찾을 수 없습니다 (주문번호 : {})", orderNumber);
             throw new NotFoundPaymentException("Not Found Payment : " + orderNumber);
         }
 
-        if(!shouldExist && Objects.nonNull(payment)){
+        if(!shouldExist && optionalPayment.isPresent()){
             // 생성 : 중복 데이터가 있으면 안됨
             log.warn("중복 결제 데이터입니다 (주문번호 : {})", orderNumber);
             throw new DuplicatePaymentException("Duplicate Payment Data : " + orderNumber);
         }
 
-        return payment;
+        return optionalPayment.orElse(null);
     }
 
     // 결제 취소 로직
