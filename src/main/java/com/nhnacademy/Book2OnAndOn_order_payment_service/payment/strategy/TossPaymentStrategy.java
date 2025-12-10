@@ -1,6 +1,9 @@
 package com.nhnacademy.Book2OnAndOn_order_payment_service.payment.strategy;
 
-import com.nhnacademy.Book2OnAndOn_order_payment_service.order.service.OrderService;
+import static com.netflix.spectator.api.Statistic.totalAmount;
+
+import com.nhnacademy.Book2OnAndOn_order_payment_service.order.dto.order.OrderResponseDto;
+import com.nhnacademy.Book2OnAndOn_order_payment_service.order.service.OrderService2;
 import com.nhnacademy.Book2OnAndOn_order_payment_service.payment.client.TossPaymentsApiClient;
 import com.nhnacademy.Book2OnAndOn_order_payment_service.payment.domain.dto.CommonCancelRequest;
 import com.nhnacademy.Book2OnAndOn_order_payment_service.payment.domain.dto.CommonCancelResponse;
@@ -17,7 +20,6 @@ import com.nhnacademy.Book2OnAndOn_order_payment_service.payment.property.TossPa
 import com.nhnacademy.Book2OnAndOn_order_payment_service.payment.service.PaymentService;
 import java.nio.charset.StandardCharsets;
 import java.util.Base64;
-import java.util.List;
 
 import java.util.Objects;
 import lombok.RequiredArgsConstructor;
@@ -30,7 +32,7 @@ import org.springframework.stereotype.Component;
 public class TossPaymentStrategy implements PaymentStrategy{
 
     private final PaymentService paymentService;
-    private final OrderService orderService;
+    private final OrderService2 orderService;
     private final TossPaymentsApiClient tossPaymentsApiClient;
     private final TossPaymentsProperties properties;
 
@@ -45,7 +47,8 @@ public class TossPaymentStrategy implements PaymentStrategy{
         // 보안 헤더 생성
         String authorization = buildAuthorizationHeader();
 
-        Integer totalAmount = orderService.getTotalAmount(req.orderId());
+        OrderResponseDto orderResp = orderService.getOrderByOrderNumber(req.orderId());
+        Integer totalAmount = orderResp.getTotalAmount();
 
         // 금액 검증
         if(!Objects.equals(totalAmount, req.amount())){

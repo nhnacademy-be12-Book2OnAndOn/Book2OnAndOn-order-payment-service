@@ -1,11 +1,14 @@
 package com.nhnacademy.Book2OnAndOn_order_payment_service.order.service;
 
 import com.nhnacademy.Book2OnAndOn_order_payment_service.order.client.BookServiceClient;
+import com.nhnacademy.Book2OnAndOn_order_payment_service.order.client.CouponServiceClient;
 import com.nhnacademy.Book2OnAndOn_order_payment_service.order.client.UserServiceClient;
 import com.nhnacademy.Book2OnAndOn_order_payment_service.order.client.dto.BookOrderResponse;
 import com.nhnacademy.Book2OnAndOn_order_payment_service.order.client.dto.CurrentPointResponseDto;
 import com.nhnacademy.Book2OnAndOn_order_payment_service.order.client.dto.UserAddressResponseDto;
+import com.nhnacademy.Book2OnAndOn_order_payment_service.order.client.dto.UserCouponResponseDto;
 import com.nhnacademy.Book2OnAndOn_order_payment_service.order.config.OrderNumberGenerator;
+import com.nhnacademy.Book2OnAndOn_order_payment_service.order.dto.order.OrderCancelRequestDto2;
 import com.nhnacademy.Book2OnAndOn_order_payment_service.order.dto.order.OrderCreateRequestDto;
 import com.nhnacademy.Book2OnAndOn_order_payment_service.order.dto.order.OrderResponseDto;
 import com.nhnacademy.Book2OnAndOn_order_payment_service.order.dto.order.OrderSheetRequestDto;
@@ -20,16 +23,25 @@ import com.nhnacademy.Book2OnAndOn_order_payment_service.order.entity.order.Orde
 import com.nhnacademy.Book2OnAndOn_order_payment_service.order.exception.NotFoundOrderException;
 import com.nhnacademy.Book2OnAndOn_order_payment_service.order.repository.order.OrderRepository;
 import com.nhnacademy.Book2OnAndOn_order_payment_service.payment.domain.dto.CommonCancelRequest;
+import com.nhnacademy.Book2OnAndOn_order_payment_service.payment.domain.dto.CommonCancelResponse;
+import com.nhnacademy.Book2OnAndOn_order_payment_service.payment.domain.dto.request.PaymentCancelCreateRequest;
+import com.nhnacademy.Book2OnAndOn_order_payment_service.payment.domain.dto.request.PaymentRequest;
+import com.nhnacademy.Book2OnAndOn_order_payment_service.payment.domain.dto.response.PaymentCancelResponse;
 import com.nhnacademy.Book2OnAndOn_order_payment_service.payment.domain.dto.response.PaymentResponse;
 import com.nhnacademy.Book2OnAndOn_order_payment_service.payment.domain.entity.Payment;
 import com.nhnacademy.Book2OnAndOn_order_payment_service.payment.exception.NotFoundPaymentException;
 import com.nhnacademy.Book2OnAndOn_order_payment_service.payment.repository.PaymentRepository;
+import com.nhnacademy.Book2OnAndOn_order_payment_service.payment.service.PaymentService;
+import com.nhnacademy.Book2OnAndOn_order_payment_service.payment.strategy.PaymentStrategy;
+import com.nhnacademy.Book2OnAndOn_order_payment_service.payment.strategy.PaymentStrategyFactory;
 import java.time.LocalDateTime;
 import java.util.List;
 import java.util.Map;
+import java.util.Objects;
 import java.util.stream.Collectors;
 import lombok.RequiredArgsConstructor;
 import lombok.extern.slf4j.Slf4j;
+import org.springframework.cloud.client.loadbalancer.reactive.ReactiveLoadBalancer;
 import org.springframework.dao.DuplicateKeyException;
 import org.springframework.data.domain.Page;
 import org.springframework.data.domain.Pageable;
@@ -44,32 +56,68 @@ public class OrderServiceImpl implements OrderService2 {
     private final OrderNumberGenerator orderNumberGenerator;
 
     private final OrderRepository orderRepository;
-    private final PaymentRepository paymentRepository;
+//    private final PaymentRepository paymentRepository;
+    private final PaymentService paymentService;
     private final BookServiceClient bookServiceClient;
     private final UserServiceClient userServiceClient;
+    private final CouponServiceClient couponServiceClient;
+    private final PaymentStrategyFactory paymentStrategyFactory;
 
-
-    @Override
-    public OrderSheetResponseDto setOrder(Long userId, OrderSheetRequestDto req) {
+    /**
+     * 책 클라이언트를 통해 책 정보를 가져오는 공용 메서드입니다.
+     * @param req
+     * @return 책 정보 반환 List
+     */
+    private List<BookOrderResponse> fetchBookInfo(OrderSheetRequestDto req){
         List<Long> bookIds = req.bookItems().stream()
                 .map(OrderSheetRequestDto.BookInfoDto::bookId)
                 .toList();
 
         List<BookOrderResponse> bookOrderResponseList = bookServiceClient.getBooksForOrder(bookIds);
         log.info("도서 정보 클라이언트 호출 성공, 조회 도서 수 : {}", bookOrderResponseList.size());
-        List<UserAddressResponseDto> userAddressResponseDtoList = userServiceClient.getUserAddresses(userId);
-        log.info("사용자 정보 클라이언트 호출 성공, 사용자 배송지 수 : {}",userAddressResponseDtoList.size());
-        CurrentPointResponseDto userCurrentPoint = userServiceClient.getUserPoint(userId);
-        log.info("사용자 정보 클라이언트 호출 성공, 사용자 현재 포인트 : {}", userCurrentPoint.currentPoint());
 
+        return bookOrderResponseList;
+    }
+
+    /**
+     * 주문 시 필요한 데이터를 미리 불러오는 메서드입니다.
+     * @param userId
+     * @param req
+     * @return 주문 항목, 유저 배송지 정보, 사용가능한 쿠폰, 유저 포인트 반환 DTO
+     */
+    @Transactional(readOnly = true)
+    @Override
+    public OrderSheetResponseDto prepareOrder(Long userId, OrderSheetRequestDto req) {
+        log.info("주문 전 데이터 정보 가져오기 로직 실행 (유저 아이디 : {})", userId);
+
+        List<BookOrderResponse> bookOrderResponseList = fetchBookInfo(req);
+
+        List<UserAddressResponseDto> userAddressResponseDtoList = userServiceClient.getUserAddresses(userId);
+        log.info("회원 정보 클라이언트 호출 성공, 회원 배송지 수 : {}",userAddressResponseDtoList.size());
+
+        //TODO : bookId, categoryId 받아와서 userCouponRequestDtoList 생성
+
+        List<UserCouponResponseDto> userCouponResponseDtoList = couponServiceClient.getUsableCoupons(userId, null);
+        log.info("쿠폰 정보 클라이언트 호출 성공, 사용 가능한 쿠폰 수 : {}", userCouponResponseDtoList.size());
+        CurrentPointResponseDto userCurrentPoint = userServiceClient.getUserPoint(userId);
+        log.info("회원 정보 클라이언트 호출 성공, 회원 현재 포인트 : {}", userCurrentPoint.currentPoint());
+
+        // 회원 주문은 배송지, 쿠폰 및 포인트 여부도 가져옴
         return new OrderSheetResponseDto(
                 bookOrderResponseList,
                 userAddressResponseDtoList,
+                userCouponResponseDtoList,
                 userCurrentPoint
         );
     }
 
-    // 주문 생성 (결제 전)
+    /**
+     * 결제 시작 전에 검증을 위해 검증 데이터들을 저장하는 메서드입니다.
+     * @param userId
+     * @param req
+     * @return 주문 관련 모든 데이터 반환
+     */
+    @Transactional
     @Override
     public OrderResponseDto createOrder(Long userId, OrderCreateRequestDto req) {
         log.info("주문 생성 로직 실행 (유저 아이디 : {})", userId);
@@ -106,6 +154,7 @@ public class OrderServiceImpl implements OrderService2 {
             }
         }
         log.error("주문 생성 로직 실패 (유저 아이디 : {})", userId);
+        // TODO 커스텀 exception 설계
         throw new RuntimeException("주문 생성 실패 (주문번호 중복 5회)");
     }
 
@@ -127,7 +176,6 @@ public class OrderServiceImpl implements OrderService2 {
     }
 
     // 주문 세부 정보 추가
-    @Transactional
     public void fillOrderDetails(Order order, OrderCreateRequestDto req) {
 
         // 요청 Book Id 추출
@@ -217,18 +265,16 @@ public class OrderServiceImpl implements OrderService2 {
                 .orElseThrow(() -> new NotFoundOrderException("Not Found Order : " + orderNumber));
 
         OrderResponseDto orderResponseDto = order.toOrderResponseDto();
-        Payment payment = paymentRepository.findByOrderNumber(orderNumber)
-                .orElseThrow(() -> new NotFoundPaymentException("Not Found Payment : " + orderNumber));
-
-        PaymentResponse paymentResponse = payment.toResponse();
+        PaymentResponse paymentResponse = paymentService.getPayment(new PaymentRequest(orderNumber));
         orderResponseDto.setPaymentResponse(paymentResponse);
 
         return orderResponseDto;
     }
 
     // 일반 사용자 주문 취소
+    @Transactional
     @Override
-    public OrderResponseDto cancelOrder(Long userId, String orderNumber, CommonCancelRequest req) {
+    public OrderResponseDto cancelOrder(Long userId, String orderNumber, OrderCancelRequestDto2 req) {
         log.info("일반 사용자 주문 취소 로직 실행 (유저 아이디 : {}, 주문번호 : {})", userId, orderNumber);
 
         boolean isExists = orderRepository.existsByOrderNumberAndUserId(orderNumber, userId);
@@ -237,14 +283,40 @@ public class OrderServiceImpl implements OrderService2 {
             throw new NotFoundOrderException("잘못된 접근입니다 : " + orderNumber);
         }
 
-//        String provider = pay
+        PaymentResponse paymentResponse = paymentService.getPayment(new PaymentRequest(orderNumber));
+
+        CommonCancelRequest cancelReq = new CommonCancelRequest(paymentResponse.paymentKey(), null, req.cancelReason());
+
+        String provider = paymentResponse.paymentProvider();
+        PaymentStrategy paymentStrategy = paymentStrategyFactory.getStrategy(provider);
+        CommonCancelResponse cancelResponse = paymentStrategy.cancelPayment(cancelReq, orderNumber);
+
+        PaymentCancelCreateRequest createRequest = cancelResponse.toPaymentCancelCreateRequest();
+        paymentService.createPaymentCancel(createRequest);
+
+
 
         return null;
+    }
+
+    @Override
+    public OrderSheetResponseDto prepareGuestOrder(String guestId, OrderSheetRequestDto req) {
+        log.info("주문 전 데이터 정보 가져오기 로직 실행 (비회원 유저 : {})", guestId);
+
+        List<BookOrderResponse> bookOrderResponseList = fetchBookInfo(req);
+
+        return new OrderSheetResponseDto(
+                bookOrderResponseList,
+                null,
+                null,
+                null
+        );
     }
 
     /*
         스케줄러 전용
     */
+    @Transactional(readOnly = true)
     @Override
     public List<Long> findNextBatch(LocalDateTime thresholdTime, Long lastId, int batchSize) {
         return orderRepository.findNextBatch(OrderStatus.PENDING.getCode(), thresholdTime, lastId, batchSize);
@@ -260,9 +332,24 @@ public class OrderServiceImpl implements OrderService2 {
     /*
         API 호출 전용
     */
+    @Transactional(readOnly = true)
     @Override
     public Boolean existsPurchase(Long userId, Long bookId) {
         return orderRepository.existsPurchase(userId, bookId);
+    }
+
+    @Transactional(readOnly = true)
+    @Override
+    public OrderResponseDto getOrderByOrderNumber(String orderNumber) {
+        Order order = orderRepository.findByOrderNumber(orderNumber)
+                .orElseThrow(() -> new NotFoundOrderException("Not Found Order : " + orderNumber));
+        return order.toOrderResponseDto();
+    }
+
+    @Transactional(readOnly = true)
+    @Override
+    public Boolean existsOrderByUserIdAndOrderNumber(Long userId, String orderNumber) {
+        return orderRepository.existsByOrderNumberAndUserId(orderNumber, userId);
     }
 
 

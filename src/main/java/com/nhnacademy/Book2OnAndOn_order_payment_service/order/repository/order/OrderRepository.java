@@ -97,5 +97,7 @@ public interface OrderRepository extends JpaRepository<Order, Long> {
         WHERE o.userId = :userId AND oi.bookId = :bookId
     """)
     boolean existsPurchase(Long userId, Long bookId);
+
+    Optional<Order> findByOrderNumber(String orderNumber);
 }
 
