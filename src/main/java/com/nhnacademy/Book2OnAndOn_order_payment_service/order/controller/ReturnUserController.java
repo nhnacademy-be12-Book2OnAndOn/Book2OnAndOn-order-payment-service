@@ -13,7 +13,7 @@ import jakarta.validation.Valid;
 
 @RestController
 @RequiredArgsConstructor
-@RequestMapping("/api/orders/{orderId}/returns")
+@RequestMapping("/orders/{orderId}/returns")
 public class ReturnUserController {
 
     private final ReturnService returnService;
@@ -25,7 +25,7 @@ public class ReturnUserController {
         return Long.valueOf(authentication.getName());
     }
     
-    // POST /api/orders/{orderId}/returns (회원 반품 신청)
+    // POST /orders/{orderId}/returns (회원 반품 신청)
     @PostMapping
     public ResponseEntity<ReturnResponseDto> createReturn(
             @PathVariable Long orderId,
@@ -37,7 +37,7 @@ public class ReturnUserController {
         return new ResponseEntity<>(response, HttpStatus.CREATED);
     }
 
-    // GET /api/orders/{orderId}/returns/{returnId} (회원 반품 상세 조회)
+    // GET /orders/{orderId}/returns/{returnId} (회원 반품 상세 조회)
     @GetMapping("/{returnId}")
     public ResponseEntity<ReturnResponseDto> getReturnDetails(
             @PathVariable Long orderId, // orderId는 경로에 있지만 returnId만 사용
