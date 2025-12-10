@@ -12,19 +12,19 @@ import jakarta.validation.Valid;
 
 @RestController
 @RequiredArgsConstructor
-@RequestMapping("/api/guest/orders")
+@RequestMapping("/guest/orders")
 public class OrderGuestController {
 
     private final OrderService orderService;
 
-    // POST /api/guest/orders (비회원 주문 생성)
+    // POST /guest/orders (비회원 주문 생성)
     @PostMapping
     public ResponseEntity<OrderResponseDto> createGuestOrder(@Valid @RequestBody GuestOrderCreateDto request) {
         OrderResponseDto response = orderService.createGuestOrder(request);
         return new ResponseEntity<>(response, HttpStatus.CREATED);
     }
     
-    // GET /api/guest/orders/{orderId} (비회원 주문 상세 조회)
+    // GET /guest/orders/{orderId} (비회원 주문 상세 조회)
     @GetMapping("/{orderId}")
     public ResponseEntity<OrderResponseDto> findGuestOrderDetails(@PathVariable Long orderId,
                                                                @RequestParam("password") String password) {
@@ -32,7 +32,7 @@ public class OrderGuestController {
         return ResponseEntity.ok(response);
     }
     
-    // PATCH /api/guest/orders/{orderId} (비회원 주문 취소)
+    // PATCH /guest/orders/{orderId} (비회원 주문 취소)
     @PatchMapping("/{orderId}")
     public ResponseEntity<OrderResponseDto> cancelGuestOrder(@PathVariable Long orderId,
                                                            @RequestParam("password") String password) {

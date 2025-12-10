@@ -16,7 +16,7 @@ import jakarta.validation.Valid;
 
 @RestController
 @RequiredArgsConstructor
-@RequestMapping("/api/wrappapers")
+@RequestMapping("/wrappapers")
 public class WrappingPaperController {
 
     private final WrappingPaperService wrappingPaperService;
@@ -26,7 +26,7 @@ public class WrappingPaperController {
     // ======================================================================
 
     /**
-     * [GET] /api/wrappapers (공용 포장지 목록 조회)
+     * [GET] /wrappapers (공용 포장지 목록 조회)
      */
     @GetMapping
     public ResponseEntity<Page<WrapPaperSimpleResponseDto>> getWrappingPaperList(Pageable pageable) {
@@ -39,7 +39,7 @@ public class WrappingPaperController {
     // ======================================================================
 
     /**
-     * [POST] /api/wrappapers (관리자 포장지 생성)
+     * [POST] /wrappapers (관리자 포장지 생성)
      */
     @PostMapping
     @PreAuthorize("hasRole('ORDER_ADMIN')") // 관리자 권한 필요
@@ -49,7 +49,7 @@ public class WrappingPaperController {
     }
 
     /**
-     * [PUT] /api/wrappapers/{wrappingPaperId} (관리자 포장지 정보 수정)
+     * [PUT] /wrappapers/{wrappingPaperId} (관리자 포장지 정보 수정)
      */
     @PutMapping("/{wrappingPaperId}")
     @PreAuthorize("hasRole('ORDER_ADMIN')") //  관리자 권한 필요
@@ -62,7 +62,7 @@ public class WrappingPaperController {
     }
 
     /**
-     * [DELETE] /api/wrappapers/{wrappingPaperId} (관리자 포장지 삭제)
+     * [DELETE] /wrappapers/{wrappingPaperId} (관리자 포장지 삭제)
      */
     @DeleteMapping("/{wrappingPaperId}")
     @PreAuthorize("hasRole('ORDER_ADMIN')") // 관리자 권한 필요
