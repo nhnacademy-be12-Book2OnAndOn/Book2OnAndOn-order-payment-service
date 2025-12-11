@@ -6,13 +6,13 @@ import lombok.NoArgsConstructor;
 import lombok.AllArgsConstructor;
 
 /**
- * 포장지 목록 조회 시 사용
+ * 포장지 목록 조회 시 사용(사용자 확인용)
  */
 @Getter
 @Setter
 @NoArgsConstructor
 @AllArgsConstructor
-public class WrapPaperSimpleResponseDto {
+public class WrappingPaperSimpleResponseDto {
     private Long wrappingPaperId;
     private String wrappingPaperName;
     private int wrappingPaperPrice;

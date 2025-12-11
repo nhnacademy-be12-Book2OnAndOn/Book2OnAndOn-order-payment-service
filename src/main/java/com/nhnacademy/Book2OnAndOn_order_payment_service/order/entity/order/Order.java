@@ -1,14 +1,11 @@
 package com.nhnacademy.Book2OnAndOn_order_payment_service.order.entity.order;
 
-import com.nhnacademy.Book2OnAndOn_order_payment_service.order.converter.OrderStatusConverter;
 import com.nhnacademy.Book2OnAndOn_order_payment_service.order.dto.order.OrderResponseDto;
 import com.nhnacademy.Book2OnAndOn_order_payment_service.order.dto.order.OrderSimpleDto;
-import com.nhnacademy.Book2OnAndOn_order_payment_service.order.entity.delivery.Delivery;
 import com.nhnacademy.Book2OnAndOn_order_payment_service.order.entity.delivery.DeliveryAddress;
-import com.nhnacademy.Book2OnAndOn_order_payment_service.order.entity.return1.Return;
+import com.nhnacademy.Book2OnAndOn_order_payment_service.order.entity.refund.Refund;
 import jakarta.persistence.CascadeType;
 import jakarta.persistence.Column;
-import jakarta.persistence.Convert;
 import jakarta.persistence.Entity;
 import jakarta.persistence.FetchType;
 import jakarta.persistence.GeneratedValue;
@@ -99,7 +96,7 @@ public class Order {
     private GuestOrder guestOrder;
 
     @OneToMany(mappedBy = "order", fetch = FetchType.LAZY, cascade = CascadeType.ALL, orphanRemoval = true)
-    private List<Return> returns = new ArrayList<>();
+    private List<Refund> refund = new ArrayList<>();
 
     public void updateStatus(OrderStatus status){
         this.orderStatus = status;

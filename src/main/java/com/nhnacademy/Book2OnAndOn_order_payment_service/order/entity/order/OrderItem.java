@@ -1,9 +1,6 @@
 package com.nhnacademy.Book2OnAndOn_order_payment_service.order.entity.order;
 
-import com.nhnacademy.Book2OnAndOn_order_payment_service.order.client.dto.BookOrderResponse;
-import com.nhnacademy.Book2OnAndOn_order_payment_service.order.dto.order.OrderResponseDto;
-import com.nhnacademy.Book2OnAndOn_order_payment_service.order.dto.order.orderitem.OrderItemRequestDto;
-import com.nhnacademy.Book2OnAndOn_order_payment_service.order.entity.return1.ReturnItem;
+import com.nhnacademy.Book2OnAndOn_order_payment_service.order.entity.refund.RefundItem;
 import com.nhnacademy.Book2OnAndOn_order_payment_service.order.entity.wrappingpaper.WrappingPaper;
 import jakarta.persistence.CascadeType;
 import jakarta.persistence.Column;
@@ -71,5 +68,5 @@ public class OrderItem {
     private WrappingPaper wrappingPaper;
 
     @OneToMany(mappedBy = "orderItem", cascade = CascadeType.ALL)
-    private List<ReturnItem> returnItems = new ArrayList<>();
+    private List<RefundItem> refundItems = new ArrayList<>();
 }
