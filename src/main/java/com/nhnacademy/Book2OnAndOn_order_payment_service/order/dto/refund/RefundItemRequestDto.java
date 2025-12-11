@@ -1,4 +1,4 @@
-package com.nhnacademy.Book2OnAndOn_order_payment_service.order.dto.return1;
+package com.nhnacademy.Book2OnAndOn_order_payment_service.order.dto.refund;
 
 import lombok.Getter;
 import lombok.Setter;
@@ -14,10 +14,10 @@ import jakarta.validation.constraints.NotNull;
 @Setter
 @NoArgsConstructor
 @AllArgsConstructor
-public class ReturnItemRequestDto {
+public class RefundItemRequestDto {
     @NotNull
     private Long orderItemId; // 원 주문 항목 (OrderItem) ID
 
     @Min(1)
-    private int returnQuantity; // 반품 수량
+    private int refundQuantity; // 반품 수량
 }

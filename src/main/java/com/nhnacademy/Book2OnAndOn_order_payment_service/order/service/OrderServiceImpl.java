@@ -48,7 +48,9 @@ public class OrderServiceImpl implements OrderService2 {
     private final BookServiceClient bookServiceClient;
     private final UserServiceClient userServiceClient;
 
-
+    // 1. 주문 정보 화면에 호출
+    // 주문자 정보: 보내는 분(이름), 휴대폰, 이메일
+    // 배송지: 기본배송지는 자동표기, 이후 배송지 변경 시 redirect:회원정보변경하는.html로 이동 (중간 이탈 시 작성했던 데이터 손실 시 그건 회원 잘못)
     @Override
     public OrderSheetResponseDto setOrder(Long userId, OrderSheetRequestDto req) {
         List<Long> bookIds = req.bookItems().stream()

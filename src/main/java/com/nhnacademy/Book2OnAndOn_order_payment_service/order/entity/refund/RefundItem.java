@@ -1,4 +1,4 @@
-package com.nhnacademy.Book2OnAndOn_order_payment_service.order.entity.return1;
+package com.nhnacademy.Book2OnAndOn_order_payment_service.order.entity.refund;
 
 import com.nhnacademy.Book2OnAndOn_order_payment_service.order.entity.order.OrderItem;
 import jakarta.persistence.Column;
@@ -20,26 +20,26 @@ import lombok.Setter;
 @Entity
 @Getter
 @Setter
-@NoArgsConstructor(access = AccessLevel.PROTECTED)
+@NoArgsConstructor
 @AllArgsConstructor
-@Table(name = "ReturnItem")
-public class ReturnItem {
+@Table(name = "refund_item")
+public class RefundItem {
     @Id
     @GeneratedValue(strategy = GenerationType.IDENTITY)
-    @Column(name = "return_item_id")
-    private Long returnItemId;
+    @Column(name = "refund_item_id")
+    private Long refundItemId;
 
-    @Column(name = "return_quantity", columnDefinition = "TINYINT")
     @NotNull
-    private Integer returnQuantity;
+    @Column(name = "refund_quantity", columnDefinition = "TINYINT")
+    private Integer refundQuantity; // 반품한 수량 (ex. 3/5 ...)
 
+    @NotNull
     @ManyToOne(fetch = FetchType.LAZY)
-    @JoinColumn(name = "return_id")
-    @NotNull
-    private Return returnEntity;
+    @JoinColumn(name = "refund_id")
+    private Refund refund;
 
+    @NotNull
     @ManyToOne(fetch = FetchType.LAZY)
     @JoinColumn(name = "order_item_id")
-    @NotNull
     private OrderItem orderItem;
 }
