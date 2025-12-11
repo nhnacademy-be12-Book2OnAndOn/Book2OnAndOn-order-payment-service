@@ -1,4 +1,4 @@
-package com.nhnacademy.Book2OnAndOn_order_payment_service.order.dto.return1;
+package com.nhnacademy.Book2OnAndOn_order_payment_service.order.dto.refund;
 
 import lombok.Getter;
 import lombok.Setter;
@@ -12,7 +12,6 @@ import lombok.AllArgsConstructor;
 @Setter
 @NoArgsConstructor
 @AllArgsConstructor
-public class ReturnStatusUpdateDto {
-    // 반품 상태 코드
+public class RefundStatusUpdateDto {
     private int statusCode;
 }
