@@ -1,7 +1,6 @@
 package com.nhnacademy.Book2OnAndOn_order_payment_service.order.service;
 
 import com.nhnacademy.Book2OnAndOn_order_payment_service.exception.OrderVerificationException;
-import com.nhnacademy.Book2OnAndOn_order_payment_service.order.config.OrderNumberGenerator;
 import com.nhnacademy.Book2OnAndOn_order_payment_service.order.dto.order.guest.GuestOrderCreateDto;
 import com.nhnacademy.Book2OnAndOn_order_payment_service.order.dto.order.orderitem.OrderItemDetailDto;
 import com.nhnacademy.Book2OnAndOn_order_payment_service.order.dto.order.orderitem.OrderItemRequestDto;
@@ -258,7 +257,7 @@ public class OrderService {
         findGuestOrderDetails(orderId, password); 
 
         // 2. 취소 로직 (취소 사유 DTO가 없으므로 임시로 null 사용)
-        return cancelOrder(orderId, null, new OrderCancelRequestDto(null, null, null));
+        return cancelOrder(orderId, null, new OrderCancelRequestDto(null, null, null)); 
     }
     
     /**
@@ -327,23 +326,22 @@ public class OrderService {
         DeliveryAddress deliveryAddress = deliveryAddressRepository.findByOrder_OrderId(order.getOrderId()).orElse(null);
         DeliveryAddressRequestDto addressDto = convertToDeliveryAddressRequestDto(deliveryAddress);
 
-        return null;
-//        return new OrderResponseDto(
-//            order.getOrderId(),
-//            order.getOrderNumber(),
-//            order.getOrderStatus(),
-//            order.getOrderDatetime(),
-//            order.getTotalAmount(),
-//            order.getTotalDiscountAmount(),
-//            order.getTotalItemAmount(),
-//            order.getDeliveryFee(),
-//            order.getWrappingFee(),
-//            order.getCouponDiscount(),
-//            order.getPointDiscount(),
-//            order.getWantDeliveryDate(),
-//            itemDetails,
-//            addressDto
-//        );
+        return new OrderResponseDto(
+            order.getOrderId(),
+            order.getOrderNumber(),
+            order.getOrderStatus(),
+            order.getOrderDatetime(),
+            order.getTotalAmount(),
+            order.getTotalDiscountAmount(),
+            order.getTotalItemAmount(),
+            order.getDeliveryFee(),
+            order.getWrappingFee(),
+            order.getCouponDiscount(),
+            order.getPointDiscount(),
+            order.getWantDeliveryDate(),
+            itemDetails,
+            addressDto
+        );
     }
 
     /**
@@ -353,15 +351,14 @@ public class OrderService {
         // 1. OrderItem 목록이 있는지 확인
         if (order.getOrderItems() == null || order.getOrderItems().isEmpty()) {
             // 주문 항목이 없으면 기본값으로 반환
-//            return new OrderSimpleDto(
-//                    order.getOrderId(),
-//                    order.getOrderNumber(),
-//                    order.getOrderStatus(),
-//                    order.getOrderDatetime(),
-//                    order.getTotalAmount()
-////                    "상품 없음"
-//            );
-            return null;
+            return new OrderSimpleDto(
+                    order.getOrderId(),
+                    order.getOrderNumber(),
+                    order.getOrderStatus(),
+                    order.getOrderDatetime(),
+                    order.getTotalAmount(),
+                    "상품 없음"
+            );
         }
 
         // 2. 대표 상품 ID 추출 (첫 번째 OrderItem의 bookId 사용)
@@ -392,15 +389,14 @@ public class OrderService {
         }
 
         // 5. OrderSimpleDto 객체 생성 및 반환
-//        return new OrderSimpleDto(
-//                order.getOrderId(),
-//                order.getOrderNumber(),
-//                order.getOrderStatus(),
-//                order.getOrderDatetime(),
-//                order.getTotalAmount()
-////                representativeTitle // 조회된 제목 사용
-//        );
-        return null;
+        return new OrderSimpleDto(
+                order.getOrderId(),
+                order.getOrderNumber(),
+                order.getOrderStatus(),
+                order.getOrderDateTime(),
+                order.getTotalAmount(),
+                representativeTitle // 조회된 제목 사용
+        );
     }
 
     @Transactional
@@ -499,10 +495,8 @@ public class OrderService {
     /**
      * Order 엔티티를 생성 -> 초기 상태로 저장
      */
-
-    private final OrderNumberGenerator generator;
     private Order buildAndSaveOrder(OrderCreateRequestDto request, OrderPriceCalculationDto priceDto) {
-        String orderNumber = generator.generate();
+        String orderNumber = "B2" + UUID.randomUUID().toString().substring(0, 10).toUpperCase();
 
         int totalDiscount = request.getCouponDiscountAmount() + request.getPointDiscountAmount();
         
@@ -513,7 +507,7 @@ public class OrderService {
 
         Order order = Order.builder()
             .orderNumber(orderNumber)
-//            .orderDatetime(LocalDateTime.now())
+            .orderDatetime(LocalDateTime.now())
             .orderStatus(OrderStatus.PENDING)
             .userId(request.getUserId())
             .couponDiscount(request.getCouponDiscountAmount())
@@ -651,8 +645,4 @@ public class OrderService {
         private final int deliveryFee;
         private final Map<Long, BookOrderResponse> bookMap;
     }
-
-
-    // 새로운 로직
-
 }

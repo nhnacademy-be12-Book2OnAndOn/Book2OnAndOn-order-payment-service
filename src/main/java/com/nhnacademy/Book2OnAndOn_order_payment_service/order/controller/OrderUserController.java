@@ -18,7 +18,7 @@ import jakarta.validation.Valid;
 
 @RestController
 @RequiredArgsConstructor
-@RequestMapping("/api/orders") // Base Path
+@RequestMapping("/orders") // Base Path
 public class OrderUserController {
 
     private final OrderService orderService;
@@ -32,7 +32,7 @@ public class OrderUserController {
         }
         return Long.valueOf(authentication.getName());
     }
-    // POST /api/orders (회원 주문 생성)
+    // POST /orders (회원 주문 생성)
     @PostMapping
     public ResponseEntity<OrderResponseDto> createOrder(@Valid @RequestBody OrderCreateRequestDto request, @RequestHeader("X-USER-ID")Long userId) {
         // 요청 본문의 userId를 무시하고 인증된 사용자의 ID로 강제함
@@ -40,7 +40,7 @@ public class OrderUserController {
         return new ResponseEntity<>(response, HttpStatus.CREATED);
     }
     
-    // GET /api/orders (회원 내 주문 목록 조회)
+    // GET /orders (회원 내 주문 목록 조회)
     @GetMapping
     public ResponseEntity<Page<OrderSimpleDto>> findOrderList(Authentication authentication, Pageable pageable) {
         //  실제로는 Spring Security Context에서 사용자 ID를 가져와야 함
@@ -49,7 +49,7 @@ public class OrderUserController {
         return ResponseEntity.ok(response);
     }
 
-    // GET /api/orders/{orderId} (회원 내 주문 상세 조회)
+    // GET /orders/{orderId} (회원 내 주문 상세 조회)
     @GetMapping("/{orderId}")
     public ResponseEntity<OrderResponseDto> findOrderDetails(@PathVariable Long orderId, Authentication authentication) {
         //  사용자 ID 검증 로직은 Service에서 처리
@@ -58,7 +58,7 @@ public class OrderUserController {
         return ResponseEntity.ok(response);
     }
 
-    // PATCH /api/orders/{orderId} (회원 주문 취소)
+    // PATCH /orders/{orderId} (회원 주문 취소)
     @PatchMapping("/{orderId}")
     public ResponseEntity<OrderResponseDto> cancelOrder(@PathVariable Long orderId, 
                                                         @Valid @RequestBody OrderCancelRequestDto request,Authentication authentication) {

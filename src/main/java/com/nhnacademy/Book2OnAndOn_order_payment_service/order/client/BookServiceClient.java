@@ -14,11 +14,6 @@ import org.springframework.web.bind.annotation.RequestParam;
 // OrderServiceClient 인터페이스 (Book Service의 구매 검증 API 호출용)
 @FeignClient(name = "book-service") // ⬅️ Book Service로의 Feign Client
 public interface BookServiceClient {
-
-    // 구매 여부 검증 API (리뷰 작성 전 검증용)
-    @GetMapping("/orders/check-purchase/{bookId}")
-    boolean hasPurchased(@RequestHeader("X-User-Id") Long userId, @PathVariable("bookId") Long bookId);
-
     // 주문에 필요한 도서 정보 목록 조회
     @GetMapping("/internal/books")
     List<BookOrderResponse> getBooksForOrder(@RequestParam("bookIds") List<Long> bookIds);
