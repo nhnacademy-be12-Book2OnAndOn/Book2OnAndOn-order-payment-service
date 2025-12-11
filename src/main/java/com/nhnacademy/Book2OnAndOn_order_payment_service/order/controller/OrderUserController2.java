@@ -76,6 +76,7 @@ public class OrderUserController2 {
                                                         @RequestBody CommonCancelRequest req){
         log.info("PATCH /order/cancel/{} 호출 : 주문 취소", orderNumber);
         OrderResponseDto orderResponseDto = orderService.cancelOrder(userId, orderNumber, req);
+        return ResponseEntity.ok(orderResponseDto);
     }
 
 

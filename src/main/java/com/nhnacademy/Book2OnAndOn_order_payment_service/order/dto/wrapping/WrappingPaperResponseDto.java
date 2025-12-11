@@ -6,14 +6,15 @@ import lombok.NoArgsConstructor;
 import lombok.AllArgsConstructor;
 
 /**
- *  포장지 생성 및 수정 시 사용
+ * 포장지 생성, 조회, 수정 시 사용
  */
 @Getter
 @Setter
 @NoArgsConstructor
 @AllArgsConstructor
-public class WrapPaperRequestDto {
+public class WrappingPaperResponseDto {
+    private Long wrappingPaperId;
     private String wrappingPaperName;
     private int wrappingPaperPrice;
-    private String wrappingPaperPath; // 이미지 경로
+    private String wrappingPaperPath;
 }
