@@ -1,7 +1,7 @@
 package com.nhnacademy.Book2OnAndOn_order_payment_service.payment.controller;
 
 import com.nhnacademy.Book2OnAndOn_order_payment_service.order.exception.NotFoundOrderException;
-import com.nhnacademy.Book2OnAndOn_order_payment_service.order.service.OrderService;
+import com.nhnacademy.Book2OnAndOn_order_payment_service.order.service.OrderService2;
 import com.nhnacademy.Book2OnAndOn_order_payment_service.payment.domain.dto.CommonCancelRequest;
 import com.nhnacademy.Book2OnAndOn_order_payment_service.payment.domain.dto.CommonCancelResponse;
 import com.nhnacademy.Book2OnAndOn_order_payment_service.payment.domain.dto.CommonConfirmRequest;
@@ -33,7 +33,7 @@ import org.springframework.web.bind.annotation.RestController;
 @RequiredArgsConstructor
 public class PaymentController {
     private final PaymentService paymentService;
-    private final OrderService orderService;
+    private final OrderService2 orderService;
     private final PaymentStrategyFactory factory;
 
     // 결제 성공 및 검증 후 승인 요청
@@ -67,13 +67,13 @@ public class PaymentController {
     // 결제 취소 ( 사용자 / 관리자 ) 사용자 : 전체 취소, 관리자 : 부분 취소
     @PostMapping("/cancel")
     public ResponseEntity<List<PaymentCancelResponse>> cancelPayment(
-            @RequestHeader("X-User-Id") Long userId,
+            @RequestHeader("X-USER-ID") Long userId,
             @RequestParam("orderNumber") String orderNumber,
             @RequestBody CommonCancelRequest req){
         log.info("GET /payment/cancel 요청 수신 (주문번호 : {}, 사용자 아이디 : {})", orderNumber, userId);
 
         // 해당 유저가 해당 주문 번호를 가지고있어야함
-        if(!orderService.existsOrder(orderNumber, userId)){
+        if(!orderService.existsOrderByUserIdAndOrderNumber(userId, orderNumber)){
             throw new NotFoundOrderException("잘못된 접근입니다 : " + orderNumber);
         }
 

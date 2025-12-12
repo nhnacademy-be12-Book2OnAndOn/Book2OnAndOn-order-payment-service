@@ -1,6 +1,5 @@
 package com.nhnacademy.Book2OnAndOn_order_payment_service.order.entity.order;
 
-
 public enum OrderItemStatus {
     PREPARING(0, "상품 준비중"),
     SHIPPED(1, "출고 완료"),

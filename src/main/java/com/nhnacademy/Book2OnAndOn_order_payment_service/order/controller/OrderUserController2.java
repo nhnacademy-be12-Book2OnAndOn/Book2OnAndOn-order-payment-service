@@ -1,19 +1,19 @@
 package com.nhnacademy.Book2OnAndOn_order_payment_service.order.controller;
 
+import com.nhnacademy.Book2OnAndOn_order_payment_service.order.dto.order.OrderCancelRequestDto2;
 import com.nhnacademy.Book2OnAndOn_order_payment_service.order.dto.order.OrderCreateRequestDto;
 import com.nhnacademy.Book2OnAndOn_order_payment_service.order.dto.order.OrderResponseDto;
 import com.nhnacademy.Book2OnAndOn_order_payment_service.order.dto.order.OrderSheetRequestDto;
 import com.nhnacademy.Book2OnAndOn_order_payment_service.order.dto.order.OrderSheetResponseDto;
 import com.nhnacademy.Book2OnAndOn_order_payment_service.order.dto.order.OrderSimpleDto;
 import com.nhnacademy.Book2OnAndOn_order_payment_service.order.service.OrderService2;
-import com.nhnacademy.Book2OnAndOn_order_payment_service.payment.domain.dto.CommonCancelRequest;
-import java.util.List;
 import lombok.RequiredArgsConstructor;
 import lombok.extern.slf4j.Slf4j;
 import org.springframework.data.domain.Page;
 import org.springframework.data.domain.Pageable;
 import org.springframework.data.domain.Sort;
 import org.springframework.data.web.PageableDefault;
+import org.springframework.http.HttpStatus;
 import org.springframework.http.ResponseEntity;
 import org.springframework.web.bind.annotation.GetMapping;
 import org.springframework.web.bind.annotation.PatchMapping;
@@ -27,32 +27,41 @@ import org.springframework.web.bind.annotation.RestController;
 @Slf4j
 @RestController
 @RequiredArgsConstructor
-@RequestMapping("/order")
+@RequestMapping("/orders")
 public class OrderUserController2 {
 
     private final OrderService2 orderService;
+    private static final String USER_ID_HEADER = "X-User-Id";
 
-    // 장바구니 혹은 바로구매시 준비할 데이터 (책 정보, 회원 배송지 정보, 사용 쿠폰 정보, 포인트 정보)
-    @GetMapping
-    public ResponseEntity<OrderSheetResponseDto> getOrderSheet(@RequestHeader(value = "X-USER-ID") Long userId,
+    // 장바구니 혹은 바로구매시 준비할 데이터 (책 정보, 회원 배송지 정보)
+    @GetMapping("/prepare")
+    public ResponseEntity<OrderSheetResponseDto> getOrderSheet(@RequestHeader(USER_ID_HEADER) Long userId,
                                                                @RequestBody OrderSheetRequestDto req){
-        log.info("GET /order 호출 : 주문시 필요한 데이터 반환");
-        OrderSheetResponseDto orderSheetResponseDto = orderService.setOrder(userId, req);
+        log.info("GET /orders/prepare 호출 : 주문시 필요한 데이터 반환 (회원 아이디 : {})", userId);
+
+        // 회원 주문 로직
+        OrderSheetResponseDto orderSheetResponseDto = orderService.prepareOrder(userId, req);
+
         return ResponseEntity.ok(orderSheetResponseDto);
     }
 
-    // 사전 주문 데이터 생성
     @PostMapping
-    public ResponseEntity<OrderResponseDto> createPreOrder(@RequestHeader(value = "X-USER-ID") Long userId, OrderCreateRequestDto req){
-        log.info("POST /order 호출 : 사전 주문 데이터 생성");
+    public ResponseEntity<OrderResponseDto> createPreOrder(@RequestHeader(USER_ID_HEADER) Long userId,
+                                                           OrderCreateRequestDto req){
+        log.info("POST /orders 호출 : 사전 주문 데이터 생성");
         OrderResponseDto orderResponseDto = orderService.createOrder(userId, req);
-        return ResponseEntity.ok(orderResponseDto);
+        // TODO 201 수정
+        return ResponseEntity.status(HttpStatus.CREATED).body(orderResponseDto);
     }
 
     // TODO GET List<OrderSimpleDto>
     // 주문조회 리스트 반환
-    @GetMapping
-    public ResponseEntity<Page<OrderSimpleDto>> getOrderList(@RequestHeader(value = "X-USER-ID") Long userId,
+    // 나의 myOrderInfo
+    // /users/me/orders
+    // /orders post
+    // /orders/order-number
+    @GetMapping("/my-order")
+    public ResponseEntity<Page<OrderSimpleDto>> getOrderList(@RequestHeader(USER_ID_HEADER) Long userId,
                                                              @PageableDefault(size = 20, sort = "orderDateTime", direction = Sort.Direction.DESC)
                                                              Pageable pageable){
         log.info("GET /order 호출 : 주문 리스트 데이터 반환");
@@ -62,7 +71,7 @@ public class OrderUserController2 {
 
     // TODO GET OrderResponseDto
     @GetMapping("/{orderNumber}")
-    public ResponseEntity<OrderResponseDto> getOrderDetail(@RequestHeader(value = "X-USER-ID") Long userId,
+    public ResponseEntity<OrderResponseDto> getOrderDetail(@RequestHeader(USER_ID_HEADER) Long userId,
                                                            @PathVariable("orderNumber") String orderNumber){
         log.info("GET /order/{} 호출 : 주문 상세 데이터 반환" , orderNumber);
         OrderResponseDto orderResponseDto = orderService.getOrderDetail(userId, orderNumber);
@@ -70,13 +79,14 @@ public class OrderUserController2 {
         return ResponseEntity.ok(orderResponseDto);
     }
 
-    @PatchMapping("/cancel/{orderNumber}")
-    public ResponseEntity<OrderResponseDto> cancelOrder(@RequestHeader(value = "X-USER-ID") Long userId,
+    @PatchMapping("/{orderNumber}/cancel")
+    public ResponseEntity<OrderResponseDto> cancelOrder(@RequestHeader(USER_ID_HEADER) Long userId,
                                                         @PathVariable("orderNumber") String orderNumber,
-                                                        @RequestBody CommonCancelRequest req){
+                                                        @RequestBody OrderCancelRequestDto2 req){
         log.info("PATCH /order/cancel/{} 호출 : 주문 취소", orderNumber);
+
         OrderResponseDto orderResponseDto = orderService.cancelOrder(userId, orderNumber, req);
-        return ResponseEntity.ok(orderResponseDto);
+        return null;
     }
 
 
@@ -86,7 +96,7 @@ public class OrderUserController2 {
 
     // TODO 유저 책 구매 여부
     @GetMapping("/check-purchase/{bookId}")
-    public ResponseEntity<Boolean> hasPurchasedBook(@RequestHeader("X-USER-ID") Long userId,
+    public ResponseEntity<Boolean> hasPurchasedBook(@RequestHeader(USER_ID_HEADER) Long userId,
                                                     @PathVariable("bookId") Long bookId){
         log.info("GET /order/check-purchase/{} 호출 : 유저 책 구매 여부 반환", bookId);
         Boolean hasPurchased = orderService.existsPurchase(userId, bookId);

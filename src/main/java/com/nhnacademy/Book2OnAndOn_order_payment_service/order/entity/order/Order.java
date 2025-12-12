@@ -2,6 +2,7 @@ package com.nhnacademy.Book2OnAndOn_order_payment_service.order.entity.order;
 
 import com.nhnacademy.Book2OnAndOn_order_payment_service.order.dto.order.OrderResponseDto;
 import com.nhnacademy.Book2OnAndOn_order_payment_service.order.dto.order.OrderSimpleDto;
+import com.nhnacademy.Book2OnAndOn_order_payment_service.order.dto.order.orderitem.OrderItemResponseDto;
 import com.nhnacademy.Book2OnAndOn_order_payment_service.order.entity.delivery.DeliveryAddress;
 import com.nhnacademy.Book2OnAndOn_order_payment_service.order.entity.refund.Refund;
 import jakarta.persistence.CascadeType;
@@ -44,7 +45,7 @@ public class Order {
     @NotNull
     private Long userId;
 
-    @Column(name = "order_number", unique = true, columnDefinition = "CHAR(13)")
+    @Column(name = "order_number", unique = true, columnDefinition = "CHAR(15)")
     @NotNull
     private String orderNumber;
 
@@ -113,12 +114,13 @@ public class Order {
         );
     }
 
-    public OrderResponseDto toOrderResponseDto(){
+    public OrderResponseDto toOrderResponseDto(List<OrderItemResponseDto> orderItemResponseDtoList){
         return new OrderResponseDto(
                 this.orderId,
                 this.orderNumber,
                 this.orderStatus,
                 this.orderDateTime,
+
                 this.totalAmount,
                 this.totalDiscountAmount,
                 this.totalItemAmount,
@@ -126,12 +128,11 @@ public class Order {
                 this.wrappingFee,
                 this.couponDiscount,
                 this.pointDiscount,
+
                 this.wantDeliveryDate,
-null,
-null,
-null
-//                this.orderItems,
-//                this.deliveryAddress
+                orderItemResponseDtoList,
+                this.deliveryAddress.toDeliveryAddressResponseDto(),
+                null
         );
     }
 

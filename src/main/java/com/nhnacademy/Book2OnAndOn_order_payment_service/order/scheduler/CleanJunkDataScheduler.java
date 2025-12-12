@@ -44,7 +44,8 @@ public class CleanJunkDataScheduler {
 
         int totalDeleted = 0;
         Long lastId = 0L;
-        while (true){
+        int count = 0;
+        while (count < 5){
             List<Long> ids = orderService.findNextBatch(thresholdTime, lastId, DELETE_SIZE);
 
             if(ids.isEmpty()){
@@ -57,6 +58,8 @@ public class CleanJunkDataScheduler {
                 log.info("Batch 삭제 완료, 삭제건수 : {}", deletedCount);
             } catch (Exception e) {
                 log.error("Batch 삭제 중 오류 발생, 스킵 처리 : {}", e.getMessage());
+                count++;
+                log.info("실패 카운트 : {}회 (5회 넘을시 종료)", count);
             }
 
             // id 갱신
