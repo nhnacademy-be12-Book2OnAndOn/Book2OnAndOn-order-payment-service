@@ -20,6 +20,7 @@ import org.mockito.Mock;
 import org.mockito.junit.jupiter.MockitoExtension;
 import org.springframework.data.domain.Page;
 import org.springframework.data.domain.PageImpl;
+import org.springframework.data.domain.PageRequest;
 import org.springframework.data.domain.Pageable;
 import org.springframework.security.access.AccessDeniedException;
 import org.springframework.test.util.ReflectionTestUtils;
@@ -179,33 +180,59 @@ class DeliveryServiceTest {
     @Test
     @DisplayName("배송 목록 조회 - 상태값 없음(전체 조회)")
     void getDeliveries_All() {
-        // given
-        Pageable pageable = Pageable.unpaged();
-        Page<Delivery> page = new PageImpl<>(List.of(mock(Delivery.class)));
-        given(deliveryRepository.findAll(pageable)).willReturn(page);
+        // Given
+        Order order = createEntity(Order.class);
+        setField(order, "orderId", 1L);
+        setField(order, "orderStatus", OrderStatus.COMPLETED);
 
-        // when
+        // Delivery 객체 생성 및 Order 주입
+        Delivery delivery = createEntity(Delivery.class);
+        setField(delivery, "deliveryId", 100L);
+        setField(delivery, "order", order); // [중요] Order 객체를 연결해줘야 NPE가 안 납니다.
+        setField(delivery, "deliveryCompany", DeliveryCompany.CJ_LOGISTICS); // DTO 변환 시 필요할 수 있음
+        setField(delivery, "waybill", "123456789");
+
+        Pageable pageable = PageRequest.of(0, 10);
+        Page<Delivery> page = new PageImpl<>(List.of(delivery));
+
+        given(deliveryRepository.findAll(any(Pageable.class))).willReturn(page);
+
+        // When
         Page<DeliveryResponseDto> result = deliveryService.getDeliveries(pageable, null);
 
-        // then
+        // Then
         assertThat(result.getContent()).hasSize(1);
-        verify(deliveryRepository).findAll(pageable);
+        assertThat(result.getContent().get(0).getOrderId()).isEqualTo(1L); // 데이터 검증
+        verify(deliveryRepository).findAll(any(Pageable.class));
+
     }
 
     @Test
     @DisplayName("배송 목록 조회 - 상태값 있음")
     void getDeliveries_WithStatus() {
-        // given
-        Pageable pageable = Pageable.unpaged();
+        // Given
+        Order order = createEntity(Order.class);
+        setField(order, "orderId", 2L);
+        setField(order, "orderStatus", OrderStatus.SHIPPING);
+
+        Delivery delivery = createEntity(Delivery.class);
+        setField(delivery, "deliveryId", 200L);
+        setField(delivery, "order", order); // [NPE 해결]
+        setField(delivery, "deliveryCompany", DeliveryCompany.POST_OFFICE);
+        setField(delivery, "waybill", "987654321");
+
+        Pageable pageable = PageRequest.of(0, 10);
         OrderStatus status = OrderStatus.SHIPPING;
-        Page<Delivery> page = new PageImpl<>(List.of(mock(Delivery.class)));
+        Page<Delivery> page = new PageImpl<>(List.of(delivery));
+
         given(deliveryRepository.findAllByOrder_OrderStatus(status, pageable)).willReturn(page);
 
-        // when
+        // When
         Page<DeliveryResponseDto> result = deliveryService.getDeliveries(pageable, status);
 
-        // then
+        // Then
         assertThat(result.getContent()).hasSize(1);
+        assertThat(result.getContent().get(0).getOrderStatus()).isEqualTo("SHIPPING");
         verify(deliveryRepository).findAllByOrder_OrderStatus(status, pageable);
     }
 
@@ -224,5 +251,26 @@ class DeliveryServiceTest {
 
         // then
         verify(delivery).updateTrackingInfo(any(DeliveryCompany.class), eq("999999"));
+    }
+
+    private <T> T createEntity(Class<T> clazz) {
+        try {
+            java.lang.reflect.Constructor<T> constructor = clazz.getDeclaredConstructor();
+            constructor.setAccessible(true); // protected 생성자 접근 허용
+            return constructor.newInstance();
+        } catch (Exception e) {
+            throw new RuntimeException("Entity 생성 실패 (Reflection Error): " + clazz.getName(), e);
+        }
+    }
+
+    // 2. Private 필드에 값 주입 (Setter 없이 주입)
+    private void setField(Object object, String fieldName, Object value) {
+        try {
+            java.lang.reflect.Field field = object.getClass().getDeclaredField(fieldName);
+            field.setAccessible(true); // private 필드 접근 허용
+            field.set(object, value);
+        } catch (NoSuchFieldException | IllegalAccessException e) {
+            throw new RuntimeException("필드 주입 실패: " + fieldName, e);
+        }
     }
 }
