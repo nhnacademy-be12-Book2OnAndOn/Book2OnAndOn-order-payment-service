@@ -2,6 +2,7 @@ package com.nhnacademy.Book2OnAndOn_order_payment_service.order.service;
 
 import com.nhnacademy.Book2OnAndOn_order_payment_service.order.dto.delivery.DeliveryPolicyRequestDto;
 import com.nhnacademy.Book2OnAndOn_order_payment_service.order.dto.delivery.DeliveryPolicyResponseDto;
+import com.nhnacademy.Book2OnAndOn_order_payment_service.order.dto.delivery.DeliveryResponseDto;
 import com.nhnacademy.Book2OnAndOn_order_payment_service.order.entity.delivery.DeliveryPolicy;
 import com.nhnacademy.Book2OnAndOn_order_payment_service.order.exception.DeliveryPolicyNotFoundException;
 import com.nhnacademy.Book2OnAndOn_order_payment_service.order.repository.delivery.DeliveryPolicyRepository;
@@ -25,6 +26,14 @@ public class DeliveryPolicyService {
         Page<DeliveryPolicy> policies = deliveryPolicyRepository.findAll(pageable);
 
         return policies.map(DeliveryPolicyResponseDto::new);
+    }
+
+    public DeliveryPolicyResponseDto getPolicy(Long policyId) {
+
+        DeliveryPolicy policy = deliveryPolicyRepository.findById(policyId)
+                .orElseThrow(DeliveryPolicyNotFoundException::new);
+
+        return new DeliveryPolicyResponseDto(policy);
     }
 
     @Transactional

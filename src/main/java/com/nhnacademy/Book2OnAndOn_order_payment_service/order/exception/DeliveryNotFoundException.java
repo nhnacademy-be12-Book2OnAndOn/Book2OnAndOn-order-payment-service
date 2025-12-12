@@ -1,6 +1,8 @@
 package com.nhnacademy.Book2OnAndOn_order_payment_service.order.exception;
 
-public class DeliveryNotFoundException extends RuntimeException {
+import com.nhnacademy.Book2OnAndOn_order_payment_service.exception.NotFoundException;
+
+public class DeliveryNotFoundException extends NotFoundException {
     public DeliveryNotFoundException() {
         super("배송정보를 찾을 수 없습니다.");
     }
