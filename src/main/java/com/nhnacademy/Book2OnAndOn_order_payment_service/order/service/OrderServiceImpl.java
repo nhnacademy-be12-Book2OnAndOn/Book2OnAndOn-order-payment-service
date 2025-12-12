@@ -25,11 +25,13 @@ import com.nhnacademy.Book2OnAndOn_order_payment_service.order.entity.order.Orde
 import com.nhnacademy.Book2OnAndOn_order_payment_service.order.entity.order.OrderItem;
 import com.nhnacademy.Book2OnAndOn_order_payment_service.order.entity.order.OrderStatus;
 import com.nhnacademy.Book2OnAndOn_order_payment_service.order.entity.wrappingpaper.WrappingPaper;
+import com.nhnacademy.Book2OnAndOn_order_payment_service.order.exception.DeliveryPolicyNotFoundException;
 import com.nhnacademy.Book2OnAndOn_order_payment_service.order.exception.ExceedUserPointException;
 import com.nhnacademy.Book2OnAndOn_order_payment_service.order.exception.InvalidDeliveryDateException;
 import com.nhnacademy.Book2OnAndOn_order_payment_service.order.exception.NotFoundOrderException;
 import com.nhnacademy.Book2OnAndOn_order_payment_service.order.generator.OrderNumberGenerator;
 import com.nhnacademy.Book2OnAndOn_order_payment_service.order.provider.OrderNumberProvider;
+import com.nhnacademy.Book2OnAndOn_order_payment_service.order.repository.delivery.DeliveryPolicyRepository;
 import com.nhnacademy.Book2OnAndOn_order_payment_service.order.repository.order.OrderRepository;
 import com.nhnacademy.Book2OnAndOn_order_payment_service.payment.domain.dto.CommonCancelRequest;
 import com.nhnacademy.Book2OnAndOn_order_payment_service.payment.domain.dto.CommonCancelResponse;
@@ -63,7 +65,7 @@ public class OrderServiceImpl implements OrderService2 {
 
     private final OrderRepository orderRepository;
 //    private final PaymentRepository paymentRepository;
-    private final DeliveryPolicyService deliveryPolicyService;
+    private final DeliveryPolicyRepository deliveryPolicyRepository;
     private final WrappingPaperService wrappingPaperService;
 
     private final PaymentService paymentService;
@@ -314,10 +316,9 @@ public class OrderServiceImpl implements OrderService2 {
     }
 
     private int createDeliveryFee(int totalItemAmount, Long deliveryPolicyId){
-        DeliveryPolicyResponseDto policy = deliveryPolicyService.getPolicy(deliveryPolicyId);
-        //TODO policy 엔티티 로직 구현되면 사용
-//        return policy.calculateDeliveryFee(totalItemAmount);
-        return 0;
+        DeliveryPolicy policy = deliveryPolicyRepository.findById(deliveryPolicyId)
+                .orElseThrow(DeliveryPolicyNotFoundException::new);
+        return policy.calculateDeliveryFee(totalItemAmount);
     }
 
     private int createWrappingFee(List<OrderItem> orderItemList){
