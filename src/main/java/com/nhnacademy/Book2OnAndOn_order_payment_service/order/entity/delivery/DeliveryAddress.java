@@ -1,5 +1,6 @@
 package com.nhnacademy.Book2OnAndOn_order_payment_service.order.entity.delivery;
 
+import com.nhnacademy.Book2OnAndOn_order_payment_service.order.dto.order.DeliveryAddressResponseDto;
 import com.nhnacademy.Book2OnAndOn_order_payment_service.order.entity.order.Order;
 import jakarta.persistence.Column;
 import jakarta.persistence.Entity;
@@ -48,10 +49,20 @@ public class DeliveryAddress {
 
     @Column(name = "recipient_phonenumber", columnDefinition = "CHAR(11)")
     @NotNull
-    private String recipientPhonenumber;
+    private String recipientPhoneNumber;
 
     @OneToOne(fetch = FetchType.LAZY)
     @JoinColumn(name = "order_id")
     @NotNull
     private Order order;
+
+    public DeliveryAddressResponseDto toDeliveryAddressResponseDto(){
+        return new DeliveryAddressResponseDto(
+                this.deliveryAddress,
+                this.deliveryAddressDetail,
+                this.deliveryMessage,
+                this.recipient,
+                this.recipientPhoneNumber
+        );
+    }
 }

@@ -26,7 +26,7 @@ public class Payment {
     @Column(name = "payment_key", length = 200)
     private String paymentKey;
 
-    @Column(name = "order_number", length = 12)
+    @Column(name = "order_number", length = 15)
     @NotNull
     private String orderNumber;
 
@@ -89,7 +89,8 @@ public class Payment {
                 this.paymentStatus.getDescription(),
                 this.paymentCreatedAt,
                 this.paymentReceiptUrl,
-                this.refundAmount
+                this.refundAmount,
+                null
         );
     }
 }

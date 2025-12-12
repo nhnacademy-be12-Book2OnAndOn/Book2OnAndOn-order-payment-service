@@ -7,15 +7,13 @@ import com.nhnacademy.Book2OnAndOn_order_payment_service.order.dto.order.OrderSh
 import com.nhnacademy.Book2OnAndOn_order_payment_service.order.dto.order.OrderSheetResponseDto;
 import com.nhnacademy.Book2OnAndOn_order_payment_service.order.dto.order.OrderSimpleDto;
 import com.nhnacademy.Book2OnAndOn_order_payment_service.order.service.OrderService2;
-import com.nhnacademy.Book2OnAndOn_order_payment_service.payment.domain.dto.CommonCancelRequest;
-import java.util.List;
-import java.util.Objects;
 import lombok.RequiredArgsConstructor;
 import lombok.extern.slf4j.Slf4j;
 import org.springframework.data.domain.Page;
 import org.springframework.data.domain.Pageable;
 import org.springframework.data.domain.Sort;
 import org.springframework.data.web.PageableDefault;
+import org.springframework.http.HttpStatus;
 import org.springframework.http.ResponseEntity;
 import org.springframework.web.bind.annotation.GetMapping;
 import org.springframework.web.bind.annotation.PatchMapping;
@@ -35,7 +33,7 @@ public class OrderUserController2 {
     private final OrderService2 orderService;
     private static final String USER_ID_HEADER = "X-User-Id";
 
-    // 장바구니 혹은 바로구매시 준비할 데이터 (책 정보, 회원 배송지 정보, 사용 쿠폰 정보, 포인트 정보)
+    // 장바구니 혹은 바로구매시 준비할 데이터 (책 정보, 회원 배송지 정보)
     @GetMapping("/prepare")
     public ResponseEntity<OrderSheetResponseDto> getOrderSheet(@RequestHeader(USER_ID_HEADER) Long userId,
                                                                @RequestBody OrderSheetRequestDto req){
@@ -47,14 +45,13 @@ public class OrderUserController2 {
         return ResponseEntity.ok(orderSheetResponseDto);
     }
 
-    // 사전 주문 데이터 생성
     @PostMapping
-    public ResponseEntity<Void> createPreOrder(@RequestHeader(USER_ID_HEADER) Long userId, OrderCreateRequestDto req){
-        log.info("POST /order 호출 : 사전 주문 데이터 생성");
+    public ResponseEntity<OrderResponseDto> createPreOrder(@RequestHeader(USER_ID_HEADER) Long userId,
+                                                           OrderCreateRequestDto req){
+        log.info("POST /orders 호출 : 사전 주문 데이터 생성");
         OrderResponseDto orderResponseDto = orderService.createOrder(userId, req);
         // TODO 201 수정
-//        return ResponseEntity.;
-        return null;
+        return ResponseEntity.status(HttpStatus.CREATED).body(orderResponseDto);
     }
 
     // TODO GET List<OrderSimpleDto>
@@ -63,7 +60,7 @@ public class OrderUserController2 {
     // /users/me/orders
     // /orders post
     // /orders/order-number
-    @GetMapping("/me")
+    @GetMapping("/my-order")
     public ResponseEntity<Page<OrderSimpleDto>> getOrderList(@RequestHeader(USER_ID_HEADER) Long userId,
                                                              @PageableDefault(size = 20, sort = "orderDateTime", direction = Sort.Direction.DESC)
                                                              Pageable pageable){
@@ -82,7 +79,7 @@ public class OrderUserController2 {
         return ResponseEntity.ok(orderResponseDto);
     }
 
-    @PatchMapping("/cancel/{orderNumber}")
+    @PatchMapping("/{orderNumber}/cancel")
     public ResponseEntity<OrderResponseDto> cancelOrder(@RequestHeader(USER_ID_HEADER) Long userId,
                                                         @PathVariable("orderNumber") String orderNumber,
                                                         @RequestBody OrderCancelRequestDto2 req){

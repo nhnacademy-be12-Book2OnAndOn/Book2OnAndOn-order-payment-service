@@ -1,5 +1,6 @@
-package com.nhnacademy.Book2OnAndOn_order_payment_service.order.config;
+package com.nhnacademy.Book2OnAndOn_order_payment_service.order.generator;
 
+import com.nhnacademy.Book2OnAndOn_order_payment_service.order.config.Snowflake;
 import lombok.RequiredArgsConstructor;
 import lombok.extern.slf4j.Slf4j;
 import org.springframework.stereotype.Component;
@@ -12,8 +13,8 @@ public class OrderNumberGenerator {
 
     public String generate() {
         // Snowflake → 10자리 숫자로 변환
-        long rawId = snowflake.nextId() % 1_000_000_0000L;
-        String orderNumber = String.format("%010d", rawId);
+        long rawId = snowflake.nextId() % 1_000_000_000_000L;
+        String orderNumber = String.format("%012d", rawId);
         return "B2-" + orderNumber;
     }
 }

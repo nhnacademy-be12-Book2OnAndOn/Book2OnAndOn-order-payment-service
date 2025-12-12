@@ -32,7 +32,7 @@ import org.springframework.stereotype.Component;
 public class TossPaymentStrategy implements PaymentStrategy{
 
     private final PaymentService paymentService;
-    private final OrderService2 orderService;
+//    private final OrderService2 orderService;
     private final TossPaymentsApiClient tossPaymentsApiClient;
     private final TossPaymentsProperties properties;
 
@@ -47,8 +47,9 @@ public class TossPaymentStrategy implements PaymentStrategy{
         // 보안 헤더 생성
         String authorization = buildAuthorizationHeader();
 
-        OrderResponseDto orderResp = orderService.getOrderByOrderNumber(req.orderId());
-        Integer totalAmount = orderResp.getTotalAmount();
+        // TODO 서비스를 서로 호출해서 순화참조 오류 발생 차라리 repo로 해결할것
+//        OrderResponseDto orderResp = orderService.getOrderByOrderNumber(req.orderId());
+//        Integer totalAmount = orderResp.getTotalAmount();
 
         // 금액 검증
         if(!Objects.equals(totalAmount, req.amount())){

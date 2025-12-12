@@ -18,4 +18,5 @@ public class BookOrderResponse {
     private String stockStatus;
 
     // TODO : Long 도서 카테고리 아이디 받기
+    private Long categoryId;
 }

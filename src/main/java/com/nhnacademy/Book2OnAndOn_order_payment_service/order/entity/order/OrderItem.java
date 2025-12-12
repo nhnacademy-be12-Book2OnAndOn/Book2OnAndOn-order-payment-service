@@ -54,7 +54,6 @@ public class OrderItem {
     private boolean isWrapped = false;
 
     @Column(name = "order_item_status", columnDefinition = "TINYINT")
-    @NotNull
     private OrderItemStatus orderItemStatus;
 
     @ManyToOne(fetch = FetchType.LAZY)
@@ -62,7 +61,7 @@ public class OrderItem {
     @NotNull
     private Order order;
 
-    @OneToOne(fetch = FetchType.LAZY)
+    @OneToOne(fetch = FetchType.LAZY, cascade = CascadeType.ALL)
     @JoinColumn(name = "wrapping_paper_id")
     @NotNull
     private WrappingPaper wrappingPaper;
