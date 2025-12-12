@@ -57,4 +57,11 @@ public class DeliveryPolicyService {
         deliveryPolicyRepository.save(policy);
         log.info("배송정책 생성 성공 deliveryPolicyId: {}", policy.getDeliveryPolicyId());
     }
+
+    @Transactional(readOnly = true)
+    public DeliveryPolicy getDeliveryPolicy(String deliveryMethod){
+        log.info("배송비 정책 가져오기 로직 실행 (배송방법 : {})", deliveryMethod);
+        return deliveryPolicyRepository.findFirstByDeliveryPolicyName(deliveryMethod)
+                .orElseThrow(DeliveryPolicyNotFoundException::new);
+    }
 }
