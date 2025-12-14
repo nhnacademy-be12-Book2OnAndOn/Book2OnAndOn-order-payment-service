@@ -54,7 +54,6 @@ public class OrderUserController2 {
         return ResponseEntity.status(HttpStatus.CREATED).body(orderResponseDto);
     }
 
-    // TODO GET List<OrderSimpleDto>
     // 주문조회 리스트 반환
     // 나의 myOrderInfo
     // /users/me/orders
@@ -79,6 +78,7 @@ public class OrderUserController2 {
         return ResponseEntity.ok(orderResponseDto);
     }
 
+    // TODO 주문 취소 구현 -> payment 서비스에서 수행
     @PatchMapping("/{orderNumber}/cancel")
     public ResponseEntity<OrderResponseDto> cancelOrder(@RequestHeader(USER_ID_HEADER) Long userId,
                                                         @PathVariable("orderNumber") String orderNumber,
@@ -94,7 +94,6 @@ public class OrderUserController2 {
         API 전용
      */
 
-    // TODO 유저 책 구매 여부
     @GetMapping("/check-purchase/{bookId}")
     public ResponseEntity<Boolean> hasPurchasedBook(@RequestHeader(USER_ID_HEADER) Long userId,
                                                     @PathVariable("bookId") Long bookId){
