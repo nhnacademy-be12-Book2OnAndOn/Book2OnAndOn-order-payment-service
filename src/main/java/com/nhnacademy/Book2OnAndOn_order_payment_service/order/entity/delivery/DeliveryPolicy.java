@@ -55,7 +55,7 @@ public class DeliveryPolicy {
     }
 
     public int calculateDeliveryFee(int totalItemAmount){
-        if(this.freeDeliveryThreshold >= totalItemAmount){
+        if(this.freeDeliveryThreshold <= totalItemAmount){
             return 0;
         }
         return deliveryFee;
