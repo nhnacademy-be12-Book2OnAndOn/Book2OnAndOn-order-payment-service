@@ -151,10 +151,11 @@ public class CartUserController {
     @GetMapping("/merge-status")
     public ResponseEntity<CartMergeStatusResponseDto> getMergeStatus(
             @RequestHeader(USER_ID_HEADER) Long userId,
-            @RequestHeader(GUEST_ID_HEADER) String uuid
+            @RequestHeader(value = GUEST_ID_HEADER, required = false) String uuid
     ) {
         // 1) guest cart 존재 여부
-        Map<Long, CartRedisItem> guestItems = cartRedisRepository.getGuestCartItems(uuid);
+//        Map<Long, CartRedisItem> guestItems = cartRedisRepository.getGuestCartItems(uuid);
+        Map<Long, CartRedisItem> guestItems = (uuid == null) ? Map.of() : cartRedisRepository.getGuestCartItems(uuid);
         boolean hasGuestCart = guestItems != null && !guestItems.isEmpty();
 
         // 2) user cart 존재 여부 (DB or Redis)

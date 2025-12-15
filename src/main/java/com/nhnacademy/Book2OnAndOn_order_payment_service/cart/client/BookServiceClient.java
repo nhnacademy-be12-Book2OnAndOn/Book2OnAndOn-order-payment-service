@@ -7,6 +7,7 @@ import lombok.Setter;
 import org.springframework.cloud.openfeign.FeignClient;
 import org.springframework.stereotype.Component;
 import org.springframework.web.bind.annotation.PostMapping;
+import org.springframework.web.bind.annotation.RequestBody;
 
 // 모든 도서 정보(가격/제목/재고/상태)를 외부 서비스(book-service)에서 가져오기 위한 FeignClient
 @Component
@@ -15,9 +16,8 @@ public interface BookServiceClient {
 
     // bookId 리스트를 받아서, 각 bookId에 대한 스냅샷 정보(가격/제목/재고 등)를 반환
     // (응답 전체(JSON) 캐싱 방법은 서버 부하는 최소일지 몰라도 도서 가격/재고 변경 시 캐시 무효화 지옥...)
-    @PostMapping("/api/books/bulk")
-    Map<Long, BookSnapshot> getBookSnapshots(List<Long> bookIds);
-     // <key : value> -> 한 번의 호출로 여러 건의 데이터 호출 가능
+    @PostMapping(value = "/books/bulk", consumes = "application/json")
+    Map<Long, BookSnapshot> getBookSnapshots(@RequestBody List<Long> bookIds);
 
     @Getter
     @Setter
@@ -28,9 +28,9 @@ public interface BookServiceClient {
         private int originalPrice;
         private int price;
         private int stockCount;
-        private boolean saleEnded;
-        private boolean deleted;
-        private boolean hidden;
+        private boolean saleEnded; // 판매 종료 여부
+        private boolean deleted; // 관리자에 의해 삭제된 상품
+        private boolean hidden; // 임시 숨김(검수 중, 이벤트 준비)
     }
 }
 //=> 스냅샷 결과를 받기 위해서는 book의 service에
@@ -117,7 +117,8 @@ public interface BookServiceClient {
 //                .map(snapshotMapper::from)
 //                .collect(Collectors.toMap(
 //                        BookSnapshotResponse::getBookId,
-//                        s -> s
+//                        s -> s,
+//                        (a, b) -> a // 중복 키 방어
 //                ));
 //    }
 //}
@@ -125,7 +126,7 @@ public interface BookServiceClient {
 //4) book-service의 API Controller
 //@RestController
 //@RequiredArgsConstructor
-//@RequestMapping("/api/books")
+//@RequestMapping("/books")
 //public class BookSnapshotApi {
 //
 //    private final BookQueryService bookQueryService;

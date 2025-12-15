@@ -22,12 +22,19 @@ public class CartGuestController {
 
     private final CartService cartService;
 
+    private void validateUuid(String uuid) {
+        if (uuid == null || uuid.isBlank()) {
+            throw new IllegalArgumentException("guest uuid is required");
+        }
+    }
+
     // 1. 비회원 장바구니 조회
     // GET /cart/guest
     @GetMapping
     public ResponseEntity<CartItemsResponseDto> getGuestCart(
             @RequestHeader(GUEST_ID_HEADER) String uuid
     ) {
+        validateUuid(uuid);
         CartItemsResponseDto guestCart = cartService.getGuestCart(uuid);
         return ResponseEntity.ok().body(guestCart);
     }
@@ -39,6 +46,7 @@ public class CartGuestController {
             @RequestHeader(GUEST_ID_HEADER) String uuid,
             @Valid @RequestBody CartItemRequestDto requestDto
     ) {
+        validateUuid(uuid);
         cartService.addItemToGuestCart(uuid, requestDto);
         return ResponseEntity.ok().build();
     }
@@ -50,6 +58,7 @@ public class CartGuestController {
             @RequestHeader(GUEST_ID_HEADER) String uuid,
             @Valid @RequestBody CartItemQuantityUpdateRequestDto requestDto
     ) {
+        validateUuid(uuid);
         cartService.updateQuantityGuestCartItem(uuid, requestDto);
         return ResponseEntity.ok().build();
     }
@@ -61,6 +70,7 @@ public class CartGuestController {
             @RequestHeader(GUEST_ID_HEADER) String uuid,
             @Valid @RequestBody CartItemSelectRequestDto requestDto
     ) {
+        validateUuid(uuid);
         cartService.selectGuestCartItem(uuid, requestDto);
         return ResponseEntity.ok().build();
     }
@@ -72,6 +82,7 @@ public class CartGuestController {
             @RequestHeader(GUEST_ID_HEADER) String uuid,
             @Valid @RequestBody CartItemSelectAllRequestDto requestDto
     ) {
+        validateUuid(uuid);
         cartService.selectAllGuestCartItems(uuid, requestDto);
         return ResponseEntity.ok().build();
     }
@@ -83,6 +94,7 @@ public class CartGuestController {
             @RequestHeader(GUEST_ID_HEADER) String uuid,
             @PathVariable Long bookId
     ) {
+        validateUuid(uuid);
         CartItemDeleteRequestDto dto = new CartItemDeleteRequestDto(bookId);
         cartService.deleteGuestCartItem(uuid, dto);
         return ResponseEntity.ok().build();
@@ -94,6 +106,7 @@ public class CartGuestController {
     public ResponseEntity<Void> deleteSelectedGuestCartItems(
             @RequestHeader(GUEST_ID_HEADER) String uuid
     ) {
+        validateUuid(uuid);
         cartService.deleteSelectedGuestCartItems(uuid);
         return ResponseEntity.ok().build();
     }
@@ -103,6 +116,7 @@ public class CartGuestController {
     public ResponseEntity<CartItemsResponseDto> getGuestSelectedCart(
             @RequestHeader(GUEST_ID_HEADER) String uuid
     ) {
+        validateUuid(uuid);
         CartItemsResponseDto selectedCart = cartService.getGuestSelectedCart(uuid);
         return ResponseEntity.ok(selectedCart);
     }
@@ -113,6 +127,7 @@ public class CartGuestController {
     public ResponseEntity<CartItemCountResponseDto> getGuestCartCount(
             @RequestHeader(GUEST_ID_HEADER) String uuid
     ) {
+        validateUuid(uuid);
         CartItemCountResponseDto guestCartCount = cartService.getGuestCartCount(uuid);
         return ResponseEntity.ok().body(guestCartCount);
     }
@@ -123,6 +138,7 @@ public class CartGuestController {
     public ResponseEntity<Void> clearGuestCart(
             @RequestHeader(GUEST_ID_HEADER) String uuid
     ) {
+        validateUuid(uuid);
         cartService.clearGuestCart(uuid);
         return ResponseEntity.ok().build();
     }
