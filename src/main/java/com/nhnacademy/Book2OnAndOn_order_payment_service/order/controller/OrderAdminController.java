@@ -28,18 +28,20 @@ public class OrderAdminController {
     }
 
     // GET /admin/orders/{orderId} (관리자 특정 주문 상세 조회)
-    @GetMapping("/{orderId}")
-    public ResponseEntity<OrderResponseDto> findAdminOrderDetails(@PathVariable Long orderId) {
+    @GetMapping("/{order-id}")
+    public ResponseEntity<OrderResponseDto> findAdminOrderDetails(@PathVariable("order-id") Long orderId) {
         // 관리자용 상세 조회는 사용자 ID 검증 없이 주문 ID만으로 조회
-        OrderResponseDto response = orderService.findOrderDetails(orderId, null); 
+        OrderResponseDto response = orderService.findOrderDetails(orderId);
         return ResponseEntity.ok(response);
     }
 
     // PATCH /admin/orders/{orderId} (관리자 주문 상태 변경)
-    @PatchMapping("/{orderId}")
+    @PatchMapping("/{order-id}")
     public ResponseEntity<OrderResponseDto> updateOrderStatusByAdmin(@PathVariable Long orderId,
                                                                      @Valid @RequestBody OrderStatusUpdateDto request) {
         OrderResponseDto response = orderService.updateOrderStatusByAdmin(orderId, request);
         return ResponseEntity.ok(response);
     }
 }
+
+//응답코드 상황따라(숙지필요)

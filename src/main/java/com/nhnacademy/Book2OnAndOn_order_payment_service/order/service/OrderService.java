@@ -73,85 +73,89 @@ public class OrderService {
     /**
      * [회원] 주문을 생성하고 결제 전 필요한 정보 준비
      */
-    @Transactional
-    public OrderResponseDto createOrder(OrderCreateRequestDto request) {
-        if (request.getOrderItems() == null || request.getOrderItems().isEmpty()) {
-            throw new IllegalArgumentException("주문 항목은 반드시 존재해야 합니다.");
-        }
-        OrderPriceCalculationDto priceDto = calculateOrderPrices(request);
-        // 1. 재고 차감 요청 DTO 생성
-        List<StockDecreaseRequest> stockRequests = request.getOrderItems().stream()
-                .map(item -> StockDecreaseRequest.builder()
-                        .bookId(item.getBookId())
-                        .quantity(item.getQuantity())
-                        .build())
-                .collect(Collectors.toList());
-        try {
-            // 2. FeignClient 호출: 재고 차감 요청 (409 Conflict 발생 가능)
-            bookServiceClient.decreaseStock(stockRequests);
-
-            // 3. 성공 시 주문 생성 계속 진행
-            Order order = buildAndSaveOrder(request, priceDto);
-            saveOrderItems(request.getOrderItems(), order, priceDto.getBookMap());
-            saveDeliveryAddress(request.getDeliveryAddress(), order);
-
-            return convertToOrderResponseDto(order);
-
-        } catch (FeignException e) {
-            // 409 Conflict 예외 처리 (재고 부족)
-            if (e.status() == 409) {
-                throw new IllegalStateException("재고 부족으로 주문에 실패했습니다.");
-            }
-            // 기타 통신 오류 처리
-            throw new RuntimeException("도서 서비스와의 통신 오류가 발생했습니다.", e);
-        }
-
-    }
+//    @Transactional
+//    public OrderResponseDto createOrder(OrderCreateRequestDto request) {
+//        if (request.getOrderItems() == null || request.getOrderItems().isEmpty()) {
+//            throw new IllegalArgumentException("주문 항목은 반드시 존재해야 합니다.");
+//        }
+//        OrderPriceCalculationDto priceDto = calculateOrderPrices(request);
+//        // 1. 재고 차감 요청 DTO 생성
+//        List<StockDecreaseRequest> stockRequests = request.getOrderItems().stream()
+//                .map(item -> StockDecreaseRequest.builder()
+//                        .bookId(item.getBookId())
+//                        .quantity(item.getQuantity())
+//                        .build())
+//                .collect(Collectors.toList());
+//        try {
+//            // 2. FeignClient 호출: 재고 차감 요청 (409 Conflict 발생 가능)
+//            bookServiceClient.decreaseStock(stockRequests);
+//
+//            // 3. 성공 시 주문 생성 계속 진행
+////            Order order = buildAndSaveOrder(request, priceDto);
+////            saveOrderItems(request.getOrderItems(), order, priceDto.getBookMap());
+////            saveDeliveryAddress(request.getDeliveryAddress(), order);
+////
+////            return convertToOrderResponseDto(order);
+//
+//        } catch (FeignException e) {
+//            // 409 Conflict 예외 처리 (재고 부족)
+//            if (e.status() == 409) {
+//                throw new IllegalStateException("재고 부족으로 주문에 실패했습니다.");
+//            }
+//            // 기타 통신 오류 처리
+//            throw new RuntimeException("도서 서비스와의 통신 오류가 발생했습니다.", e);
+//        }
+//
+//    }
 
     /**
      * [비회원] 주문을 생성하고 결제 전 필요한 정보 준비
      */
-    @Transactional
-    public OrderResponseDto createGuestOrder(GuestOrderCreateDto request) {
-        if (request.getOrderItems() == null || request.getOrderItems().isEmpty()) {
-            throw new IllegalArgumentException("주문 항목은 반드시 존재해야 합니다.");
-        }
-        
-        // GuestOrderCreateDto를 OrderCreateRequestDto로 변환하여 로직 재사용
-        OrderCreateRequestDto orderRequest = convertToOrderRequest(request);
-        OrderPriceCalculationDto priceDto = calculateOrderPrices(orderRequest);
-
-        List<StockDecreaseRequest> stockRequests = orderRequest.getOrderItems().stream()
-                .map(item -> new StockDecreaseRequest(item.getBookId(), item.getQuantity()))
-                .collect(Collectors.toList());
-
-        try {
-            // 2. FeignClient 호출: 재고 차감 요청 (409 Conflict 발생 가능)
-            bookServiceClient.decreaseStock(stockRequests);
-
-            // 3. 성공 시 주문 생성 계속 진행
-            Order order = buildAndSaveOrder(orderRequest, priceDto);
-            saveOrderItems(orderRequest.getOrderItems(), order, priceDto.getBookMap());
-            saveDeliveryAddress(orderRequest.getDeliveryAddress(), order);
-
-            // 비회원 정보 저장
-            saveGuestOrderInfo(request, order);
-
-            return convertToOrderResponseDto(order);
-
-        } catch (FeignException e) {
-            if (e.status() == 409) {
-                throw new IllegalStateException("재고 부족으로 주문에 실패했습니다.");
-            }
-            throw new RuntimeException("도서 서비스 통신 오류가 발생했습니다.", e);
-        }
-    }
+//    @Transactional
+//    public OrderResponseDto createGuestOrder(GuestOrderCreateDto request) {
+//        if (request.getOrderItems() == null || request.getOrderItems().isEmpty()) {
+//            throw new IllegalArgumentException("주문 항목은 반드시 존재해야 합니다.");
+//        }
+//
+//        // GuestOrderCreateDto를 OrderCreateRequestDto로 변환하여 로직 재사용
+////        OrderCreateRequestDto orderRequest = convertToOrderRequest(request);
+////        OrderPriceCalculationDto priceDto = calculateOrderPrices(orderRequest);
+////
+////        List<StockDecreaseRequest> stockRequests = orderRequest.getOrderItems().stream()
+////                .map(item -> new StockDecreaseRequest(item.getBookId(), item.getQuantity()))
+////                .collect(Collectors.toList());
+////
+////        try {
+////            // 2. FeignClient 호출: 재고 차감 요청 (409 Conflict 발생 가능)
+////            bookServiceClient.decreaseStock(stockRequests);
+////
+////            // 3. 성공 시 주문 생성 계속 진행
+////            Order order = buildAndSaveOrder(orderRequest, priceDto);
+////            saveOrderItems(orderRequest.getOrderItems(), order, priceDto.getBookMap());
+////            saveDeliveryAddress(orderRequest.getDeliveryAddress(), order);
+////
+////            // 비회원 정보 저장
+////            saveGuestOrderInfo(request, order);
+////
+////            return convertToOrderResponseDto(order);
+////
+////        } catch (FeignException e) {
+////            if (e.status() == 409) {
+////                throw new IllegalStateException("재고 부족으로 주문에 실패했습니다.");
+////            }
+////            throw new RuntimeException("도서 서비스 통신 오류가 발생했습니다.", e);
+////        }
+//    }
 
 
     // ======================================================================
     // 2. 주문 조회 및 목록 API
     // ======================================================================
 
+    public OrderResponseDto findOrderDetails(Long orderId){
+        return findOrderDetails(orderId,null);
+
+    }
     /**
      * [회원/관리자 공통] 주문 상세 정보를 조회
      */
@@ -160,12 +164,12 @@ public class OrderService {
         // N+1 문제 해결을 위해 Fetch Join 쿼리 사용
         Order order = orderRepository.findOrderWithDetails(orderId)
             .orElseThrow(() -> new OrderNotFoundException(orderId));
-        
+
         // 권한 검증 로직
         if (userId != null && !order.getUserId().equals(userId)) {
             throw new AccessDeniedException("해당 주문에 대한 접근 권한이 없습니다.");
         }
-        
+
         return convertToOrderResponseDto(order);
     }
 
@@ -184,12 +188,12 @@ public class OrderService {
         }
 
         GuestOrder guestOrder = guestOrderOptional.get();
-        
+
         // 비밀번호 검증
         if (!passwordEncoder.matches(password, guestOrder.getGuestPassword())) {
             throw new AccessDeniedException("비밀번호가 일치하지 않습니다.");
         }
-        
+
         return convertToOrderResponseDto(order);
     }
 
@@ -226,11 +230,12 @@ public class OrderService {
         if (!order.getUserId().equals(userId)) {
             throw new AccessDeniedException("본인의 주문만 취소할 수 있습니다.");
         }
-        
+
         if (order.getOrderStatus() != OrderStatus.PENDING && order.getOrderStatus() != OrderStatus.PREPARING) {
             throw new IllegalStateException("배송 준비 중이거나 결제 대기 중인 주문만 취소 가능합니다.");
         }
-        
+        // 자세한 예외 필요
+
         order.setOrderStatus(OrderStatus.CANCELED);
 
         // 재고 복구 (increaseStock) 로직 호출
@@ -254,12 +259,12 @@ public class OrderService {
     @Transactional
     public OrderResponseDto cancelGuestOrder(Long orderId, String password) {
         // 1. 비밀번호 검증
-        findGuestOrderDetails(orderId, password); 
+        findGuestOrderDetails(orderId, password);
 
         // 2. 취소 로직 (취소 사유 DTO가 없으므로 임시로 null 사용)
-        return cancelOrder(orderId, null, new OrderCancelRequestDto(null, null, null)); 
+        return cancelOrder(orderId, null, new OrderCancelRequestDto(null, null, null));
     }
-    
+
     /**
      * [관리자] 주문 상태를 변경
      */
@@ -267,10 +272,10 @@ public class OrderService {
     public OrderResponseDto updateOrderStatusByAdmin(Long orderId, OrderStatusUpdateDto request) {
         // 1. TINYINT 코드를 OrderStatus Enum으로 변환
         OrderStatus newStatus = OrderStatus.fromCode(request.getStatusCode());
-        
+
         // 2. 상태 변경 (유효성 검사는 updateOrderStatus에서 처리)
         updateOrderStatusInternal(orderId, newStatus);
-        
+
         // 3. 변경된 엔티티 조회 및 DTO 변환
         Order order = orderRepository.findById(orderId).get();
         return convertToOrderResponseDto(order);
@@ -326,22 +331,23 @@ public class OrderService {
         DeliveryAddress deliveryAddress = deliveryAddressRepository.findByOrder_OrderId(order.getOrderId()).orElse(null);
         DeliveryAddressRequestDto addressDto = convertToDeliveryAddressRequestDto(deliveryAddress);
 
-        return new OrderResponseDto(
-            order.getOrderId(),
-            order.getOrderNumber(),
-            order.getOrderStatus(),
-            order.getOrderDatetime(),
-            order.getTotalAmount(),
-            order.getTotalDiscountAmount(),
-            order.getTotalItemAmount(),
-            order.getDeliveryFee(),
-            order.getWrappingFee(),
-            order.getCouponDiscount(),
-            order.getPointDiscount(),
-            order.getWantDeliveryDate(),
-            itemDetails,
-            addressDto
-        );
+//        return new OrderResponseDto(
+//            order.getOrderId(),
+//            order.getOrderNumber(),
+//            order.getOrderStatus(),
+//            order.getOrderDateime(),
+//            order.getTotalAmount(),
+//            order.getTotalDiscountAmount(),
+//            order.getTotalItemAmount(),
+//            order.getDeliveryFee(),
+//            order.getWrappingFee(),
+//            order.getCouponDiscount(),
+//            order.getPointDiscount(),
+//            order.getWantDeliveryDate(),
+//            itemDetails,
+//            addressDto
+//        );
+        return new OrderResponseDto();
     }
 
     /**
@@ -349,17 +355,17 @@ public class OrderService {
      */
     private OrderSimpleDto convertToOrderSimpleDto(Order order) {
         // 1. OrderItem 목록이 있는지 확인
-        if (order.getOrderItems() == null || order.getOrderItems().isEmpty()) {
-            // 주문 항목이 없으면 기본값으로 반환
-            return new OrderSimpleDto(
-                    order.getOrderId(),
-                    order.getOrderNumber(),
-                    order.getOrderStatus(),
-                    order.getOrderDatetime(),
-                    order.getTotalAmount(),
-                    "상품 없음"
-            );
-        }
+//        if (order.getOrderItems() == null || order.getOrderItems().isEmpty()) {
+//            // 주문 항목이 없으면 기본값으로 반환
+//            return new OrderSimpleDto(
+//                    order.getOrderId(),
+//                    order.getOrderNumber(),
+//                    order.getOrderStatus(),
+//                    order.getOrderDatetime(),
+//                    order.getTotalAmount(),
+//                    "상품 없음"
+//            );
+//        }
 
         // 2. 대표 상품 ID 추출 (첫 번째 OrderItem의 bookId 사용)
         Long representativeBookId = order.getOrderItems().stream()
@@ -440,11 +446,11 @@ public class OrderService {
         );
         paymentService.updatePaymentStatus(statusRequest);
     }
-    
+
     // ----------------------------------------------------------------------
     // DTO 변환 헬퍼 (OrderResponseDto를 위한 하위 객체 생성)
     // ----------------------------------------------------------------------
-    
+
     /**
      * OrderItem 엔티티를 OrderItemDetailDto로 변환
      */
@@ -463,7 +469,7 @@ public class OrderService {
 
         );
     }
-    
+
     /**
      * DeliveryAddress 엔티티를 DeliveryAddressRequestDto로 변환
      */
@@ -481,56 +487,56 @@ public class OrderService {
     /**
      * [DTO 변환] GuestOrderCreateDto를 OrderCreateRequestDto로 변환
      */
-    private OrderCreateRequestDto convertToOrderRequest(GuestOrderCreateDto guestRequest) {
-        return new OrderCreateRequestDto(
-            null, // 비회원이므로 userId는 null
-            guestRequest.getOrderItems(), 
-            guestRequest.getDeliveryAddress(),
-            guestRequest.getCouponDiscountAmount(),
-            guestRequest.getPointDiscountAmount()
-        );
-    }
+//    private OrderCreateRequestDto convertToOrderRequest(GuestOrderCreateDto guestRequest) {
+//        return new OrderCreateRequestDto(
+//            null, // 비회원이므로 userId는 null
+//            guestRequest.getOrderItems(),
+//            guestRequest.getDeliveryAddress(),
+//            guestRequest.getCouponDiscountAmount(),
+//            guestRequest.getPointDiscountAmount()
+//        );
+//    }
 
 
     /**
      * Order 엔티티를 생성 -> 초기 상태로 저장
      */
-    private Order buildAndSaveOrder(OrderCreateRequestDto request, OrderPriceCalculationDto priceDto) {
-        String orderNumber = "B2" + UUID.randomUUID().toString().substring(0, 10).toUpperCase();
-
-        int totalDiscount = request.getCouponDiscountAmount() + request.getPointDiscountAmount();
-        
-        int totalAmount = priceDto.getTotalItemPrice()
-                + priceDto.getTotalWrappingFee()
-                + priceDto.getDeliveryFee()
-                - totalDiscount;
-
-        Order order = Order.builder()
-            .orderNumber(orderNumber)
-            .orderDatetime(LocalDateTime.now())
-            .orderStatus(OrderStatus.PENDING)
-            .userId(request.getUserId())
-            .couponDiscount(request.getCouponDiscountAmount())
-            .pointDiscount(request.getPointDiscountAmount())
-            .totalDiscountAmount(totalDiscount)
-            .totalItemAmount(priceDto.getTotalItemPrice())
-            .wrappingFee(priceDto.getTotalWrappingFee())
-            .deliveryFee(priceDto.getDeliveryFee())
-            .totalAmount(totalAmount)
-            .build();
-
-        return orderRepository.save(order);
-    }
+//    private Order buildAndSaveOrder(OrderCreateRequestDto request, OrderPriceCalculationDto priceDto) {
+//        String orderNumber = "B2" + UUID.randomUUID().toString().substring(0, 10).toUpperCase();
+//
+//        int totalDiscount = request.getCouponDiscountAmount() + request.getPointDiscountAmount();
+//
+//        int totalAmount = priceDto.getTotalItemPrice()
+//                + priceDto.getTotalWrappingFee()
+//                + priceDto.getDeliveryFee()
+//                - totalDiscount;
+//
+//        Order order = Order.builder()
+//            .orderNumber(orderNumber)
+//            .orderDatetime(LocalDateTime.now())
+//            .orderStatus(OrderStatus.PENDING)
+//            .userId(request.getUserId())
+//            .couponDiscount(request.getCouponDiscountAmount())
+//            .pointDiscount(request.getPointDiscountAmount())
+//            .totalDiscountAmount(totalDiscount)
+//            .totalItemAmount(priceDto.getTotalItemPrice())
+//            .wrappingFee(priceDto.getTotalWrappingFee())
+//            .deliveryFee(priceDto.getDeliveryFee())
+//            .totalAmount(totalAmount)
+//            .build();
+//
+//        return orderRepository.save(order);
+//    }
 
     /**
      * OrderItem 엔티티 리스트를 생성하여 DB에 저장-> 재고 차감
      */
     private void saveOrderItems(List<OrderItemRequestDto> itemRequests, Order order, Map<Long, BookOrderResponse> bookMap) {
         for (OrderItemRequestDto itemRequest : itemRequests) {
-            
+
             // 1. 포장지 조회
-            WrappingPaper wrappingPaper = itemRequest.getWrappingPaperId() != null ? 
-                wrappingPaperRepository.findById(itemRequest.getWrappingPaperId()).orElse(null) : 
+            WrappingPaper wrappingPaper = itemRequest.getWrappingPaperId() != null ?
+                wrappingPaperRepository.findById(itemRequest.getWrappingPaperId()).orElse(null) :
                 null;
 
             BookOrderResponse book = bookMap.get(itemRequest.getBookId());
@@ -540,7 +546,7 @@ public class OrderService {
                     .order(order)
                     .bookId(itemRequest.getBookId())
                     .orderItemQuantity(itemRequest.getQuantity())
-                    .unitPrice(book.getPriceSales()) // 임시 단가
+//                    .unitPrice(book.getPriceSales()) // 임시 단가
                     .isWrapped(itemRequest.isWrapped())
                     .orderItemStatus(OrderItemStatus.PREPARING)
                     .wrappingPaper(wrappingPaper)
@@ -570,7 +576,7 @@ public class OrderService {
         GuestOrder guestOrder = GuestOrder.builder()
             .order(order)
             .guestName(guestRequest.getGuestName())
-            .guestPhonenumber(guestRequest.getGuestPhonenumber())
+//            .guestPhonenumber(guestRequest.getGuestPhonenumber())
             .guestPassword(encryptedPassword)
             .build();
 

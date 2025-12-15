@@ -1,22 +1,20 @@
 // =================================================================
-// checkout.js: 통합 주문/결제 로직 (FINAL FUNCTIONAL REPAIR)
+// checkout.js: 통합 주문/결제 로직 (TOSS V2 FINAL VERSION)
 // =================================================================
 
 // --- 상수 및 전역 변수 영역 (Order & Payment 공통) ---
 const API_BASE = {
     CART: '/cart',
-    ORDER: '/orders',
+    ORDER: '/orders', // Mock 환경에서 서버 통신 없이 사용
     WRAP: '/wrappapers',
     TOSS_CONFIRM: '/payment/TOSS/confirm'
 };
 
-const USER_ID = 1;
+const USER_ID = 10;
 const GUEST_ID = 'uuid-test-1234';
 const IS_USER = true;
 
 const TOSS_CLIENT_KEY = "test_ck_Z1aOwX7K8m1x1vJ2AgDQ8yQxzvNP";
-// const tossPayments = new TossPayments(TOSS_CLIENT_KEY);
-
 const FIXED_DELIVERY_FEE = 3000;
 const FREE_DELIVERY_THRESHOLD = 30000;
 const CURRENT_POINT = 12500;
@@ -27,15 +25,12 @@ let selectedWrapData = {};
 let currentBookId = null;
 let isUserOrder = IS_USER;
 
-
-
 // --- 1. 초기화 및 데이터 로드 ---
 document.addEventListener('DOMContentLoaded', async () => {
     setDeliveryDateOptions();
-    await loadInitialData(); // Mock 데이터 로드 및 상품 목록 렌더링
-
-    setupEventListeners(); // 이벤트 리스너 설정
-    calculateFinalAmount(); // 초기 금액 계산
+    await loadInitialData();
+    setupEventListeners();
+    calculateFinalAmount();
 });
 
 
@@ -44,7 +39,7 @@ document.addEventListener('DOMContentLoaded', async () => {
 // =================================================================
 
 async function loadInitialData() {
-    //  테스트용 Mock 데이터 정의
+    // 테스트용 Mock 데이터 정의 (총 금액 60000원)
     cartData = {
         selectedTotalPrice: 60000,
         items: [
@@ -84,7 +79,7 @@ function setupEventListeners() {
     document.querySelector('.btn-search-address')?.addEventListener('click', openPostcodeSearch);
 
     // 3. 최종 결제 버튼 이벤트 설정 (Payment)
-    document.getElementById('requestTossPayment')?.addEventListener('click', test);
+    document.getElementById('requestTossPayment')?.addEventListener('click', handleTossPaymentRequest);
 
     // 4. 포장 토글 및 버튼 활성화 리스너 (Order)
     setupWrapToggleListeners();
@@ -166,9 +161,11 @@ function getWrapNameById(id) {
     const wrap = wrapOptions.find(opt => opt.wrappingPaperId === id);
     return wrap ? wrap.wrappingPaperName : '선택됨';
 }
+
 function getWrapDataById(id) {
     return wrapOptions.find(opt => opt.wrappingPaperId === id);
 }
+
 function setupWrapToggleListeners() {
     document.getElementById('selectedProductList')?.addEventListener('change', (e) => {
         if (e.target.classList.contains('wrap-toggle')) {
@@ -193,6 +190,7 @@ function setupWrapToggleListeners() {
         }
     });
 }
+
 function openWrappingModal(bookId, bookTitle) {
     currentBookId = bookId;
     const modalElement = document.getElementById('wrappingModal');
@@ -215,9 +213,11 @@ function openWrappingModal(bookId, bookTitle) {
         document.getElementById('confirmWrapButton').disabled = true;
     }
 }
+
 function closeModal() {
     document.getElementById('wrappingModal').style.display = 'none';
 }
+
 function renderOptionsInModal() {
     const optionsContainer = document.getElementById('wrappingOptions');
     if (!optionsContainer) return;
@@ -238,6 +238,7 @@ function renderOptionsInModal() {
         optionsContainer.appendChild(card);
     });
 }
+
 function handleOptionSelection(selectedCard, wrapData) {
     document.querySelectorAll('.wrap-card').forEach(c => c.classList.remove('selected'));
     selectedCard.classList.add('selected');
@@ -249,6 +250,7 @@ function handleOptionSelection(selectedCard, wrapData) {
         finalizeWrapSelection(currentBookId, wrapData);
     };
 }
+
 function finalizeWrapSelection(bookId, wrapData) {
     closeModal();
     const selectButton = document.querySelector(`.order-item-detail[data-book-id="${bookId}"] .btn-select-wrap`);
@@ -278,7 +280,7 @@ function collectOrderItems() {
         };
     });
 }
-// 수령인, 배송메시지 등등 수집
+
 function collectDeliveryAddress() {
     let deliveryMessage = document.getElementById('deliveryMessage')?.value;
 
@@ -294,7 +296,7 @@ function collectDeliveryAddress() {
         recipientPhonenumber: document.getElementById('recipientPhonenumber')?.value.replace(/[^0-9]/g, '')
     };
 }
-// 입력 제대로 안했을때
+
 function validateInputs(address, orderItems) {
     if (!address.recipient || !address.recipientPhonenumber || !address.deliveryAddress || !document.getElementById('wantDeliveryDate')?.value) {
         alert('수령인 정보, 주소, 연락처, 희망 배송일을 모두 입력해주세요.');
@@ -313,8 +315,6 @@ function validateInputs(address, orderItems) {
     }
     return true;
 }
-// 배송 희망 날짜 캘린더 생성
-// checkout.js 파일의 setDeliveryDateConstraints 함수를 아래 코드로 대체
 
 function setDeliveryDateOptions() {
     const container = document.getElementById('deliveryDateOptions');
@@ -323,27 +323,23 @@ function setDeliveryDateOptions() {
 
     const today = new Date();
     const days = ['일', '월', '화', '수', '목', '금', '토'];
-    const maxDays = 7;
+    const MAX_OPTIONS_TO_SHOW = 7;
 
-    // JS가 선택한 날짜를 hidden input에 저장할 함수
     const setHiddenDate = (dateString) => {
         const hiddenInput = document.getElementById('wantDeliveryDate');
         if (hiddenInput) {
             hiddenInput.value = dateString;
-            // HTML5 required 유효성 검사 트리거
             hiddenInput.dispatchEvent(new Event('change'));
         }
     };
 
-    let generatedCount = 0; // 실제로 생성된 버튼 수
-    let daysToAdd = 0;      // 오늘 날짜로부터 더해야 할 일수 (달력상 일수)
+    let generatedCount = 0;
+    let daysToAdd = 0;
 
-    // 일요일이 아닌 날짜 7개를 찾을 때까지 반복
-    while (generatedCount < maxDays) {
+    while (generatedCount < MAX_OPTIONS_TO_SHOW) {
         const currentDay = new Date(today);
         currentDay.setDate(today.getDate() + daysToAdd);
 
-        // 0: 일요일
         const dayOfWeek = currentDay.getDay();
 
         if (dayOfWeek !== 0) { // 일요일이 아니면 버튼 생성
@@ -356,7 +352,6 @@ function setDeliveryDateOptions() {
             button.className = 'date-option-button';
             button.setAttribute('data-date', dateString);
 
-            // '오늘', '내일' 텍스트 처리 (실제로 생성된 버튼 순서 기준)
             let dayTextDisplay = displayDay;
             if (generatedCount === 0) {
                 dayTextDisplay = '오늘';
@@ -373,23 +368,21 @@ function setDeliveryDateOptions() {
             });
 
             container.appendChild(button);
-            generatedCount++; // 버튼 생성 완료, 카운트 증가
+            generatedCount++;
         }
 
-        daysToAdd++; // 다음 날짜로 이동
+        daysToAdd++;
     }
 
-    // 🚨 [추가] 초기화 시 첫 번째 버튼을 기본 선택
     const firstButton = document.querySelector('.date-option-button');
     if (firstButton) {
         firstButton.click();
     }
 }
 
-
 function openPostcodeSearch() {
     if (typeof daum === 'undefined' || !daum.Postcode) {
-        alert("Daum Postcode SDK가 로드되지 않았습니다.");
+        alert("Daum Postcode SDK가 로드되지 않았습니다. HTML 스크립트 태그를 확인해주세요.");
         return;
     }
     new daum.Postcode({
@@ -413,22 +406,17 @@ function calculateFinalAmount() {
 
     const totalItemPrice = cartData.selectedTotalPrice;
 
-    // 2. 할인 금액 수집
     const couponDiscount = Number(document.getElementById('couponSelect')?.value) || 0;
     let pointDiscount = Number(document.getElementById('pointDiscountAmount')?.value) || 0;
 
-    // 3. 포인트 유효성 검사
     pointDiscount = Math.min(pointDiscount, CURRENT_POINT);
     if (pointDiscount < 0) pointDiscount = 0;
 
-    // 4. 배송비 및 포장비 계산
     const orderItemsWithWrapInfo = collectOrderItems();
     const calculated = calculateFeesAndDiscounts(totalItemPrice, couponDiscount, pointDiscount, orderItemsWithWrapInfo);
 
-    // 6. 최종 금액
     const finalPaymentAmount = calculated.finalAmount;
 
-    // 7. 화면 업데이트
     document.getElementById('summaryTotalItemPrice').textContent = totalItemPrice.toLocaleString() + '원';
     document.getElementById('deliveryFee').textContent = calculated.deliveryFee.toLocaleString() + '원';
     document.getElementById('wrappingFee').textContent = calculated.wrappingFee.toLocaleString() + '원';
@@ -440,12 +428,10 @@ function calculateFinalAmount() {
     document.getElementById('finalPaymentButtonText').textContent = finalAmountText + ' 결제하기';
 }
 
-
 async function handleTossPaymentRequest() {
     // 1. Order DTO 수집 및 유효성 검사
     const orderItems = collectOrderItems();
     const deliveryAddress = collectDeliveryAddress();
-    const wantDeliveryDate = document.getElementById('wantDeliveryDate')?.value;
 
     if (!validateInputs(deliveryAddress, orderItems)) {
         return;
@@ -457,94 +443,45 @@ async function handleTossPaymentRequest() {
     const totalItemPrice = cartData.selectedTotalPrice;
 
     // 3. 최종 금액 확인
-    const orderItemsForCalc = collectOrderItems();
-    const calculatedFeeAndDiscount = calculateFeesAndDiscounts(totalItemPrice, couponDiscount, pointDiscount, orderItemsForCalc);
+    const calculatedFeeAndDiscount = calculateFeesAndDiscounts(totalItemPrice, couponDiscount, pointDiscount, orderItems);
     const finalAmount = calculatedFeeAndDiscount.finalAmount;
 
     if (finalAmount <= 0) {
         alert('결제 금액이 0원 이하입니다. 결제 없이 주문만 진행합니다.');
-        // TODO: 0원 주문 API 호출
         return;
     }
 
-    // 4. OrderCreateRequestDto 완성
-    const finalOrderRequest = {
-        userId: isUserOrder ? USER_ID : null,
-        orderItems: orderItems,
-        deliveryAddress: deliveryAddress,
-        couponDiscountAmount: couponDiscount,
-        pointDiscountAmount: pointDiscount,
-        wantDeliveryDate: wantDeliveryDate,
-        totalItemPrice: totalItemPrice,
-        deliveryFee: calculatedFeeAndDiscount.deliveryFee,
-        wrappingFee: calculatedFeeAndDiscount.wrappingFee
-    };
-
+    // 4. Mock OrderResponse 생성
     const orderResponse = {
-        // 토스 결제 요청에 필요한 최소 정보: orderId와 totalAmount
-        orderNumber: `TOSS-MOCK-${Date.now()}`, // 고유한 Mock 주문 ID
-        totalAmount: finalAmount // 계산된 최종 결제 금액
+        orderNumber: `TOSS-MOCK-${Date.now()}`,
+        totalAmount: finalAmount
     };
 
-    console.log("✅ Mock 주문 생성 완료. 서버 통신 건너뛰고 토스 결제 요청 시작.");
-
-    // 5. 주문 생성 성공 후, 토스 결제 요청 (Toss SDK) 실행
-    // 6. 토스 결제 요청에 필요한 인자 구성 및 호출
-
-    // 6-1. 결제 수단 확인 (HTML에서 선택된 라디오 버튼 값)
-    const selectedMethod = document.querySelector('input[name="paymentMethod"]:checked')?.value || 'CARD';
-
-    // 6-2. 주문명 생성
+    // 5. 주문명 생성
     let orderName = "주문 상품";
     if (cartData && cartData.items.length > 0) {
         const firstItem = cartData.items[0];
-        if (cartData.items.length > 1) {
-            orderName = `${firstItem.title.substring(0, firstItem.title.lastIndexOf('(')).trim()} 외 ${cartData.items.length - 1}건`;
-        } else {
-            orderName = firstItem.title.substring(0, firstItem.title.lastIndexOf('(')).trim();
-        }
+        orderName = cartData.items.length > 1
+            ? `${firstItem.title.substring(0, firstItem.title.lastIndexOf('(')).trim()} 외 ${cartData.items.length - 1}건`
+            : firstItem.title.substring(0, firstItem.title.lastIndexOf('(')).trim();
     }
 
+    // 6. 결제 수단 확인
+    const selectedMethod = document.querySelector('input[name="paymentMethod"]:checked')?.value || 'CARD';
 
-    // 6-3. 주문 생성 성공 후, 토스 결제 요청 (Toss SDK) 실행
-    requestTossPayment(
+    console.log("✅ Mock 주문 생성 완료. 서버 통신 건너뛰고 토스 V2 결제 요청 시작.");
+
+    // 7. 토스 V2 결제 요청 (Toss SDK) 실행
+    await requestTossPaymentV2(
         orderResponse.totalAmount,
         orderResponse.orderNumber,
         orderName,
-        selectedMethod
+        selectedMethod,
+        deliveryAddress.recipient,
+        'test@example.com' // 임시 이메일
     );
-
-    // 5. 주문 생성 API 호출 (DB에 주문 정보를 PENDING 상태로 임시 저장)
-    // let orderResponse;
-    // const orderEndpoint = isUserOrder ? API_BASE.ORDER : API_BASE.ORDER + '/guest';
-    //
-    // const headers = { 'Content-Type': 'application/json' };
-    // if (isUserOrder) { headers['X-USER-ID'] = String(USER_ID); }
-    //
-    // try {
-    //     const res = await fetch(orderEndpoint, {
-    //         method: 'POST',
-    //         headers: headers,
-    //         body: JSON.stringify(finalOrderRequest)
-    //     });
-    //
-    //     if (!res.ok) {
-    //         const errorBody = await res.json();
-    //         alert('주문 생성 실패: ' + (errorBody.message || res.statusText));
-    //         return;
-    //     }
-    //     orderResponse = await res.json();
-    //
-    //     // 6. 주문 생성 성공 후, 토스 결제 요청 (Toss SDK) 실행
-    //     requestTossPayment(orderResponse);
-    //
-    // } catch (e) {
-    //     console.error('주문 생성 통신 오류:', e);
-    //     alert('서버 통신 중 오류가 발생했습니다.');
-    // }
 }
 
-// 요금 계산
 function calculateFeesAndDiscounts(totalItemPrice, couponDiscount, pointDiscount, orderItems) {
     let pointDiscountApplied = pointDiscount;
     if (pointDiscount > CURRENT_POINT) pointDiscountApplied = CURRENT_POINT;
@@ -569,63 +506,52 @@ function calculateFeesAndDiscounts(totalItemPrice, couponDiscount, pointDiscount
     };
 }
 
-// async function requestTossPayment(amount, orderId, orderName, method) {
-//     console.log("🚀 토스 결제 요청 인자:", { amount, orderId, orderName, method });
-//
-//     // 💡 수정된 부분 3: Standard SDK의 가장 단순한 호출 형태
-//     // Client Key와 결제 파라미터 객체를 합쳐서 TossPayments 함수 자체를 호출합니다.
-//
-//     if (typeof window.TossPayments !== 'function') {
-//         console.error("Fatal Error: TossPayments 함수 자체가 로드되지 않았습니다.");
-//         alert("결제 라이브러리 로드 실패. 스크립트 태그를 확인하세요.");
-//         return;
-//     }
-//
-//     try {
-//         // **최종 시도: Standard SDK의 Legacy/Direct Function Call 형태**
-//         // Client Key를 포함한 결제 파라미터를 단일 객체로 구성하여
-//         // TossPayments 함수를 호출합니다. (new 키워드와 .requestPayment 사용 안 함)
-//
-//         await window.TossPayments({
-//             clientKey: TOSS_CLIENT_KEY, // 💡 Client Key를 파라미터로 직접 전달
-//             amount: amount,
-//             orderId: orderId,
-//             orderName: orderName,
-//             successUrl: `${window.location.origin}/success`,
-//             failUrl: `${window.location.origin}/fail`,
-//             method: method
-//         });
-//
-//     } catch (error) {
-//         // 이 오류가 여기서 발생하면 SDK 인스턴스는 있으나 함수가 없다는 의미입니다.
-//         console.error("❌ TossPayment SDK Error (최종):", error);
-//         alert("결제 요청 중 오류가 발생했습니다. 콘솔을 확인해주세요.");
-//     }
-// }
-const amount = {
-    currency: "KRW",
-    value: 5000000,
-};
-const a = TossPayments(TOSS_CLIENT_KEY);
-const payment = a.payment({customerKey: TossPayments.ANONYMOUS});
+// [Toss Payment V2 Logic] 요청하신 V2 연쇄 호출 구조
+async function requestTossPaymentV2(amount, orderId, orderName, method, customerName, customerEmail) {
+    console.log("🚀 토스 V2 결제 요청 인자:", { amount, orderId, orderName, method, customerName, customerEmail });
 
-async function test(){
-    await payment.requestPayment({
-        method: "CARD", // 카드 및 간편결제
-        amount,
-        orderId: "B20000012",
-        orderName: "토스 티셔츠 외 2건",
-        successUrl: window.location.origin + "/payment/success.html", // 결제 요청이 성공하면 리다이렉트되는 URL
-        failUrl: window.location.origin + "/fail.html", // 결제 요청이 실패하면 리다이렉트되는 URL
-        customerEmail: "dlrbgud38@naver.com",
-        customerName: "김토스",
-        // 가상계좌 안내, 퀵계좌이체 휴대폰 번호 자동 완성에 사용되는 값입니다. 필요하다면 주석을 해제해 주세요.
-        // customerMobilePhone: "01012341234",
-        card: {
-            useEscrow: false,
-            flowMode: "DEFAULT",
-            useCardPoint: false,
-            useAppCardOnly: false,
-        },
-    });
+    if (typeof window.TossPayments === 'undefined') {
+        console.error("TossPayments SDK가 로드되지 않았습니다.");
+        alert("결제 시스템 로드 실패. 잠시 후 다시 시도해 주세요.");
+        return;
+    }
+
+    try {
+        // 1. V2 TossPayments 인스턴스 생성
+        const a = TossPayments(TOSS_CLIENT_KEY);
+
+        // 2. payment 객체 생성 (고객키 사용)
+        const customerKey = IS_USER ? String(USER_ID) : TossPayments.ANONYMOUS;
+        const payment = a.payment({ customerKey });
+
+        // 3. 결제 금액 객체 생성
+        const amountObject = {
+            currency: "KRW",
+            value: amount,
+        };
+
+        // 4. requestPayment 호출 (연쇄 호출)
+        await payment.requestPayment({
+            method: method,
+            amount: amountObject,
+            orderId: orderId,
+            orderName: orderName,
+            successUrl: window.location.origin + API_BASE.TOSS_CONFIRM,
+            failUrl: window.location.origin + "/fail.html",
+            customerEmail: customerEmail,
+            customerName: customerName,
+            // 기타 V2 옵션 (필요시 주석 해제)
+            // card: {
+            //     useEscrow: false,
+            //     flowMode: "DEFAULT",
+            //     useCardPoint: false,
+            //     useAppCardOnly: false,
+            // },
+        });
+
+    } catch (error) {
+        // 결제 요청 실패 처리
+        console.error('토스 V2 결제 요청 실패:', error);
+        alert('결제 요청 중 오류가 발생했습니다: ' + error.message);
+    }
 }

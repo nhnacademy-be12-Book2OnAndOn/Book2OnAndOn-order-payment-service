@@ -18,11 +18,11 @@ public class OrderGuestController {
     private final OrderService orderService;
 
     // POST /guest/orders (비회원 주문 생성)
-    @PostMapping
-    public ResponseEntity<OrderResponseDto> createGuestOrder(@Valid @RequestBody GuestOrderCreateDto request) {
-        OrderResponseDto response = orderService.createGuestOrder(request);
-        return new ResponseEntity<>(response, HttpStatus.CREATED);
-    }
+//    @PostMapping
+//    public ResponseEntity<OrderResponseDto> createGuestOrder(@Valid @RequestBody GuestOrderCreateDto request) {
+//        OrderResponseDto response = orderService.createGuestOrder(request);
+//        return new ResponseEntity<>(response, HttpStatus.CREATED);
+//    }
     
     // GET /guest/orders/{orderId} (비회원 주문 상세 조회)
     @GetMapping("/{orderId}")
