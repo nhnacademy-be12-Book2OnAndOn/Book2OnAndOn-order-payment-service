@@ -35,7 +35,6 @@ build/
 ### 개인 설정 ###
 .env
 http/req.http
-src/main/resources/static
 src/main/resources/test.sql
 src/main/resources/application-test2.properties
 

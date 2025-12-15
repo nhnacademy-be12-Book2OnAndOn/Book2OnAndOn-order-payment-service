@@ -1,0 +1,50 @@
+<!DOCTYPE html>
+<html lang="ko">
+<head>
+    <meta charset="UTF-8">
+    <title>주문 내역 확인</title>
+    <link rel="stylesheet" href="OrderHistory.css">
+    <style>
+        /* CSS는 간결하게 표시하며, 실제 스타일은 별도 파일에 정의 */
+        .hidden { display: none; }
+        .order-item { border: 1px solid #ddd; padding: 15px; margin-bottom: 10px; border-radius: 4px; }
+        .order-list-container, .guest-form-container { max-width: 800px; margin: 20px auto; }
+        .btn-primary { background-color: #4A7C59; color: white; padding: 10px 20px; border: none; cursor: pointer; border-radius: 4px; }
+    </style>
+</head>
+<body>
+<div class="container">
+    <h1>주문 내역 확인</h1>
+
+    <section id="guestLookupSection" class="guest-form-container">
+        <h2>비회원 주문 조회</h2>
+        <p>주문 시 입력했던 정보로 조회할 수 있습니다.</p>
+        <form id="guestLookupForm">
+            <input type="text" id="guestOrderId" placeholder="주문 번호" required style="width: 100%; padding: 10px; margin-bottom: 10px;">
+            <input type="text" id="guestOrderer" placeholder="주문자 이름" required style="width: 100%; padding: 10px; margin-bottom: 10px;">
+            <input type="password" id="guestPassword" placeholder="주문 비밀번호 (또는 연락처 끝 4자리)" required style="width: 100%; padding: 10px; margin-bottom: 10px;">
+            <button type="submit" class="btn-primary">주문 조회</button>
+        </form>
+        <p style="margin-top: 20px;">
+            혹은 <a href="#" id="memberLoginLink">로그인</a>하여 전체 주문 내역을 확인하세요.
+        </p>
+    </section>
+
+    <section id="memberHistorySection" class="order-list-container hidden">
+        <h2>전체 주문 내역 (<span id="userNameDisplay">회원</span>님)</h2>
+        <div id="orderList">
+        </div>
+        <p id="noOrdersMessage" class="hidden">주문 내역이 없습니다.</p>
+    </section>
+
+    <section id="orderDetailSection" class="order-list-container hidden">
+        <h2>주문 상세 정보</h2>
+        <div id="orderDetailContent">
+        </div>
+        <button id="backToHistory" class="btn-secondary" style="margin-top: 20px;">목록으로 돌아가기</button>
+    </section>
+</div>
+
+<script src="OrderHistory.js"></script>
+</body>
+</html>
