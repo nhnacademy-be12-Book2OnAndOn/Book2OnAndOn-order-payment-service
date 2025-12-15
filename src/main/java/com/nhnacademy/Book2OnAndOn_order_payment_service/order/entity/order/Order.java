@@ -96,7 +96,7 @@ public class Order {
     private GuestOrder guestOrder;
 
     @OneToMany(mappedBy = "order", fetch = FetchType.LAZY, cascade = CascadeType.ALL, orphanRemoval = true)
-    private List<Refund> refund = new ArrayList<>();
+    private List<Refund> refunds = new ArrayList<>();
 
     public void updateStatus(OrderStatus status){
         this.orderStatus = status;
