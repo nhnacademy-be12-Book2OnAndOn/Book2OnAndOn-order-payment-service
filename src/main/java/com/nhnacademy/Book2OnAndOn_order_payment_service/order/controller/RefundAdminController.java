@@ -14,14 +14,14 @@ import jakarta.validation.Valid;
 
 @RestController
 @RequiredArgsConstructor
-@RequestMapping("/admin/refund")
+@RequestMapping("/admin/refunds")
 @PreAuthorize("hasRole('ORDER_ADMIN')") // 관리자 권한 필요
 public class RefundAdminController {
 
     private final RefundService refundService;
 
     // 관리자 반품 목록 조회
-    // GET /admin/refund?status=0&startDate=2025-01-01&endDate=2025-01-31&userId=1&orderNumber=2025123456789&includeGuest=true&page=0&size=20
+    // GET /admin/refunds?status=0&startDate=2025-01-01&endDate=2025-01-31&userId=1&orderNumber=2025123456789&includeGuest=true&page=0&size=20
     @GetMapping
     public ResponseEntity<Page<RefundResponseDto>> getRefundList(
             @RequestParam(name = "status", required = false) Integer refundStatus,

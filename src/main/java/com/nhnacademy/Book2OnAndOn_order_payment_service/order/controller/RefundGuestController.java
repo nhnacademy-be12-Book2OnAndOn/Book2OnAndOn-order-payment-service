@@ -11,13 +11,13 @@ import org.springframework.web.bind.annotation.*;
 
 @RestController
 @RequiredArgsConstructor
-@RequestMapping("/guest/orders/{orderId}/refund")
+@RequestMapping("/guest/orders/{orderId}/refunds")
 public class RefundGuestController {
 
     private final RefundService refundService;
 
     // 비회원 반품 신청
-    // POST /guest/orders/{orderId}/refund
+    // POST /guest/orders/{orderId}/refunds
     @PostMapping
     public ResponseEntity<RefundResponseDto> createRefundForGuest(
             @PathVariable Long orderId,
@@ -28,13 +28,13 @@ public class RefundGuestController {
     }
 
     // 비회원 반품 상세 조회
-    // GET /guest/orders/{orderId}/refund/{refundId}
+    // GET /guest/orders/{orderId}/refunds/{refundId}
     @GetMapping("/{refundId}")
     public ResponseEntity<RefundResponseDto> getRefundDetailsForGuest(
             @PathVariable Long orderId,
             @PathVariable Long refundId
     ) {
-        RefundResponseDto response = refundService.getRefundDetailsForGuest(refundId);
+        RefundResponseDto response = refundService.getRefundDetailsForGuest(orderId, refundId);
         return ResponseEntity.ok(response);
     }
 
