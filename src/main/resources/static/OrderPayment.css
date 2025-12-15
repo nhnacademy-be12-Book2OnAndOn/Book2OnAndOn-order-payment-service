@@ -1,0 +1,329 @@
+/* ================================================================= */
+/* 🚀 Global Reset & Container Styles */
+/* ================================================================= */
+* {
+    margin: 0;
+    padding: 0;
+    box-sizing: border-box;
+}
+
+html, body {
+    min-height: 100%;
+    background-color: #f5f5f5;
+    color: #333;
+}
+
+body {
+    font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', 'Malgun Gothic', sans-serif;
+    /* body에 text-align: center를 제거하여 Flexbox 충돌 방지 */
+    background-color: #f5f5f5;
+    color: #333;
+}
+
+.container {
+    max-width: 1200px;
+    margin: 0 auto; /* 중앙 정렬 핵심 */
+    padding: 20px;
+    text-align: left; /* 내부 콘텐츠는 왼쪽 정렬 */
+}
+
+header {
+    background-color: #4A7C59;
+    color: white;
+    padding: 20px 0;
+    text-align: center;
+    margin-bottom: 30px;
+}
+
+header h1 {
+    text-align: center;
+    font-size: 28px;
+}
+
+/* ------------------------------------------- */
+/*  1. ORDER & PAYMENT COMMON LAYOUT */
+/* (두 페이지 모두에 적용되는 2단 레이아웃 및 섹션 기본 스타일) */
+/* ------------------------------------------- */
+
+/* 2단 레이아웃 정의 */
+.order-layout {
+    display: flex;
+    gap: 30px;
+    min-height: 70vh;
+    margin-bottom: 50px;
+}
+
+/* 좌측 메인 폼 영역 (2/3) */
+.main-form-area {
+    flex: 2;
+    display: flex;
+    flex-direction: column;
+    gap: 20px;
+}
+
+/* 우측 결제 요약 영역 (1/3) */
+.payment-summary-area {
+    flex: 1;
+}
+
+/* 섹션 공통 스타일 */
+.order-section {
+    background-color: white;
+    padding: 25px;
+    border-radius: 8px;
+    box-shadow: 0 4px 12px rgba(0, 0, 0, 0.05);
+}
+
+.order-section h2 {
+    font-size: 20px;
+    color: #4A7C59;
+    margin-bottom: 15px;
+    border-bottom: 1px solid #eee;
+    padding-bottom: 10px;
+}
+
+/* 폼 그룹 공통 스타일 */
+.form-group {
+    margin-bottom: 20px;
+}
+
+.form-group label {
+    display: block;
+    font-weight: 600;
+    margin-bottom: 8px;
+    color: #555;
+}
+
+.form-group input:not([type="checkbox"]),
+.form-group select {
+    width: 100%;
+    padding: 10px 12px;
+    border: 1px solid #ddd;
+    border-radius: 4px;
+    font-size: 16px;
+    transition: border-color 0.3s;
+}
+.form-group input:focus,
+.form-group select:focus {
+    border-color: #4A7C59;
+    outline: none;
+}
+
+/* ------------------------------------------- */
+/* 🛒 2. ORDER SPECIFIC STYLES (상품, 배송, 포장) */
+/* ------------------------------------------- */
+
+/* 주문 상품 목록 */
+.order-item-detail {
+    border: 1px solid #eee;
+    padding: 15px;
+    margin-bottom: 10px;
+    border-radius: 6px;
+    background-color: #fafafa;
+}
+
+.item-info {
+    display: flex;
+    justify-content: space-between;
+    align-items: center;
+    margin-bottom: 10px;
+}
+
+.item-title {
+    font-weight: 600;
+    font-size: 16px;
+}
+
+.item-price {
+    font-weight: bold;
+    color: #2c8a40;
+}
+
+/* 포장 옵션 영역 */
+.item-wrap-option {
+    display: flex;
+    align-items: center;
+    gap: 15px;
+    padding-top: 10px;
+    border-top: 1px dashed #e0e0e0;
+}
+
+.item-wrap-option .wrap-toggle {
+    width: 18px;
+    height: 18px;
+}
+
+.item-wrap-option label {
+    font-weight: normal;
+    margin-bottom: 0;
+    color: #666;
+}
+
+.btn-select-wrap {
+    padding: 8px 15px;
+    background-color: #f0f0f0;
+    color: #333;
+    border: 1px solid #ccc;
+    font-size: 14px;
+}
+
+.btn-select-wrap:disabled {
+    background-color: #eee;
+    color: #aaa;
+    cursor: not-allowed;
+    border-color: #ddd;
+}
+
+/* 배송 주소 입력 */
+.address-inputs {
+    display: flex;
+    gap: 10px;
+    margin-bottom: 10px;
+}
+
+.address-inputs input {
+    flex: 1;
+}
+
+/* ------------------------------------------- */
+/* 배송 희망 날짜 버튼 스타일 */
+/* ------------------------------------------- */
+.date-options-grid {
+    display: grid;
+    grid-template-columns: repeat(auto-fit, minmax(120px, 1fr)); /* 6~7개 버튼을 유동적으로 배치 */
+    gap: 10px;
+    margin-top: 10px;
+}
+
+.date-option-button {
+    padding: 15px 10px;
+    border: 1px solid #ddd;
+    border-radius: 8px;
+    background-color: #fff;
+    cursor: pointer;
+    text-align: center;
+    transition: all 0.2s ease;
+    font-size: 14px;
+    line-height: 1.2;
+}
+
+.date-option-button:hover {
+    border-color: #4A7C59;
+    background-color: #f7fcf7;
+}
+
+.date-option-button.selected {
+    background-color: #4A7C59; /* 메인 색상 */
+    color: white;
+    border-color: #4A7C59;
+    font-weight: bold;
+}
+
+.date-option-button .day-of-week {
+    display: block;
+    font-size: 16px;
+    margin-bottom: 4px;
+}
+
+.date-option-button .date-text {
+    display: block;
+    font-size: 12px;
+}
+
+/* ------------------------------------------- */
+/* 💳 3. PAYMENT SPECIFIC STYLES (할인, 요약, 결제) */
+/* ------------------------------------------- */
+
+/* 주문 요약 공통 (Sticky) */
+.sticky-summary {
+    position: sticky;
+    top: 20px;
+}
+
+/* 할인 섹션 내 포인트 보유량 */
+.point-usage-section .current-point {
+    display: block;
+    font-size: 14px;
+    color: #777;
+    margin-top: 5px;
+}
+
+/* 결제 수단 라디오 버튼 */
+.payment-method-options label {
+    display: block;
+    margin-bottom: 10px;
+}
+
+/* 요약 가격 세부 내역 (price-breakdown은 payment.html에만 존재) */
+.price-breakdown {
+    margin-bottom: 15px;
+}
+
+.price-breakdown .discount {
+    color: #e74c3c; /* 할인 금액 빨간색 */
+}
+.price-breakdown .fee {
+    color: #f39c12; /* 배송/포장비 주황색 */
+}
+
+/* 요약 라인 (공통) */
+.summary-line {
+    display: flex;
+    justify-content: space-between;
+    margin-bottom: 10px;
+    padding: 5px 0;
+    font-size: 15px;
+}
+
+.summary-line span:first-child {
+    color: #666;
+}
+
+.final-total-row {
+    display: flex;
+    justify-content: space-between;
+    padding-top: 15px;
+    margin-top: 15px;
+    border-top: 2px solid #ddd;
+    font-size: 18px;
+    font-weight: bold;
+    color: #4A7C59;
+}
+
+/* 버튼 공통 스타일 (결제 버튼 포함) */
+.btn {
+    padding: 10px 20px;
+    border: none;
+    border-radius: 6px;
+    cursor: pointer;
+    font-size: 14px;
+    transition: all 0.3s;
+    font-weight: 500;
+}
+
+.btn-primary, .btn-checkout-final {
+    background-color: #4A7C59;
+    color: white;
+}
+
+.btn-primary:hover, .btn-checkout-final:hover {
+    background-color: #3d6649;
+}
+
+.btn-secondary, .btn-search-address {
+    background-color: #95a5a6;
+    color: white;
+    padding: 10px 15px;
+}
+
+.btn-secondary:hover, .btn-search-address:hover {
+    background-color: #7f8c8d;
+}
+
+.btn-checkout-final {
+    width: 100%;
+    padding: 15px;
+    font-size: 18px;
+    font-weight: bold;
+    margin-top: 20px;
+}
