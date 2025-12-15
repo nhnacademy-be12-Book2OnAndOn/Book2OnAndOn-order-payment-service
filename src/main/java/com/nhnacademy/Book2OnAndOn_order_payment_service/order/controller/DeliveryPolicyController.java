@@ -2,6 +2,7 @@ package com.nhnacademy.Book2OnAndOn_order_payment_service.order.controller;
 
 import com.nhnacademy.Book2OnAndOn_order_payment_service.order.dto.delivery.DeliveryPolicyRequestDto;
 import com.nhnacademy.Book2OnAndOn_order_payment_service.order.dto.delivery.DeliveryPolicyResponseDto;
+import com.nhnacademy.Book2OnAndOn_order_payment_service.order.dto.delivery.DeliveryResponseDto;
 import com.nhnacademy.Book2OnAndOn_order_payment_service.order.service.DeliveryPolicyService;
 import jakarta.validation.Valid;
 import lombok.RequiredArgsConstructor;
@@ -23,6 +24,14 @@ public class DeliveryPolicyController {
     public ResponseEntity<Page<DeliveryPolicyResponseDto>> getDeliveryPolicies(Pageable pageable) {
         Page<DeliveryPolicyResponseDto> policies = deliveryPolicyService.getPolicies(pageable);
         return ResponseEntity.ok(policies);
+    }
+
+    @GetMapping("/{deliveryPolicyId}")
+    public ResponseEntity<DeliveryPolicyResponseDto> getDeliveryPolicy(
+            @PathVariable Long deliveryPolicyId
+    ) {
+
+        return ResponseEntity.ok(deliveryPolicyService.getPolicy(deliveryPolicyId));
     }
 
     //배송 정책 생성 있어야 하나

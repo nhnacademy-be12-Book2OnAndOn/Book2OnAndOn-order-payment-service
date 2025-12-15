@@ -6,6 +6,7 @@ import java.util.List;
 import org.springframework.cloud.openfeign.FeignClient;
 import org.springframework.web.bind.annotation.GetMapping;
 import org.springframework.web.bind.annotation.RequestHeader;
+import org.springframework.web.bind.annotation.RequestParam;
 
 @FeignClient(name = "user-service")
 public interface UserServiceClient {
@@ -16,4 +17,8 @@ public interface UserServiceClient {
     // 유저 포인트 조회
     @GetMapping("/users/me/points/current")
     CurrentPointResponseDto getUserPoint(@RequestHeader("X-USER-ID") Long userId);
+
+    // 관리자: 이름/이메일/전화번호 등으로 userId 조회
+    @GetMapping("/search")
+    List<Long> searchUserIdsByKeyword(@RequestParam("query") String keyword);
 }

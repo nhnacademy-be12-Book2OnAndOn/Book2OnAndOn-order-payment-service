@@ -1,5 +1,6 @@
 package com.nhnacademy.Book2OnAndOn_order_payment_service.order.dto.order;
 
+import jakarta.validation.constraints.NotNull;
 import lombok.Getter;
 import lombok.Setter;
 import lombok.NoArgsConstructor;
@@ -16,6 +17,8 @@ public class DeliveryAddressRequestDto {
     private String deliveryAddress;
     private String deliveryAddressDetail;
     private String deliveryMessage;
+    @NotNull(message = "수령인을 입력해주세요")
     private String recipient;
-    private String recipientPhonenumber; // 추가된 필드 (필수 가정)
+    @NotNull(message = "수령인 전화번호를 입력해주세요")
+    private String recipientPhoneNumber; // 추가된 필드 (필수 가정)
 }

@@ -1,9 +1,6 @@
 package com.nhnacademy.Book2OnAndOn_order_payment_service.order.entity.order;
 
-import com.nhnacademy.Book2OnAndOn_order_payment_service.order.client.dto.BookOrderResponse;
-import com.nhnacademy.Book2OnAndOn_order_payment_service.order.dto.order.OrderResponseDto;
-import com.nhnacademy.Book2OnAndOn_order_payment_service.order.dto.order.orderitem.OrderItemRequestDto;
-import com.nhnacademy.Book2OnAndOn_order_payment_service.order.entity.return1.ReturnItem;
+import com.nhnacademy.Book2OnAndOn_order_payment_service.order.entity.refund.RefundItem;
 import com.nhnacademy.Book2OnAndOn_order_payment_service.order.entity.wrappingpaper.WrappingPaper;
 import jakarta.persistence.CascadeType;
 import jakarta.persistence.Column;
@@ -18,6 +15,7 @@ import jakarta.persistence.OneToMany;
 import jakarta.persistence.OneToOne;
 import jakarta.persistence.Table;
 import jakarta.validation.constraints.NotNull;
+import jakarta.validation.constraints.Null;
 import java.util.ArrayList;
 import java.util.List;
 import lombok.AccessLevel;
@@ -57,7 +55,6 @@ public class OrderItem {
     private boolean isWrapped = false;
 
     @Column(name = "order_item_status", columnDefinition = "TINYINT")
-    @NotNull
     private OrderItemStatus orderItemStatus;
 
     @ManyToOne(fetch = FetchType.LAZY)
@@ -65,11 +62,10 @@ public class OrderItem {
     @NotNull
     private Order order;
 
-    @OneToOne(fetch = FetchType.LAZY)
-    @JoinColumn(name = "wrapping_paper_id")
-    @NotNull
+    @OneToOne(fetch = FetchType.LAZY, cascade = CascadeType.ALL)
+    @JoinColumn(name = "wrapping_paper_id", nullable = true)
     private WrappingPaper wrappingPaper;
 
     @OneToMany(mappedBy = "orderItem", cascade = CascadeType.ALL)
-    private List<ReturnItem> returnItems = new ArrayList<>();
+    private List<RefundItem> refundItems = new ArrayList<>();
 }

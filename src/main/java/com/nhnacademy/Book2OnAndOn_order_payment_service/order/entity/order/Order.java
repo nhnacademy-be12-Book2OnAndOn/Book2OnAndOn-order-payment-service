@@ -1,14 +1,13 @@
 package com.nhnacademy.Book2OnAndOn_order_payment_service.order.entity.order;
 
-import com.nhnacademy.Book2OnAndOn_order_payment_service.order.converter.OrderStatusConverter;
 import com.nhnacademy.Book2OnAndOn_order_payment_service.order.dto.order.OrderResponseDto;
 import com.nhnacademy.Book2OnAndOn_order_payment_service.order.dto.order.OrderSimpleDto;
-import com.nhnacademy.Book2OnAndOn_order_payment_service.order.entity.delivery.Delivery;
+import com.nhnacademy.Book2OnAndOn_order_payment_service.order.dto.order.orderitem.OrderItemResponseDto;
 import com.nhnacademy.Book2OnAndOn_order_payment_service.order.entity.delivery.DeliveryAddress;
-import com.nhnacademy.Book2OnAndOn_order_payment_service.order.entity.return1.Return;
+import com.nhnacademy.Book2OnAndOn_order_payment_service.order.entity.refund.Refund;
+import com.nhnacademy.Book2OnAndOn_order_payment_service.payment.domain.dto.response.PaymentResponse;
 import jakarta.persistence.CascadeType;
 import jakarta.persistence.Column;
-import jakarta.persistence.Convert;
 import jakarta.persistence.Entity;
 import jakarta.persistence.FetchType;
 import jakarta.persistence.GeneratedValue;
@@ -47,7 +46,7 @@ public class Order {
     @NotNull
     private Long userId;
 
-    @Column(name = "order_number", unique = true, columnDefinition = "CHAR(13)")
+    @Column(name = "order_number", unique = true, columnDefinition = "CHAR(15)")
     @NotNull
     private String orderNumber;
 
@@ -99,7 +98,7 @@ public class Order {
     private GuestOrder guestOrder;
 
     @OneToMany(mappedBy = "order", fetch = FetchType.LAZY, cascade = CascadeType.ALL, orphanRemoval = true)
-    private List<Return> returns = new ArrayList<>();
+    private List<Refund> refunds = new ArrayList<>();
 
     public void updateStatus(OrderStatus status){
         this.orderStatus = status;
@@ -116,12 +115,13 @@ public class Order {
         );
     }
 
-    public OrderResponseDto toOrderResponseDto(){
+    public OrderResponseDto toOrderResponseDto(List<OrderItemResponseDto> orderItemResponseDtoList){
         return new OrderResponseDto(
                 this.orderId,
                 this.orderNumber,
                 this.orderStatus,
                 this.orderDateTime,
+
                 this.totalAmount,
                 this.totalDiscountAmount,
                 this.totalItemAmount,
@@ -129,12 +129,11 @@ public class Order {
                 this.wrappingFee,
                 this.couponDiscount,
                 this.pointDiscount,
+
                 this.wantDeliveryDate,
-null,
-null,
-null
-//                this.orderItems,
-//                this.deliveryAddress
+                orderItemResponseDtoList,
+                this.deliveryAddress.toDeliveryAddressResponseDto(),
+                null
         );
     }
 

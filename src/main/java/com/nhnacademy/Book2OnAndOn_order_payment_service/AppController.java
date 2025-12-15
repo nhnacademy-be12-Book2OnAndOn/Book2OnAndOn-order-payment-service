@@ -1,6 +1,6 @@
 package com.nhnacademy.Book2OnAndOn_order_payment_service;
 
-import com.nhnacademy.Book2OnAndOn_order_payment_service.order.config.OrderNumberGenerator;
+import com.nhnacademy.Book2OnAndOn_order_payment_service.order.generator.OrderNumberGenerator;
 import lombok.RequiredArgsConstructor;
 import org.springframework.http.ResponseEntity;
 import org.springframework.web.bind.annotation.GetMapping;
