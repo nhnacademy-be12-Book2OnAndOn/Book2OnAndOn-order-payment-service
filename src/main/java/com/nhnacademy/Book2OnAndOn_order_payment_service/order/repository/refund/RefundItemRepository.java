@@ -12,9 +12,9 @@ public interface RefundItemRepository extends JpaRepository<RefundItem, Long> {
 
     // 1. 특정 주문 항목(OrderItem)에 대해 현재까지 반품된 수량 합계
     @Query("""
-        select coalesce(sum(ri.refundQuantity), 0)
-        from RefundItem ri
-        where ri.orderItem.orderItemId =: orderItemId
+    select coalesce(sum(ri.refundQuantity), 0)
+    from RefundItem ri
+    where ri.orderItem.orderItemId = :orderItemId
     """)
     int sumReturnedQuantityByOrderItemId(@Param("orderItemId") Long orderItemId);
 

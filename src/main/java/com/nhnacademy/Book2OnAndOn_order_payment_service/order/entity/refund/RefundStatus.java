@@ -9,18 +9,6 @@ public enum RefundStatus {
     REFUND_COMPLETED(5, "환불 완료"),
     REJECTED(99, "반품 거부");
 
-//    public enum OrderItemStatus {
-//        ORDERED,            // 주문 생성됨 (결제 전 or 직후)
-//        PAID,               // 결제 완료
-//        SHIPPING,           // 배송 중
-//        DELIVERED,          // 배송 완료
-//        RETURN_REQUESTED,   // 반품 신청됨
-//        RETURN_IN_PROGRESS, // 수거/검수 중
-//        RETURN_COMPLETED,   // 반품/환불 완료
-//        RETURN_REJECTED,    // 반품 거부
-//        CANCELED            // 결제 취소(배송 전)
-//    }
-
     private final int code;
     private final String description;
 
