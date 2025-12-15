@@ -14,7 +14,7 @@ import lombok.AllArgsConstructor;
 @AllArgsConstructor
 public class OrderItemRequestDto {
     private Long bookId;
-    private int quantity;   // order_item_quantity
+    private int quantity;   // or
+    private boolean isWrapped;// der_item_quantity
     private Long wrappingPaperId;
-    private boolean isWrapped;
 }

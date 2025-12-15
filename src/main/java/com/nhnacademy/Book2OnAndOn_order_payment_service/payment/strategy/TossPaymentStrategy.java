@@ -48,6 +48,7 @@ public class TossPaymentStrategy implements PaymentStrategy{
         String authorization = buildAuthorizationHeader();
 
         // TODO 서비스를 서로 호출해서 순화참조 오류 발생 차라리 repo로 해결할것
+
 //        OrderResponseDto orderResp = orderService.getOrderByOrderNumber(req.orderId());
 //        Integer totalAmount = orderResp.getTotalAmount();
 

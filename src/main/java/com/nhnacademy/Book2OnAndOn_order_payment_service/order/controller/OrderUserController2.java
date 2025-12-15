@@ -2,9 +2,11 @@ package com.nhnacademy.Book2OnAndOn_order_payment_service.order.controller;
 
 import com.nhnacademy.Book2OnAndOn_order_payment_service.order.dto.order.OrderCancelRequestDto2;
 import com.nhnacademy.Book2OnAndOn_order_payment_service.order.dto.order.OrderCreateRequestDto;
+import com.nhnacademy.Book2OnAndOn_order_payment_service.order.dto.order.OrderCreateResponseDto;
+import com.nhnacademy.Book2OnAndOn_order_payment_service.order.dto.order.OrderDetailResponseDto;
 import com.nhnacademy.Book2OnAndOn_order_payment_service.order.dto.order.OrderResponseDto;
-import com.nhnacademy.Book2OnAndOn_order_payment_service.order.dto.order.OrderSheetRequestDto;
-import com.nhnacademy.Book2OnAndOn_order_payment_service.order.dto.order.OrderSheetResponseDto;
+import com.nhnacademy.Book2OnAndOn_order_payment_service.order.dto.order.OrderPrepareRequestDto;
+import com.nhnacademy.Book2OnAndOn_order_payment_service.order.dto.order.OrderPrepareResponseDto;
 import com.nhnacademy.Book2OnAndOn_order_payment_service.order.dto.order.OrderSimpleDto;
 import com.nhnacademy.Book2OnAndOn_order_payment_service.order.service.OrderService2;
 import lombok.RequiredArgsConstructor;
@@ -35,26 +37,25 @@ public class OrderUserController2 {
 
     // 장바구니 혹은 바로구매시 준비할 데이터 (책 정보, 회원 배송지 정보)
     @GetMapping("/prepare")
-    public ResponseEntity<OrderSheetResponseDto> getOrderSheet(@RequestHeader(USER_ID_HEADER) Long userId,
-                                                               @RequestBody OrderSheetRequestDto req){
+    public ResponseEntity<OrderPrepareResponseDto> getOrderPrepare(@RequestHeader(USER_ID_HEADER) Long userId,
+                                                                 @RequestBody OrderPrepareRequestDto req){
         log.info("GET /orders/prepare 호출 : 주문시 필요한 데이터 반환 (회원 아이디 : {})", userId);
 
         // 회원 주문 로직
-        OrderSheetResponseDto orderSheetResponseDto = orderService.prepareOrder(userId, req);
+        OrderPrepareResponseDto orderSheetResponseDto = orderService.prepareOrder(userId, req);
 
         return ResponseEntity.ok(orderSheetResponseDto);
     }
 
     @PostMapping
-    public ResponseEntity<OrderResponseDto> createPreOrder(@RequestHeader(USER_ID_HEADER) Long userId,
-                                                           OrderCreateRequestDto req){
+    public ResponseEntity<OrderCreateResponseDto> createPreOrder(@RequestHeader(USER_ID_HEADER) Long userId,
+                                                                 @RequestBody OrderCreateRequestDto req){
         log.info("POST /orders 호출 : 사전 주문 데이터 생성");
-        OrderResponseDto orderResponseDto = orderService.createOrder(userId, req);
-        // TODO 201 수정
+        OrderCreateResponseDto orderResponseDto = orderService.createOrder(userId, req);
+
         return ResponseEntity.status(HttpStatus.CREATED).body(orderResponseDto);
     }
 
-    // TODO GET List<OrderSimpleDto>
     // 주문조회 리스트 반환
     // 나의 myOrderInfo
     // /users/me/orders
@@ -71,30 +72,30 @@ public class OrderUserController2 {
 
     // TODO GET OrderResponseDto
     @GetMapping("/{orderNumber}")
-    public ResponseEntity<OrderResponseDto> getOrderDetail(@RequestHeader(USER_ID_HEADER) Long userId,
-                                                           @PathVariable("orderNumber") String orderNumber){
+    public ResponseEntity<OrderDetailResponseDto> getOrderDetail(@RequestHeader(USER_ID_HEADER) Long userId,
+                                                                 @PathVariable("orderNumber") String orderNumber){
         log.info("GET /order/{} 호출 : 주문 상세 데이터 반환" , orderNumber);
-        OrderResponseDto orderResponseDto = orderService.getOrderDetail(userId, orderNumber);
+        OrderDetailResponseDto orderResponseDto = orderService.getOrderDetail(userId, orderNumber);
 
         return ResponseEntity.ok(orderResponseDto);
     }
 
-    @PatchMapping("/{orderNumber}/cancel")
-    public ResponseEntity<OrderResponseDto> cancelOrder(@RequestHeader(USER_ID_HEADER) Long userId,
-                                                        @PathVariable("orderNumber") String orderNumber,
-                                                        @RequestBody OrderCancelRequestDto2 req){
-        log.info("PATCH /order/cancel/{} 호출 : 주문 취소", orderNumber);
-
-        OrderResponseDto orderResponseDto = orderService.cancelOrder(userId, orderNumber, req);
-        return null;
-    }
+//    // TODO 주문 취소 구현 -> payment 서비스에서 수행
+//    @PatchMapping("/{orderNumber}/cancel")
+//    public ResponseEntity<OrderResponseDto> cancelOrder(@RequestHeader(USER_ID_HEADER) Long userId,
+//                                                        @PathVariable("orderNumber") String orderNumber,
+//                                                        @RequestBody OrderCancelRequestDto2 req){
+//        log.info("PATCH /order/cancel/{} 호출 : 주문 취소", orderNumber);
+//
+//        OrderResponseDto orderResponseDto = orderService.cancelOrder(userId, orderNumber, req);
+//        return null;
+//    }
 
 
     /*
         API 전용
      */
 
-    // TODO 유저 책 구매 여부
     @GetMapping("/check-purchase/{bookId}")
     public ResponseEntity<Boolean> hasPurchasedBook(@RequestHeader(USER_ID_HEADER) Long userId,
                                                     @PathVariable("bookId") Long bookId){

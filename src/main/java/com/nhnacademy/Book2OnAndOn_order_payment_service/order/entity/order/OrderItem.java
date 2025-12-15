@@ -15,6 +15,7 @@ import jakarta.persistence.OneToMany;
 import jakarta.persistence.OneToOne;
 import jakarta.persistence.Table;
 import jakarta.validation.constraints.NotNull;
+import jakarta.validation.constraints.Null;
 import java.util.ArrayList;
 import java.util.List;
 import lombok.AccessLevel;
@@ -62,8 +63,7 @@ public class OrderItem {
     private Order order;
 
     @OneToOne(fetch = FetchType.LAZY, cascade = CascadeType.ALL)
-    @JoinColumn(name = "wrapping_paper_id")
-    @NotNull
+    @JoinColumn(name = "wrapping_paper_id", nullable = true)
     private WrappingPaper wrappingPaper;
 
     @OneToMany(mappedBy = "orderItem", cascade = CascadeType.ALL)
