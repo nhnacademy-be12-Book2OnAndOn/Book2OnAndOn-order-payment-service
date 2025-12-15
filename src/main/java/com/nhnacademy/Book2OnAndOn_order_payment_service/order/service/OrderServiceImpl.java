@@ -5,15 +5,16 @@ import com.nhnacademy.Book2OnAndOn_order_payment_service.order.client.BookServic
 import com.nhnacademy.Book2OnAndOn_order_payment_service.order.client.CouponServiceClient;
 import com.nhnacademy.Book2OnAndOn_order_payment_service.order.client.UserServiceClient;
 import com.nhnacademy.Book2OnAndOn_order_payment_service.order.client.dto.*;
-import com.nhnacademy.Book2OnAndOn_order_payment_service.order.dto.delivery.DeliveryPolicyResponseDto;
 import com.nhnacademy.Book2OnAndOn_order_payment_service.order.dto.order.DeliveryAddressRequestDto;
 import com.nhnacademy.Book2OnAndOn_order_payment_service.order.dto.order.OrderCancelRequestDto2;
 import com.nhnacademy.Book2OnAndOn_order_payment_service.order.dto.order.OrderCreateRequestDto;
-import com.nhnacademy.Book2OnAndOn_order_payment_service.order.dto.order.OrderItemDto;
+import com.nhnacademy.Book2OnAndOn_order_payment_service.order.dto.order.OrderCreateResponseDto;
+import com.nhnacademy.Book2OnAndOn_order_payment_service.order.dto.order.OrderDetailResponseDto;
 import com.nhnacademy.Book2OnAndOn_order_payment_service.order.dto.order.OrderResponseDto;
-import com.nhnacademy.Book2OnAndOn_order_payment_service.order.dto.order.OrderSheetRequestDto;
-import com.nhnacademy.Book2OnAndOn_order_payment_service.order.dto.order.OrderSheetResponseDto;
+import com.nhnacademy.Book2OnAndOn_order_payment_service.order.dto.order.OrderPrepareRequestDto;
+import com.nhnacademy.Book2OnAndOn_order_payment_service.order.dto.order.OrderPrepareResponseDto;
 import com.nhnacademy.Book2OnAndOn_order_payment_service.order.dto.order.OrderSimpleDto;
+import com.nhnacademy.Book2OnAndOn_order_payment_service.order.dto.order.orderitem.OrderItemCalcContext;
 import com.nhnacademy.Book2OnAndOn_order_payment_service.order.dto.order.orderitem.OrderItemRequestDto;
 import com.nhnacademy.Book2OnAndOn_order_payment_service.order.dto.order.orderitem.OrderItemResponseDto;
 import com.nhnacademy.Book2OnAndOn_order_payment_service.order.entity.delivery.DeliveryAddress;
@@ -25,8 +26,7 @@ import com.nhnacademy.Book2OnAndOn_order_payment_service.order.entity.wrappingpa
 import com.nhnacademy.Book2OnAndOn_order_payment_service.order.exception.DeliveryPolicyNotFoundException;
 import com.nhnacademy.Book2OnAndOn_order_payment_service.order.exception.ExceedUserPointException;
 import com.nhnacademy.Book2OnAndOn_order_payment_service.order.exception.InvalidDeliveryDateException;
-import com.nhnacademy.Book2OnAndOn_order_payment_service.order.exception.NotFoundOrderException;
-import com.nhnacademy.Book2OnAndOn_order_payment_service.order.generator.OrderNumberGenerator;
+import com.nhnacademy.Book2OnAndOn_order_payment_service.order.exception.OrderNotFoundException;
 import com.nhnacademy.Book2OnAndOn_order_payment_service.order.provider.OrderNumberProvider;
 import com.nhnacademy.Book2OnAndOn_order_payment_service.order.repository.delivery.DeliveryPolicyRepository;
 import com.nhnacademy.Book2OnAndOn_order_payment_service.order.repository.order.OrderRepository;
@@ -42,17 +42,15 @@ import com.nhnacademy.Book2OnAndOn_order_payment_service.payment.service.Payment
 import com.nhnacademy.Book2OnAndOn_order_payment_service.payment.strategy.PaymentStrategy;
 import com.nhnacademy.Book2OnAndOn_order_payment_service.payment.strategy.PaymentStrategyFactory;
 
-import java.awt.print.Book;
 import java.time.LocalDate;
 import java.time.LocalDateTime;
-import java.util.ArrayList;
 import java.util.HashMap;
 import java.util.List;
 import java.util.Map;
-import java.util.Objects;
+import java.util.function.Function;
+import java.util.stream.Collectors;
 import lombok.RequiredArgsConstructor;
 import lombok.extern.slf4j.Slf4j;
-import org.springframework.dao.DuplicateKeyException;
 import org.springframework.data.domain.Page;
 import org.springframework.data.domain.Pageable;
 import org.springframework.stereotype.Service;
@@ -62,14 +60,11 @@ import org.springframework.transaction.annotation.Transactional;
 @Service
 @RequiredArgsConstructor
 public class OrderServiceImpl implements OrderService2 {
-
-    private final OrderNumberGenerator orderNumberGenerator;
-
     private final OrderRepository orderRepository;
     private final PaymentRepository paymentRepository;
     private final DeliveryPolicyRepository deliveryPolicyRepository;
-    private final WrappingPaperService wrappingPaperService;
 
+    private final WrappingPaperService wrappingPaperService;
     private final PaymentService paymentService;
     private final BookServiceClient bookServiceClient;
     private final UserServiceClient userServiceClient;
@@ -91,42 +86,72 @@ public class OrderServiceImpl implements OrderService2 {
     }
 
     /**
-     * 주문 시 필요한 데이터를 미리 불러오는 메서드입니다.
+     * 책 클라이언트를 통해 책 정보를 가져오는 공용 메서드입니다.
      * @param userId
-     * @param req
+     * @return 유저 배송지 정보 반환 List
+     */
+    private List<UserAddressResponseDto> fetchUserAddressInfo(Long userId){
+        List<UserAddressResponseDto> userAddressResponseDtoList = userServiceClient.getUserAddresses(userId);
+        log.info("회원 정보 클라이언트 호출 성공, 회원 배송지 수 : {}",userAddressResponseDtoList.size());
+
+        return userAddressResponseDtoList;
+    }
+
+    /**
+     * 책 클라이언트를 통해 책 정보를 가져오는 공용 메서드입니다.
+     * @param userId, req
+     * @return 사용 가능한 쿠폰 정보 반환 List
+     */
+    private List<MemberCouponResponseDto> fetchUsableMemberCouponInfo(Long userId, OrderCouponCheckRequestDto req){
+        List<MemberCouponResponseDto> memberCouponResponseDtoList = couponServiceClient.getUsableCoupons(userId, req);
+        log.info("쿠폰 정보 클라이언트 호출 성공, 사용 가능한 쿠폰 수 : {}", memberCouponResponseDtoList.size());
+
+        return memberCouponResponseDtoList;
+    }
+
+    /**
+     * 책 클라이언트를 통해 책 정보를 가져오는 공용 메서드입니다.
+     * @param userId
+     * @return 사용 가능한 포인트 정보 반환
+     */
+    private CurrentPointResponseDto fetchPointInfo(Long userId){
+        CurrentPointResponseDto currentPointResponseDto = userServiceClient.getUserPoint(userId);
+        log.info("회원 정보 클라이언트 호출 성공, 회원 현재 포인트 : {}", currentPointResponseDto.getCurrentPoint());
+
+        return currentPointResponseDto;
+    }
+
+    /**
+     * 주문 시 필요한 데이터를 미리 불러오는 메서드입니다.
+     * @param userId, req
      * @return 주문 항목, 유저 배송지 정보, 사용가능한 쿠폰, 유저 포인트 반환 DTO
      */
     @Transactional(readOnly = true)
     @Override
-    public OrderSheetResponseDto prepareOrder(Long userId, OrderSheetRequestDto req) {
-        log.info("주문 전 데이터 정보 가져오기 로직 실행 (유저 아이디 : {})", userId);
+    public OrderPrepareResponseDto prepareOrder(Long userId, OrderPrepareRequestDto req) {
+        log.info("주문 전 데이터 정보 가져오기 로직 실행 (회원 아이디 : {})", userId);
 
+        // 책 id
         List<Long> bookIds = req.bookItems().stream()
-                .map(OrderSheetRequestDto.BookInfoDto::bookId)
+                .map(OrderPrepareRequestDto.BookInfoDto::bookId)
                 .toList();
 
+
         List<BookOrderResponse> bookOrderResponseList = fetchBookInfo(bookIds);
+        List<UserAddressResponseDto> userAddressResponseDtoList = fetchUserAddressInfo(userId);
 
-        List<UserAddressResponseDto> userAddressResponseDtoList = userServiceClient.getUserAddresses(userId);
-        log.info("회원 정보 클라이언트 호출 성공, 회원 배송지 수 : {}",userAddressResponseDtoList.size());
-
+        // 사용 가능한 쿠폰을 받기 위한 RequestDto 생성
         OrderCouponCheckRequestDto orderCouponCheckRequestDto = createOrderCouponCheckRequest(bookOrderResponseList);
-        List<MemberCouponResponseDto> userCouponResponseDtoList = couponServiceClient.getUsableCoupons(userId, orderCouponCheckRequestDto);
-        log.info("쿠폰 정보 클라이언트 호출 성공, 사용 가능한 쿠폰 수 : {}", userCouponResponseDtoList.size());
+        List<MemberCouponResponseDto> userCouponResponseDtoList = fetchUsableMemberCouponInfo(userId, orderCouponCheckRequestDto);
 
-        CurrentPointResponseDto userCurrentPoint = userServiceClient.getUserPoint(userId);
-        log.info("회원 정보 클라이언트 호출 성공, 회원 현재 포인트 : {}", userCurrentPoint.getCurrentPoint());
-
-        String orderNumber = orderNumberProvider.provideOrderNumber();
-        log.info("주문번호 발급 성공 (주문번호 : {})", orderNumber);
+        CurrentPointResponseDto userCurrentPoint = fetchPointInfo(userId);
 
         // 회원 주문은 배송지, 쿠폰 및 포인트 여부도 가져옴
-        return new OrderSheetResponseDto(
+        return new OrderPrepareResponseDto(
                 bookOrderResponseList,
                 userAddressResponseDtoList,
                 userCouponResponseDtoList,
-                userCurrentPoint,
-                orderNumber
+                userCurrentPoint
         );
     }
 
@@ -161,23 +186,28 @@ public class OrderServiceImpl implements OrderService2 {
      */
     @Transactional
     @Override
-    public OrderResponseDto createOrder(Long userId, OrderCreateRequestDto req) {
+    public OrderCreateResponseDto createOrder(Long userId, OrderCreateRequestDto req) {
         log.info("주문 생성 로직 실행 (유저 아이디 : {})", userId);
 
+        // 책 Id, 구매 수량, 포장 여부, 포장지 Id
         List<OrderItemRequestDto> orderItemRequestDtoList = req.getOrderItems();
+
+        // 책 서비스 호출용 bookId 추출
         List<Long> bookIds = orderItemRequestDtoList.stream()
                         .map(OrderItemRequestDto::getBookId)
                         .toList();
 
-        List<BookOrderResponse> bookOrderResponseList = bookServiceClient.getBooksForOrder(bookIds);
+        // 구매할 책들에 대한 정보 리스트
+        List<BookOrderResponse> bookOrderResponseList = fetchBookInfo(bookIds);
 
-        List<OrderItem> orderItemList = createOrderItemList(bookOrderResponseList,
-                orderItemRequestDtoList);
+        // 요청 리스트에서 OrderItemList 추출
+        List<OrderItem> orderItemList = createOrderItemList(bookOrderResponseList, orderItemRequestDtoList);
 
+        // 주문 배송지 설정
         DeliveryAddressRequestDto deliveryAddressRequestDto = req.getDeliveryAddress();
-
         DeliveryAddress deliveryAddress = createDeliveryAddress(deliveryAddressRequestDto);
 
+        // 주문명 생성
         String orderTitle = createOrderTitle(bookOrderResponseList);
 
         int totalItemAmount = orderItemList.stream()
@@ -188,7 +218,7 @@ public class OrderServiceImpl implements OrderService2 {
 
         int wrappingFee = createWrappingFee(orderItemList);
 
-        int couponDiscount = createCouponDiscount(userId, req.getCouponId(), bookOrderResponseList, totalItemAmount);
+        int couponDiscount = createCouponDiscount(req.getCouponId(), orderItemList, bookOrderResponseList, totalItemAmount);
 
         int pointDiscount = createPointDiscount(userId, req.getPoint());
 
@@ -198,9 +228,14 @@ public class OrderServiceImpl implements OrderService2 {
 
         LocalDate wantDeliveryDate = createWantDeliveryDate(req.getWantDeliveryDate());
 
+
+        String orderNumber = orderNumberProvider.provideOrderNumber();
+        log.info("주문번호 발급 성공 (주문번호 : {})", orderNumber);
+
+
         Order order = Order.builder()
                 .userId(userId)
-                .orderNumber(req.getOrderNumber())
+                .orderNumber(orderNumber)
                 .orderStatus(OrderStatus.PENDING)
                 .orderTitle(orderTitle)
                 .totalAmount(totalAmount)
@@ -234,72 +269,52 @@ public class OrderServiceImpl implements OrderService2 {
                         item.getUnitPrice(),
                         item.isWrapped(),
                         null,
-                        item.getWrappingPaper().getWrappingPaperId()
+                        item.getWrappingPaper() == null ? null : item.getWrappingPaper().getWrappingPaperId()
                 ))
                 .toList();
 
-        return saved.toOrderResponseDto(orderItemResponseDtoList);
+        return new OrderCreateResponseDto(saved.getOrderId(),
+                saved.getOrderNumber(),
+                saved.getOrderTitle(),
+                saved.getTotalItemAmount(),
+                saved.getDeliveryFee(),
+                saved.getWrappingFee(),
+                saved.getCouponDiscount(),
+                saved.getPointDiscount(),
+                saved.getTotalDiscountAmount(),
+                saved.getTotalAmount(),
+                saved.getWantDeliveryDate(),
+                orderItemResponseDtoList,
+                deliveryAddress.toDeliveryAddressResponseDto()
+        );
     }
 
+    /**
+     *
+     * @param bookOrderResponseList
+     * @param orderItemRequestDtoList
+     * @return 주문 엔티티 생성용 주문 항목 리스트 생성 로직
+     */
     private List<OrderItem> createOrderItemList(List<BookOrderResponse> bookOrderResponseList,
                                                 List<OrderItemRequestDto> orderItemRequestDtoList){
-//        List<OrderItem> orderItemList = new ArrayList<>();
-        Map<Long, OrderItem> orderItemMap = new HashMap<>();
+        Map<Long, BookOrderResponse> bookMap = bookOrderResponseList.stream()
+                .collect(Collectors.toMap(BookOrderResponse::getBookId, Function.identity()));
 
-        for (BookOrderResponse bookOrderResponse : bookOrderResponseList) {
+        return orderItemRequestDtoList.stream()
+                .map(dto -> {
+                    BookOrderResponse book = bookMap.get(dto.getBookId());
+                    if(book == null) throw new OrderVerificationException("책 정보가 일치하지 않습니다 : " + dto.getBookId());
+                    WrappingPaper wrappingPaper = dto.isWrapped() ? wrappingPaperService.getWrappingPaperEntity(dto.getWrappingPaperId()) : null;
 
-            // 책 재고 수량 검증
-            if(bookOrderResponse.getStockCount() > 1){
-                log.error("해당 도서의 재고가 부족합니다. (책 이름 : {}", bookOrderResponse.getTitle());
-                throw new OrderVerificationException("해당 도서의 재고가 부족합니다. (책 이름 : " + bookOrderResponse.getTitle() + ")");
-            }
-
-            OrderItem orderItem = OrderItem.builder()
-                            .bookId(bookOrderResponse.getBookId())
-                            .unitPrice(bookOrderResponse.getPriceSales().intValue())
+                    return OrderItem.builder()
+                            .bookId(book.getBookId())
+                            .orderItemQuantity(dto.getQuantity())
+                            .unitPrice(book.getPriceSales().intValue())
+                            .isWrapped(dto.isWrapped())
+                            .wrappingPaper(wrappingPaper)
                             .build();
-
-            orderItemMap.put(bookOrderResponse.getBookId(), orderItem);
-        }
-
-        for (OrderItemRequestDto orderItemRequestDto : orderItemRequestDtoList) {
-            OrderItem orderItem = orderItemMap.get(orderItemRequestDto.getBookId());
-
-            orderItem.setOrderItemQuantity(orderItemRequestDto.getQuantity());
-            orderItem.setWrapped(orderItemRequestDto.isWrapped());
-
-            WrappingPaper wrappingPaper = wrappingPaperService.getWrappingPaperEntity(
-                    orderItemRequestDto.getWrappingPaperId()
-            );
-
-            orderItem.setWrappingPaper(wrappingPaper);
-
-            orderItemMap.put(orderItemRequestDto.getBookId(), orderItem);
-        }
-
-//        for (BookOrderResponse bookOrderResponse : bookOrderResponseList) {
-//            for (OrderItemRequestDto orderItemRequestDto : orderItemRequestDtoList) {
-//                if(Objects.equals(bookOrderResponse.getBookId(), orderItemRequestDto.getBookId())){
-//
-//                    WrappingPaper wrappingPaper = wrappingPaperService.getWrappingPaperEntity(
-//                            orderItemRequestDto.getWrappingPaperId());
-//
-//                    OrderItem orderItem = OrderItem.builder()
-//                            .bookId(bookOrderResponse.getBookId())
-//                            .orderItemQuantity(orderItemRequestDto.getQuantity())
-//                            .unitPrice(bookOrderResponse.getPriceSales().intValue())
-//                            .isWrapped(orderItemRequestDto.isWrapped())
-//                            .wrappingPaper(wrappingPaper)
-//                            .build();
-//
-//                    orderItemList.add(orderItem);
-//                    break;
-//                }
-//            }
-//        }
-
-        return orderItemMap.values().stream().toList();
-//        return orderItemList;
+                })
+                .toList();
     }
 
     private DeliveryAddress createDeliveryAddress(DeliveryAddressRequestDto deliveryAddressRequestDto){
@@ -336,45 +351,84 @@ public class OrderServiceImpl implements OrderService2 {
                 .sum();
     }
 
-    // TODO 쿠폰 할인 계산
-    private int createCouponDiscount(Long userId, Long couponId, List<BookOrderResponse> bookOrderResponseList, int totalItemAmount){
-        CouponTargetResponseDto couponTargetResponseDto = couponServiceClient.getCouponTargets(couponId);
-        
-        // 할인을 하려면 최소 주문 금액을 넘겨야함
-        if(totalItemAmount < couponTargetResponseDto.minPrice()){
-            log.error("최조 주문 금액 {}원 이상부터 할인 적용이 가능합니다 (현재 주문 금액 : {}원)", couponTargetResponseDto.minPrice(), totalItemAmount);
-            throw new OrderVerificationException("최소 주문 금액 " + couponTargetResponseDto.minPrice() + "원 이상부터 할인 쿠폰 적용이 가능합니다.");
+    private int createCouponDiscount(Long couponId, List<OrderItem> orderItemList, List<BookOrderResponse> bookOrderResponseList, int totalItemAmount){
+        if(couponId == null){
+            return 0;
         }
+        CouponTargetResponseDto couponTargetResponseDto = couponServiceClient.getCouponTargets(couponId);
 
         List<Long> targetBookIds = couponTargetResponseDto.targetBookIds();
         List<Long> targetCategoryIds = couponTargetResponseDto.targetCategoryIds();
-        String discountType = couponTargetResponseDto.discountType();
 
-        // 괜찮은 방법 찾기
-        if(discountType.equals("FIXED")){
-            if(targetBookIds == null){
+        Map<Long, BookOrderResponse> bookMap = bookOrderResponseList.stream()
+                .collect(Collectors.toMap(BookOrderResponse::getBookId, Function.identity()));
 
-            }
-            if(targetCategoryIds == null){
+        List<OrderItemCalcContext> calcContextList = orderItemList.stream()
+                .map(orderItem -> {
+                    BookOrderResponse book = bookMap.get(orderItem.getBookId());
+                    if(book == null){
+                        throw new OrderVerificationException("도서 정보 불일치 : " + orderItem.getBookId());
+                    }
+                    return OrderItemCalcContext.of(orderItem, book);
+                })
+                .toList();
 
-            }
-            if(targetBookIds == null && targetCategoryIds == null){
-//                couponTargetResponseDto
-            }
-        }else{
+        int discountBaseAmount = calculateDiscountBaseAmount(
+                calcContextList,
+                targetBookIds,
+                targetCategoryIds,
+                totalItemAmount);
 
+        if(discountBaseAmount < couponTargetResponseDto.minPrice()){
+            log.error("최조 주문 금액 {}원 이상부터 할인 적용이 가능합니다 (현재 주문 금액 : {}원)", couponTargetResponseDto.minPrice(), discountBaseAmount);
+            throw new OrderVerificationException("최소 주문 금액 " + couponTargetResponseDto.minPrice() + "원 이상부터 할인 쿠폰 적용이 가능합니다.");
         }
 
+        CouponPolicyDiscountType discountType = couponTargetResponseDto.discountType();
 
+        // 할인금액이 고정
+        if(CouponPolicyDiscountType.FIXED.equals(discountType)){
+            return couponTargetResponseDto.discountValue();
+        }
 
+        int discount = discountBaseAmount * couponTargetResponseDto.discountValue() / 100;
 
+        return discount > couponTargetResponseDto.maxPrice() ? couponTargetResponseDto.maxPrice() : discount;
+    }
 
-
-
-        return 0;
+    // 할인 대상 금액 계산
+    private int calculateDiscountBaseAmount(List<OrderItemCalcContext> calcContextList,
+                                            List<Long> targetBookIds,
+                                            List<Long> targetCategoryIds,
+                                            int totalItemAmount){
+        if(targetBookIds != null && !targetBookIds.isEmpty()
+        && (targetCategoryIds == null || targetCategoryIds.isEmpty())){
+            return calcContextList.stream()
+                    .filter(ctx -> targetBookIds.contains(ctx.getBookId()))
+                    .mapToInt(OrderItemCalcContext::getItemTotalPrice)
+                    .sum();
+        }else if((targetBookIds == null || targetBookIds.isEmpty())
+                && targetCategoryIds != null && !targetCategoryIds.isEmpty()){
+            return calcContextList.stream()
+                    .filter(ctx -> targetCategoryIds.contains(ctx.getCategoryId()))
+                    .mapToInt(OrderItemCalcContext::getItemTotalPrice)
+                    .sum();
+        }else if((targetBookIds == null || targetBookIds.isEmpty())
+                && targetCategoryIds == null || targetCategoryIds.isEmpty()){
+            return totalItemAmount;
+        }else{
+            return calcContextList.stream()
+                    .filter(ctx ->
+                            (targetBookIds.contains(ctx.getBookId()) || targetCategoryIds.contains(ctx.getCategoryId())))
+                    .mapToInt(OrderItemCalcContext::getItemTotalPrice)
+                    .sum();
+        }
     }
 
     private int createPointDiscount(Long userId, Integer point){
+        if(point == null){
+            return 0;
+        }
         CurrentPointResponseDto currentPointResponseDto = userServiceClient.getUserPoint(userId);
         int currentPoint = currentPointResponseDto.getCurrentPoint();
 
@@ -409,11 +463,11 @@ public class OrderServiceImpl implements OrderService2 {
 
     @Transactional(readOnly = true)
     @Override
-    public OrderResponseDto getOrderDetail(Long userId, String orderNumber) {
+    public OrderDetailResponseDto getOrderDetail(Long userId, String orderNumber) {
         log.info("일반 사용자 주문 상세 정보 조회 로직 실행 (유저 아이디 : {}, 주문번호 : {})", userId, orderNumber);
 
         Order order = orderRepository.findByUserIdAndOrderNumber(userId, orderNumber)
-                .orElseThrow(() -> new NotFoundOrderException("Not Found Order : " + orderNumber));
+                .orElseThrow(() -> new OrderNotFoundException("Not Found Order : " + orderNumber));
 
         List<OrderItem> orderItemList = order.getOrderItems();
 
@@ -424,6 +478,7 @@ public class OrderServiceImpl implements OrderService2 {
         List<BookOrderResponse> bookOrderResponseList = bookServiceClient.getBooksForOrder(bookIds);
 
         Map<Long, OrderItemResponseDto> orderItemResponseDtoMap = new HashMap<>();
+
         for (OrderItem orderItem : orderItemList) {
             OrderItemResponseDto orderItemResponseDto = new OrderItemResponseDto(
                     orderItem.getOrderItemId(),
@@ -444,27 +499,44 @@ public class OrderServiceImpl implements OrderService2 {
             OrderItemResponseDto orderItemResponseDto = orderItemResponseDtoMap.get(bookOrderResponse.getBookId());
             orderItemResponseDto.setBookTitle(bookOrderResponse.getTitle());
             orderItemResponseDto.setBookImagePath(bookOrderResponse.getImageUrl());
-
-            orderItemResponseDtoMap.put(bookOrderResponse.getBookId(), orderItemResponseDto);
         }
 
-        OrderResponseDto orderResponseDto = order.toOrderResponseDto(orderItemResponseDtoMap.values().stream().toList());
-        PaymentResponse paymentResponse = paymentService.getPayment(new PaymentRequest(orderNumber));
-        orderResponseDto.setPaymentResponse(paymentResponse);
+        OrderDetailResponseDto orderDetailResponseDto = new OrderDetailResponseDto(
+                order.getOrderId(),
+                order.getOrderNumber(),
+                order.getOrderStatus(),
+                order.getOrderDateTime(),
 
-        return orderResponseDto;
+                order.getTotalAmount(),
+                order.getTotalDiscountAmount(),
+                order.getTotalItemAmount(),
+                order.getDeliveryFee(),
+                order.getWrappingFee(),
+                order.getCouponDiscount(),
+                order.getPointDiscount(),
+
+                order.getWantDeliveryDate(),
+
+                orderItemResponseDtoMap.values().stream().toList(),
+                order.getDeliveryAddress().toDeliveryAddressResponseDto(),
+                null
+        );
+        PaymentResponse paymentResponse = paymentService.getPayment(new PaymentRequest(orderNumber));
+        orderDetailResponseDto.setPaymentResponse(paymentResponse);
+
+        return orderDetailResponseDto;
     }
 
     // 일반 사용자 주문 취소
     @Transactional
     @Override
-    public OrderResponseDto cancelOrder(Long userId, String orderNumber, OrderCancelRequestDto2 req) {
+    public OrderDetailResponseDto cancelOrder(Long userId, String orderNumber, OrderCancelRequestDto2 req) {
         log.info("일반 사용자 주문 취소 로직 실행 (유저 아이디 : {}, 주문번호 : {})", userId, orderNumber);
 
         boolean isExists = orderRepository.existsByOrderNumberAndUserId(orderNumber, userId);
 
         if(!isExists){
-            throw new NotFoundOrderException("잘못된 접근입니다 : " + orderNumber);
+            throw new OrderNotFoundException("잘못된 접근입니다 : " + orderNumber);
         }
 
         Payment payment = paymentRepository.findByOrderNumber(orderNumber).orElseThrow(() -> new NotFoundPaymentException("Not Found Payment : " + orderNumber));
@@ -480,31 +552,33 @@ public class OrderServiceImpl implements OrderService2 {
         PaymentCancelCreateRequest createRequest = cancelResponse.toPaymentCancelCreateRequest();
         paymentService.createPaymentCancel(createRequest);
 
-        Order order = orderRepository.findByOrderNumber(orderNumber).orElseThrow(() -> new NotFoundOrderException("Not Found Order : " + orderNumber));
+        Order order = orderRepository.findByOrderNumber(orderNumber).orElseThrow(() -> new OrderNotFoundException("Not Found Order : " + orderNumber));
 
-//        order.toOrderResponseDto();
 
-        return null;
+        OrderDetailResponseDto orderDetailResponseDto = new OrderDetailResponseDto(
+
+        );
+
+        return orderDetailResponseDto;
     }
 
     @Override
-    public OrderSheetResponseDto prepareGuestOrder(String guestId, OrderSheetRequestDto req) {
+    public OrderPrepareResponseDto prepareGuestOrder(String guestId, OrderPrepareRequestDto req) {
         log.info("주문 전 데이터 정보 가져오기 로직 실행 (비회원 유저 : {})", guestId);
 
         List<Long> bookIds = req.bookItems().stream()
-                .map(OrderSheetRequestDto.BookInfoDto::bookId)
+                .map(OrderPrepareRequestDto.BookInfoDto::bookId)
                 .toList();
 
         List<BookOrderResponse> bookOrderResponseList = fetchBookInfo(bookIds);
 
         String orderNumber = orderNumberProvider.provideOrderNumber();
 
-        return new OrderSheetResponseDto(
+        return new OrderPrepareResponseDto(
                 bookOrderResponseList,
                 null,
                 null,
-                null,
-                orderNumber
+                null
         );
     }
 
@@ -537,7 +611,7 @@ public class OrderServiceImpl implements OrderService2 {
     @Override
     public OrderResponseDto getOrderByOrderNumber(String orderNumber) {
         Order order = orderRepository.findByOrderNumber(orderNumber)
-                .orElseThrow(() -> new NotFoundOrderException("Not Found Order : " + orderNumber));
+                .orElseThrow(() -> new OrderNotFoundException("Not Found Order : " + orderNumber));
         return order.toOrderResponseDto(null);
     }
 

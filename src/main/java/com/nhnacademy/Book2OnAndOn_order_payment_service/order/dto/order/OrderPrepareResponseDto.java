@@ -6,7 +6,7 @@ import com.nhnacademy.Book2OnAndOn_order_payment_service.order.client.dto.Member
 import com.nhnacademy.Book2OnAndOn_order_payment_service.order.client.dto.UserAddressResponseDto;
 import java.util.List;
 
-public record OrderSheetResponseDto(
+public record OrderPrepareResponseDto(
         // 책 아이템 조회
         List<BookOrderResponse> orderItems,
         // 유저 배송지 조회
@@ -14,8 +14,6 @@ public record OrderSheetResponseDto(
         // 사용할 수 있는 쿠폰 조회
         List<MemberCouponResponseDto> coupons,
         // 유저 포인트 조회
-        CurrentPointResponseDto currentPoint,
-        // 주문번호
-        String orderNumber
+        CurrentPointResponseDto currentPoint
 ) {
 }

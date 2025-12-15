@@ -9,5 +9,52 @@ X-User-ID:1
 }
 
 
-### Snowflake 기반 주문 번호 생성
-GET http://localhost:10421/hello
+### 주문 준비
+GET http://localhost:10421/orders/prepare
+Content-Type: application/json
+X-User-ID: 6
+
+{
+  "bookItems": [
+    {"bookId": 16004,
+    "quantity": 1
+    }
+  ]
+}
+
+### 임시 주문 생성
+POST http://localhost:10421/orders
+Content-Type: application/json
+X-User-ID: 6
+
+{
+  "orderItems": [
+    {"bookId" : 16004,
+      "quantity" : 1,
+      "isWrapped" : false,
+      "wrappingPaperId" : null
+    }
+  ],
+  "deliveryAddress":
+    {
+      "deliveryAddress": "주소1",
+      "deliveryAddressDetail": "상세주소1",
+      "deliveryMessage": "메세지",
+      "recipient" : "수령인",
+      "recipientPhoneNumber" : "01012345678"
+    },
+  "deliveryPolicyId" : 1,
+  "wantDeliveryDate" : "2025-12-16",
+  "couponId" : null,
+  "point": null
+}
+
+### 배송비 정책 생성
+POST http://localhost:10421/admin/delivery-policies
+Content-Type: application/json
+
+{
+  "deliveryPolicyName": "택배",
+  "deliveryFee": 3000,
+  "freeDeliveryThreshold": 15000
+}

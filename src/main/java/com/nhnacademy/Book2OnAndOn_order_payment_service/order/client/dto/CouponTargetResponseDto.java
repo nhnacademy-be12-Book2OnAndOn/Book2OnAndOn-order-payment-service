@@ -7,6 +7,6 @@ public record CouponTargetResponseDto(Long memberCouponId,
                                       List<Long> targetCategoryIds,
                                       Integer minPrice,
                                       Integer maxPrice,
-                                      String discountType,
+                                      CouponPolicyDiscountType discountType,
                                       Integer discountValue) {
 }

@@ -2,9 +2,11 @@ package com.nhnacademy.Book2OnAndOn_order_payment_service.order.service;
 
 import com.nhnacademy.Book2OnAndOn_order_payment_service.order.dto.order.OrderCancelRequestDto2;
 import com.nhnacademy.Book2OnAndOn_order_payment_service.order.dto.order.OrderCreateRequestDto;
+import com.nhnacademy.Book2OnAndOn_order_payment_service.order.dto.order.OrderCreateResponseDto;
+import com.nhnacademy.Book2OnAndOn_order_payment_service.order.dto.order.OrderDetailResponseDto;
 import com.nhnacademy.Book2OnAndOn_order_payment_service.order.dto.order.OrderResponseDto;
-import com.nhnacademy.Book2OnAndOn_order_payment_service.order.dto.order.OrderSheetRequestDto;
-import com.nhnacademy.Book2OnAndOn_order_payment_service.order.dto.order.OrderSheetResponseDto;
+import com.nhnacademy.Book2OnAndOn_order_payment_service.order.dto.order.OrderPrepareRequestDto;
+import com.nhnacademy.Book2OnAndOn_order_payment_service.order.dto.order.OrderPrepareResponseDto;
 import com.nhnacademy.Book2OnAndOn_order_payment_service.order.dto.order.OrderSimpleDto;
 import java.time.LocalDateTime;
 import java.util.List;
@@ -13,16 +15,14 @@ import org.springframework.data.domain.Pageable;
 
 public interface OrderService2 {
     // 회원 전용
-    OrderSheetResponseDto prepareOrder(Long userId, OrderSheetRequestDto req);
-
-
-    OrderResponseDto createOrder(Long userId, OrderCreateRequestDto req);
+    OrderPrepareResponseDto prepareOrder(Long userId, OrderPrepareRequestDto req);
+    OrderCreateResponseDto createOrder(Long userId, OrderCreateRequestDto req);
     Page<OrderSimpleDto> getOrderList(Long userId, Pageable pageable);
-    OrderResponseDto getOrderDetail(Long userId, String orderNumber);
-    OrderResponseDto cancelOrder(Long userId, String orderNumber, OrderCancelRequestDto2 req);
+    OrderDetailResponseDto getOrderDetail(Long userId, String orderNumber);
+    OrderDetailResponseDto cancelOrder(Long userId, String orderNumber, OrderCancelRequestDto2 req);
 
     // 비회원 전용
-    OrderSheetResponseDto prepareGuestOrder(String guestId, OrderSheetRequestDto req);
+    OrderPrepareResponseDto prepareGuestOrder(String guestId, OrderPrepareRequestDto req);
 
     // 스케줄러 전용
     List<Long> findNextBatch(LocalDateTime thresholdTime, Long lastId, int batchSize);
