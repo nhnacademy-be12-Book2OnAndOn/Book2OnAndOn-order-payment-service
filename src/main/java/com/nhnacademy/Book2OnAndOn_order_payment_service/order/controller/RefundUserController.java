@@ -1,8 +1,10 @@
 package com.nhnacademy.Book2OnAndOn_order_payment_service.order.controller;
 
+import com.nhnacademy.Book2OnAndOn_order_payment_service.order.dto.refund.RefundAvailableItemDto;
 import com.nhnacademy.Book2OnAndOn_order_payment_service.order.dto.refund.RefundRequestDto;
 import com.nhnacademy.Book2OnAndOn_order_payment_service.order.dto.refund.RefundResponseDto;
 import com.nhnacademy.Book2OnAndOn_order_payment_service.order.service.RefundService;
+import java.util.List;
 import lombok.RequiredArgsConstructor;
 import org.springframework.data.domain.Page;
 import org.springframework.data.domain.Pageable;
@@ -15,7 +17,7 @@ import jakarta.validation.Valid;
 
 @RestController
 @RequiredArgsConstructor
-@RequestMapping("/orders/{orderId}/refund")
+@RequestMapping("/orders/{orderId}/refunds")
 public class RefundUserController {
 
     private final RefundService refundService;
@@ -25,11 +27,15 @@ public class RefundUserController {
         if (authentication == null || authentication.getName() == null) {
             throw new AccessDeniedException("인증된 사용자 정보가 없습니다.");
         }
-        return Long.valueOf(authentication.getName());
+        try {
+            return Long.valueOf(authentication.getName());
+        } catch (NumberFormatException e) {
+            throw new AccessDeniedException("인증 정보에서 userId를 추출할 수 없습니다.");
+        }
     }
 
     // 회원 반품 신청
-    // POST /orders/{orderId}/refund
+    // POST /orders/{orderId}/refunds
     @PostMapping
     public ResponseEntity<RefundResponseDto> createRefund(
             @PathVariable Long orderId,
@@ -45,14 +51,15 @@ public class RefundUserController {
     // GET /orders/{orderId}/refund/{refundId}
     @GetMapping("/{refundId}")
     public ResponseEntity<RefundResponseDto> getRefundDetails(
-            @PathVariable Long orderId,   // 현재 구현에서는 사용 X, 필요하면 검증 로직 추가
+            @PathVariable Long orderId,
             @PathVariable Long refundId,
             Authentication authentication
     ) {
         Long userId = getUserId(authentication);
-        RefundResponseDto response = refundService.getRefundDetailsForMember(userId, refundId);
+        RefundResponseDto response = refundService.getRefundDetailsForMember(userId, refundId, orderId);
         return ResponseEntity.ok(response);
     }
+
 
     // 회원 전체 반품 목록 조회
     // GET /orders/{orderId}/returns/list?page=0&size=20
@@ -65,5 +72,15 @@ public class RefundUserController {
         Long userId = getUserId(authentication);
         Page<RefundResponseDto> page = refundService.getRefundsForMember(userId, pageable);
         return ResponseEntity.ok(page);
+    }
+
+    @GetMapping("/form")
+    public ResponseEntity<List<RefundAvailableItemDto>> getRefundForm(
+            @PathVariable Long orderId,
+            Authentication authentication
+    ) {
+        Long userId = getUserId(authentication);
+        List<RefundAvailableItemDto> items = refundService.getRefundableItemsForMember(orderId, userId);
+        return ResponseEntity.ok(items);
     }
 }

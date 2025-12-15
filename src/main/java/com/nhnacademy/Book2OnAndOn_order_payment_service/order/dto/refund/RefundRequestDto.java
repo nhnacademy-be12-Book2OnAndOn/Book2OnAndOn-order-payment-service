@@ -17,6 +17,7 @@ public class RefundRequestDto {
     private String refundReason;
     private String refundReasonDetail;
 
-    /** 반품할 주문 항목 리스트 */
     private List<RefundItemRequestDto> refundItems;
+
+//    public Long orderItemId;
 }

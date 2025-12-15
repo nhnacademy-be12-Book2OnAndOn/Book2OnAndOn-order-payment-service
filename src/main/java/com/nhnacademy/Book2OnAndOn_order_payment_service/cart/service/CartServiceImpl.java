@@ -946,25 +946,18 @@ public class CartServiceImpl implements CartService {
 
     // 4-3. 도서 ID에 대한 최신 스냅샷(가격, 재고 등)을 조회하고 반환
     private BookSnapshot requireBookSnapshot(Long bookId) {
-        log.debug("[Util] requireBookSnapshot 호출 - bookId={}", bookId);
-
-        // “이 리스트는 그냥 전달만 하고 수정되지 않아야 한다”는 의도가 보장되어야 하기 때문에 singletonList 사용
-        Map<Long, BookSnapshot> map =
-                bookServiceClient.getBookSnapshots(Collections.singletonList(bookId));
-
-        BookSnapshot snapshot = map.get(bookId);
-        if (snapshot == null) {
-            log.warn("[Util] 유효하지 않은 도서 ID - bookId={}", bookId);
-            throw new CartBusinessException(
-                    CartErrorCode.INVALID_BOOK_ID,
-                    "유효하지 않은 도서입니다. bookId=" + bookId
-            );
+        try {
+            Map<Long, BookSnapshot> map = bookServiceClient.getBookSnapshots(Collections.singletonList(bookId));
+            BookSnapshot snapshot = map.get(bookId);
+            if (snapshot == null) {
+                throw new CartBusinessException(CartErrorCode.INVALID_BOOK_ID, "유효하지 않은 도서입니다. bookId=" + bookId);
+            }
+            return snapshot;
+        } catch (Exception e) {
+            throw new CartBusinessException(CartErrorCode.INVALID_BOOK_ID, "도서 정보를 불러올 수 없습니다.");
         }
-        log.debug("[Util] requireBookSnapshot 성공 - bookId={}, stock={}, price={}",
-                bookId, snapshot.getStockCount(), snapshot.getPrice());
-
-        return snapshot;
     }
+
 
     // 4-4. 도서 스냅샷을 기반으로 현재 상품이 장바구니에 담을 수 있는 상태인지 검사
     private void validateBookAvailableForCart(BookSnapshot snapshot) {

@@ -8,6 +8,6 @@ import org.springframework.web.bind.annotation.RequestBody;
 @FeignClient(name = "point-service")
 public interface PointServiceClient {
 
-    @PostMapping("/refund")
+    @PostMapping("/refunds")
     void refundPoint(@RequestBody RefundPointRequestDto dto);
 }
