@@ -41,7 +41,6 @@ document.addEventListener('DOMContentLoaded', async () => {
 async function loadInitialData() {
     // 테스트용 Mock 데이터 정의 (총 금액 60000원)
     cartData = {
-        selectedTotalPrice: 60000,
         items: [
             { bookId: 101, title: "클린 코드 (Clean Code) 기초편", quantity: 1, price: 30000, isPackable: true },
             { bookId: 102, title: "객체지향 설계와 원리 심화", quantity: 2, price: 15000, isPackable: true }
@@ -166,6 +165,7 @@ function getWrapDataById(id) {
     return wrapOptions.find(opt => opt.wrappingPaperId === id);
 }
 
+// 포장지 버튼
 function setupWrapToggleListeners() {
     document.getElementById('selectedProductList')?.addEventListener('change', (e) => {
         if (e.target.classList.contains('wrap-toggle')) {
@@ -191,6 +191,7 @@ function setupWrapToggleListeners() {
     });
 }
 
+// 포장지 옵션
 function openWrappingModal(bookId, bookTitle) {
     currentBookId = bookId;
     const modalElement = document.getElementById('wrappingModal');
@@ -316,6 +317,7 @@ function validateInputs(address, orderItems) {
     return true;
 }
 
+// 배송 희망날짜
 function setDeliveryDateOptions() {
     const container = document.getElementById('deliveryDateOptions');
     if (!container) return;
@@ -380,6 +382,7 @@ function setDeliveryDateOptions() {
     }
 }
 
+// 주소 검색
 function openPostcodeSearch() {
     if (typeof daum === 'undefined' || !daum.Postcode) {
         alert("Daum Postcode SDK가 로드되지 않았습니다. HTML 스크립트 태그를 확인해주세요.");
@@ -404,7 +407,9 @@ function openPostcodeSearch() {
 function calculateFinalAmount() {
     if (!cartData) return;
 
-    const totalItemPrice = cartData.selectedTotalPrice;
+    const totalItemPrice = cartData.items.reduce((sum, item) => {
+        return sum + (item.price * item.quantity);
+    }, 0);
 
     const couponDiscount = Number(document.getElementById('couponSelect')?.value) || 0;
     let pointDiscount = Number(document.getElementById('pointDiscountAmount')?.value) || 0;
@@ -440,8 +445,13 @@ async function handleTossPaymentRequest() {
     // 2. 금액 및 할인 정보 확보
     const couponDiscount = Number(document.getElementById('couponSelect')?.value) || 0;
     const pointDiscount = Number(document.getElementById('pointDiscountAmount')?.value) || 0;
-    const totalItemPrice = cartData.selectedTotalPrice;
-
+    if (!cartData || !cartData.items) {
+        alert("장바구니 정보가 올바르지 않습니다.");
+        return;
+    }
+    const totalItemPrice = cartData.items.reduce((sum, item) => {
+        return sum + (item.price * item.quantity);
+    }, 0);
     // 3. 최종 금액 확인
     const calculatedFeeAndDiscount = calculateFeesAndDiscounts(totalItemPrice, couponDiscount, pointDiscount, orderItems);
     const finalAmount = calculatedFeeAndDiscount.finalAmount;
@@ -469,7 +479,7 @@ async function handleTossPaymentRequest() {
     // 6. 결제 수단 확인
     const selectedMethod = document.querySelector('input[name="paymentMethod"]:checked')?.value || 'CARD';
 
-    console.log("✅ Mock 주문 생성 완료. 서버 통신 건너뛰고 토스 V2 결제 요청 시작.");
+    console.log("Mock 주문 생성 완료. 서버 통신 건너뛰고 토스 V2 결제 요청 시작.");
 
     // 7. 토스 V2 결제 요청 (Toss SDK) 실행
     await requestTossPaymentV2(
