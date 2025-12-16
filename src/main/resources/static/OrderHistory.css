@@ -1,5 +1,5 @@
 /* =================================================================
-// orderHistory.css: 주문 내역 확인 페이지 스타일 (최종 버전)
+// OrderHistory.css: 주문 내역 확인 페이지 스타일 (최종 버전)
 // ================================================================= */
 
 body {
@@ -35,6 +35,34 @@ h2 {
 }
 
 /* ------------------------------------------- */
+/* HTML/JS 구조에 맞춘 레이아웃 클래스 */
+/* ------------------------------------------- */
+
+.history-header-wrapper {
+    /* 제목과 정렬 드롭다운을 한 줄에 배치 */
+    display: flex;
+    justify-content: space-between;
+    align-items: center;
+    margin-bottom: 15px;
+}
+
+.history-header-wrapper h2 {
+    /* 제목은 가능한 공간을 차지하되, 구겨지지 않도록 최소 여백 확보 */
+    flex-shrink: 1;
+    margin: 0;
+    padding-top: 0;
+    padding-bottom: 0;
+    border-bottom: none;
+}
+
+.action-buttons-wrapper, .modal-footer {
+    /* 기존 인라인 스타일 대체 */
+    text-align: right;
+    margin-bottom: 20px;
+    margin-top: 20px;
+}
+
+/* ------------------------------------------- */
 /* 버튼 및 폼 요소 공통 스타일 */
 /* ------------------------------------------- */
 
@@ -46,6 +74,15 @@ input[type="text"], input[type="password"], textarea, select {
     border-radius: 6px;
     box-sizing: border-box;
     font-size: 16px;
+}
+
+select#sortOrderSelect {
+    /* 🚨 [수정] 정렬 드롭다운을 작게 만듭니다. */
+    width: auto;
+    padding: 5px 10px;
+    font-size: 14px;
+    height: 35px;
+    flex-shrink: 0; /* 공간이 부족해도 줄어들지 않음 */
 }
 
 .btn-primary {

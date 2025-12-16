@@ -21,6 +21,7 @@ const RETURN_REASON = {
 };
 
 let currentOrderDetail = null; // 현재 보고 있는 주문 상세 정보를 저장
+let memberOrders = []; // Mock 주문 목록을 저장할 변수 (정렬 기능용)
 
 document.addEventListener('DOMContentLoaded', () => {
     initializeView();
@@ -38,14 +39,11 @@ function initializeView() {
     const mode = urlParams.get('mode');
 
     const forceGuestMode = mode === 'guest';
-    // 로그인 여부 확인
     const isLoggedIn = IS_MEMBER_LOGGED_IN && !forceGuestMode;
 
     if (orderId) {
-        // 특정 주문 ID로 바로 상세 조회
         fetchOrderDetail(orderId,isLoggedIn ? 'MEMBER_MODE' : 'GUEST_MODE');
     } else if (isLoggedIn) {
-        // 회원 로그인 상태 : 목록 보여주기
         showMemberHistory();
         fetchMemberOrders(USER_ID);
     } else {
@@ -73,6 +71,11 @@ function setupEventListeners() {
             const orderId = orderItem.dataset.orderId;
             fetchOrderDetail(orderId, 'MEMBER_MODE');
         }
+    });
+
+    // 정렬 옵션 변경 이벤트 리스너
+    document.getElementById('sortOrderSelect')?.addEventListener('change', (e) => {
+        sortOrdersAndRender(e.target.value);
     });
 }
 
@@ -112,16 +115,42 @@ function showOrderDetail() {
 // ----------------------------------------------------
 
 async function fetchMemberOrders(userId) {
-    //  Mock Data with varying statuses
-    const mockOrders = [
+    // Mock Data with varying statuses
+    memberOrders = [ // 전역 변수 memberOrders에 저장
         { orderId: 'M1001', date: '2025-12-10', total: 45000, status: ORDER_STATUS.PENDING, items: [{name: '클린 코드', count: 1}] },
         { orderId: 'M1002', date: '2025-11-20', total: 72000, status: ORDER_STATUS.DELIVERED, items: [{name: '객체지향 설계', count: 2}] },
         { orderId: 'M1003', date: '2025-11-01', total: 30000, status: ORDER_STATUS.SHIPPING, items: [{name: '알고리즘', count: 1}] },
         { orderId: 'M1004', date: '2025-10-25', total: 50000, status: ORDER_STATUS.RETURN_REQUESTED, items: [{name: '자바의 정석', count: 1}] },
         { orderId: 'M1005', date: '2025-10-20', total: 20000, status: ORDER_STATUS.CANCELED, items: [{name: '웹 개발', count: 1}] },
     ];
-    renderOrderList(mockOrders);
+
+    // 초기 로드 시 최신순으로 정렬하여 렌더링
+    sortOrdersAndRender('latest');
 }
+
+// 정렬 로직 및 렌더링 통합 함수
+function sortOrdersAndRender(sortType) {
+    if (!memberOrders || memberOrders.length === 0) {
+        renderOrderList([]);
+        return;
+    }
+
+    const sortedOrders = [...memberOrders].sort((a, b) => {
+        const dateA = new Date(a.date);
+        const dateB = new Date(b.date);
+
+        if (sortType === 'latest') {
+            // 최신순 (내림차순)
+            return dateB - dateA;
+        } else {
+            // 과거순 (오름차순)
+            return dateA - dateB;
+        }
+    });
+
+    renderOrderList(sortedOrders);
+}
+
 
 function renderOrderList(orders) {
     const listContainer = document.getElementById('orderList');
@@ -182,7 +211,7 @@ function renderOrderDetailContent(detail, mode) {
         <h4>상품 목록</h4>
         ${detail.items.map(item => `
             <div class="order-item-detail">
-                ${item.name} (${item.quantity}권) -> ${(item.price * item.quantity).toLocaleString()}원
+                ${item.name} (${item.quantity}권) - ${(item.price * item.quantity).toLocaleString()}원
                 ${item.isWrapped ? ` (포장 옵션: ${item.wrapName})` : ''}
             </div>
         `).join('')}
@@ -245,13 +274,13 @@ function showModal(actionType, orderDetail) {
     reasonGroup.innerHTML = '';
 
     if (actionType === 'cancel') {
-        // 주문 취소 (PaymentCancel Entity의 cancelReason 필드에 들어갈 상세 사유)
+        // 주문 취소 (cancelReason 필드에 들어갈 상세 사유)
         reasonGroup.innerHTML = `
             <label for="cancelReason">취소 상세 사유</label>
             <textarea id="cancelReason" rows="4" placeholder="취소 사유를 입력해주세요. (100자 이내)" maxlength="100" required></textarea>
         `;
         confirmButton.textContent = '주문 취소 처리';
-    } else { // 'return' (반품)
+    } else { //
         // 반품은 Enum 기반의 사유 선택
         reasonGroup.innerHTML = `
             <label for="returnReasonSelect">반품 사유 선택</label>
@@ -311,12 +340,11 @@ async function handleActionRequest(actionType, detail) {
         return;
     }
 
-    //
     const isCancel = actionType === 'cancel';
 
     const endpoint = isCancel
-        ? `${API_BASE}/${detail.id}/cancel`  // 이 api가 PANDING -> CANCLED로 상태 변경
-        : `${API_BASE}/${detail.id}/return`; // DELIVERED -> RETURN_REQUESTED
+        ? `${API_BASE}/${detail.id}/cancel`
+        : `${API_BASE}/${detail.id}/return`;
 
     const requestBody = {
         orderId: detail.id,
