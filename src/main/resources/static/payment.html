@@ -1,0 +1,65 @@
+<!DOCTYPE html>
+<html lang="ko">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>결제하기 - Book2OnAndOn</title>
+    <link rel="stylesheet" href="payment.css">
+    <script src="https://js.tosspayments.com/v2/standard"></script>
+</head>
+<body>
+
+<header>
+    <h1>주문 / 결제</h1>
+</header>
+
+<div class="container">
+    <div class="payment-layout">
+        <div class="payment-methods-section">
+            <h2>결제 수단 선택</h2>
+            <div class="payment-method-grid" id="payment-method">
+                <button class="method-btn selected" onclick="selectPaymentMethod('CARD')">
+                    <span class="icon">💳</span> 카드
+                </button>
+                <button class="method-btn" onclick="selectPaymentMethod('TRANSFER')">
+                    <span class="icon">🏦</span> 계좌이체
+                </button>
+                <button class="method-btn" onclick="selectPaymentMethod('VIRTUAL_ACCOUNT')">
+                    <span class="icon">🏧</span> 가상계좌
+                </button>
+                <button class="method-btn" onclick="selectPaymentMethod('MOBILE_PHONE')">
+                    <span class="icon">📱</span> 휴대폰
+                </button>
+                <button class="method-btn" onclick="selectPaymentMethod('CULTURE_GIFT_CERTIFICATE')">
+                    <span class="icon">🎫</span> 문화상품권
+                </button>
+                <button class="method-btn" onclick="selectPaymentMethod('FOREIGN_EASY_PAY')">
+                    <span class="icon">🌏</span> 해외간편결제
+                </button>
+            </div>
+
+        </div>
+
+        <div class="payment-summary">
+            <h2>결제 정보</h2>
+            <div class="summary-row">
+                <span>주문 번호</span>
+                <span id="orderIdDisplay">-</span>
+            </div>
+            <div class="summary-row">
+                <span>상품명</span>
+                <span id="orderNameDisplay">토스 티셔츠 외 2건</span>
+            </div>
+            <div class="summary-divider"></div>
+            <div class="summary-row total">
+                <span>총 결제금액</span>
+                <span class="total-price">20,000원</span>
+            </div>
+            <button class="btn-checkout" onclick="requestPayment()">20,000원 결제하기</button>
+        </div>
+    </div>
+</div>
+
+<script src="payment.js"></script>
+</body>
+</html>

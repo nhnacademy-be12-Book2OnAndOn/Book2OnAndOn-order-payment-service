@@ -1,10 +1,10 @@
 package com.nhnacademy.Book2OnAndOn_order_payment_service.order.controller;
 
-import com.nhnacademy.Book2OnAndOn_order_payment_service.order.dto.order.OrderCancelRequestDto2;
+import com.nhnacademy.Book2OnAndOn_order_payment_service.order.dto.order.OrderCancelRequestDto;
+import com.nhnacademy.Book2OnAndOn_order_payment_service.order.dto.order.OrderCancelResponseDto;
 import com.nhnacademy.Book2OnAndOn_order_payment_service.order.dto.order.OrderCreateRequestDto;
 import com.nhnacademy.Book2OnAndOn_order_payment_service.order.dto.order.OrderCreateResponseDto;
 import com.nhnacademy.Book2OnAndOn_order_payment_service.order.dto.order.OrderDetailResponseDto;
-import com.nhnacademy.Book2OnAndOn_order_payment_service.order.dto.order.OrderResponseDto;
 import com.nhnacademy.Book2OnAndOn_order_payment_service.order.dto.order.OrderPrepareRequestDto;
 import com.nhnacademy.Book2OnAndOn_order_payment_service.order.dto.order.OrderPrepareResponseDto;
 import com.nhnacademy.Book2OnAndOn_order_payment_service.order.dto.order.OrderSimpleDto;
@@ -36,7 +36,7 @@ public class OrderUserController2 {
     private static final String USER_ID_HEADER = "X-User-Id";
 
     // 장바구니 혹은 바로구매시 준비할 데이터 (책 정보, 회원 배송지 정보)
-    @GetMapping("/prepare")
+    @PostMapping("/prepare")
     public ResponseEntity<OrderPrepareResponseDto> getOrderPrepare(@RequestHeader(USER_ID_HEADER) Long userId,
                                                                  @RequestBody OrderPrepareRequestDto req){
         log.info("GET /orders/prepare 호출 : 주문시 필요한 데이터 반환 (회원 아이디 : {})", userId);
@@ -57,20 +57,15 @@ public class OrderUserController2 {
     }
 
     // 주문조회 리스트 반환
-    // 나의 myOrderInfo
-    // /users/me/orders
-    // /orders post
-    // /orders/order-number
     @GetMapping("/my-order")
     public ResponseEntity<Page<OrderSimpleDto>> getOrderList(@RequestHeader(USER_ID_HEADER) Long userId,
                                                              @PageableDefault(size = 20, sort = "orderDateTime", direction = Sort.Direction.DESC)
                                                              Pageable pageable){
-        log.info("GET /order 호출 : 주문 리스트 데이터 반환");
+        log.info("GET /orders/my-order 호출 : 주문 리스트 데이터 반환");
         Page<OrderSimpleDto> orderSimpleDtoPage = orderService.getOrderList(userId, pageable);
         return ResponseEntity.ok(orderSimpleDtoPage);
     }
 
-    // TODO GET OrderResponseDto
     @GetMapping("/{orderNumber}")
     public ResponseEntity<OrderDetailResponseDto> getOrderDetail(@RequestHeader(USER_ID_HEADER) Long userId,
                                                                  @PathVariable("orderNumber") String orderNumber){
@@ -80,27 +75,14 @@ public class OrderUserController2 {
         return ResponseEntity.ok(orderResponseDto);
     }
 
-//    // TODO 주문 취소 구현 -> payment 서비스에서 수행
-//    @PatchMapping("/{orderNumber}/cancel")
-//    public ResponseEntity<OrderResponseDto> cancelOrder(@RequestHeader(USER_ID_HEADER) Long userId,
-//                                                        @PathVariable("orderNumber") String orderNumber,
-//                                                        @RequestBody OrderCancelRequestDto2 req){
-//        log.info("PATCH /order/cancel/{} 호출 : 주문 취소", orderNumber);
-//
-//        OrderResponseDto orderResponseDto = orderService.cancelOrder(userId, orderNumber, req);
-//        return null;
-//    }
+    @PatchMapping("/{orderNumber}/cancel")
+    public ResponseEntity<OrderCancelResponseDto> cancelOrder(@RequestHeader(USER_ID_HEADER) Long userId,
+                                                              @PathVariable("orderNumber") String orderNumber,
+                                                              @RequestBody OrderCancelRequestDto req){
+        log.info("PATCH /order/{}/cancel 호출 : 주문 취소", orderNumber);
 
-
-    /*
-        API 전용
-     */
-
-    @GetMapping("/check-purchase/{bookId}")
-    public ResponseEntity<Boolean> hasPurchasedBook(@RequestHeader(USER_ID_HEADER) Long userId,
-                                                    @PathVariable("bookId") Long bookId){
-        log.info("GET /order/check-purchase/{} 호출 : 유저 책 구매 여부 반환", bookId);
-        Boolean hasPurchased = orderService.existsPurchase(userId, bookId);
-        return ResponseEntity.ok(hasPurchased);
+        OrderCancelResponseDto orderCancelResponseDto = orderService.cancelOrder(userId, orderNumber, req);
+        // 리소스 생성 및 취소 완료
+        return ResponseEntity.status(HttpStatus.CREATED).body(orderCancelResponseDto);
     }
 }

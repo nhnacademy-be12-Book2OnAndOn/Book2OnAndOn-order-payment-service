@@ -1,19 +1,9 @@
 package com.nhnacademy.Book2OnAndOn_order_payment_service.order.dto.order;
 
-import lombok.Getter;
-import lombok.Setter;
-import lombok.NoArgsConstructor;
-import lombok.AllArgsConstructor;
+import jakarta.validation.constraints.NotNull;
 
-/**
- * 회원 주문 취소 시 필요한 정보
- */
-@Getter
-@Setter
-@NoArgsConstructor
-@AllArgsConstructor
-public class OrderCancelRequestDto {
-    private String cancelReason;
-    private String refundBankName;
-    private String refundAccountNumber;
+// 주문 취소는 부분 취소없이 전체 취소만 가능
+public record OrderCancelRequestDto(
+        @NotNull(message = "취소 사유를 입력해주세요")
+        String cancelReason) {
 }

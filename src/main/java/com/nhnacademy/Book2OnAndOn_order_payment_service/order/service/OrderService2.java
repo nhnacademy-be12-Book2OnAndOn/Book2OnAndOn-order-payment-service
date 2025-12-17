@@ -1,10 +1,10 @@
 package com.nhnacademy.Book2OnAndOn_order_payment_service.order.service;
 
-import com.nhnacademy.Book2OnAndOn_order_payment_service.order.dto.order.OrderCancelRequestDto2;
+import com.nhnacademy.Book2OnAndOn_order_payment_service.order.dto.order.OrderCancelRequestDto;
+import com.nhnacademy.Book2OnAndOn_order_payment_service.order.dto.order.OrderCancelResponseDto;
 import com.nhnacademy.Book2OnAndOn_order_payment_service.order.dto.order.OrderCreateRequestDto;
 import com.nhnacademy.Book2OnAndOn_order_payment_service.order.dto.order.OrderCreateResponseDto;
 import com.nhnacademy.Book2OnAndOn_order_payment_service.order.dto.order.OrderDetailResponseDto;
-import com.nhnacademy.Book2OnAndOn_order_payment_service.order.dto.order.OrderResponseDto;
 import com.nhnacademy.Book2OnAndOn_order_payment_service.order.dto.order.OrderPrepareRequestDto;
 import com.nhnacademy.Book2OnAndOn_order_payment_service.order.dto.order.OrderPrepareResponseDto;
 import com.nhnacademy.Book2OnAndOn_order_payment_service.order.dto.order.OrderSimpleDto;
@@ -19,7 +19,7 @@ public interface OrderService2 {
     OrderCreateResponseDto createOrder(Long userId, OrderCreateRequestDto req);
     Page<OrderSimpleDto> getOrderList(Long userId, Pageable pageable);
     OrderDetailResponseDto getOrderDetail(Long userId, String orderNumber);
-    OrderDetailResponseDto cancelOrder(Long userId, String orderNumber, OrderCancelRequestDto2 req);
+    OrderCancelResponseDto cancelOrder(Long userId, String orderNumber, OrderCancelRequestDto req);
 
     // 비회원 전용
     OrderPrepareResponseDto prepareGuestOrder(String guestId, OrderPrepareRequestDto req);
@@ -28,13 +28,6 @@ public interface OrderService2 {
     List<Long> findNextBatch(LocalDateTime thresholdTime, Long lastId, int batchSize);
     int deleteJunkOrder(List<Long> ids);
 
-    // API 전용
-    // -- 도서 --
-    Boolean existsPurchase(Long userId, Long bookId);
-
     // -- 결제 --
-    OrderResponseDto getOrderByOrderNumber(String orderNumber);
     Boolean existsOrderByUserIdAndOrderNumber(Long userId, String orderNumber);
-
-    // -- 유저 --
 }

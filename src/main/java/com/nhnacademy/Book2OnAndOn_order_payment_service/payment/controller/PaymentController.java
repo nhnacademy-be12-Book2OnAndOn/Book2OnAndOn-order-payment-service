@@ -73,7 +73,7 @@ public class PaymentController {
         log.info("GET /payment/cancel 요청 수신 (주문번호 : {}, 사용자 아이디 : {})", orderNumber, userId);
 
         // 해당 유저가 해당 주문 번호를 가지고있어야함
-        if(!orderService.existsOrderByUserIdAndOrderNumber(userId, orderNumber)){
+        if(!orderService. existsOrderByUserIdAndOrderNumber(userId, orderNumber)){
             throw new NotFoundOrderException("잘못된 접근입니다 : " + orderNumber);
         }
 
