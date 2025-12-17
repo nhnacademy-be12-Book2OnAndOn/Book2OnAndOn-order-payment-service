@@ -57,10 +57,6 @@ public class OrderUserController2 {
     }
 
     // 주문조회 리스트 반환
-    // 나의 myOrderInfo
-    // /users/me/orders
-    // /orders post
-    // /orders/order-number
     @GetMapping("/my-order")
     public ResponseEntity<Page<OrderSimpleDto>> getOrderList(@RequestHeader(USER_ID_HEADER) Long userId,
                                                              @PageableDefault(size = 20, sort = "orderDateTime", direction = Sort.Direction.DESC)
