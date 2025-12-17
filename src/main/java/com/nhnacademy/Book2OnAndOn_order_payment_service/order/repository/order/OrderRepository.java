@@ -1,6 +1,7 @@
 package com.nhnacademy.Book2OnAndOn_order_payment_service.order.repository.order;
 
 import com.nhnacademy.Book2OnAndOn_order_payment_service.order.dto.order.OrderSimpleDto;
+import java.time.LocalDate;
 import java.time.LocalDateTime;
 import java.util.List;
 import java.util.Optional;
@@ -94,9 +95,35 @@ public interface OrderRepository extends JpaRepository<Order, Long> {
         SELECT CASE WHEN COUNT(o) > 0 THEN true ELSE false END
         FROM Order o
         JOIN o.orderItems oi
-        WHERE o.userId = :userId AND oi.bookId = :bookId
+        WHERE o.userId = :userId AND oi.bookId = :bookId AND oi.orderItemStatus = :orderItemStatus
     """)
-    boolean existsPurchase(Long userId, Long bookId);
+    boolean existsPurchase(Long userId, Long bookId, OrderItemStatus orderItemStatus);
+
+    @Query("""
+        SELECT SUM(o.totalItemAmount)
+        FROM Order o
+        WHERE o.userId = :userId
+        AND o.orderDateTime BETWEEN :fromDate AND :toDate
+    """)
+    Optional<Long> sumTotalItemAmountByUserIdAndOrderDateTimeBetween(
+            @Param("userId") Long userId,
+            @Param("fromDate") LocalDate fromDate,
+            @Param("toDate") LocalDate toDate);
+
+    @Query("""
+        SELECT oi.bookId
+        FROM Order o
+        JOIN o.orderItems oi
+        WHERE o.orderStatus = :orderStatus AND oi.orderItemStatus = :orderItemStatus
+        AND o.orderDateTime BETWEEN :start AND :end
+        GROUP BY oi.bookId
+        ORDER BY SUM(oi.orderItemQuantity) DESC
+    """)
+    List<Long> findTopBestSellerBookIds(LocalDate start,
+                                        LocalDate end,
+                                        OrderStatus orderStatus,
+                                        OrderItemStatus orderItemStatus,
+                                        Pageable pageable);
 
     Optional<Order> findByOrderNumber(String orderNumber);
 }

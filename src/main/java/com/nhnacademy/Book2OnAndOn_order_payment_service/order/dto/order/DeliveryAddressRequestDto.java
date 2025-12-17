@@ -14,6 +14,7 @@ import lombok.AllArgsConstructor;
 @NoArgsConstructor
 @AllArgsConstructor
 public class DeliveryAddressRequestDto {
+    @NotNull(message = "주소를 입력해주세요")
     private String deliveryAddress;
     private String deliveryAddressDetail;
     private String deliveryMessage;

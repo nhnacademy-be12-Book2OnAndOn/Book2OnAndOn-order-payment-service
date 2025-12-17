@@ -1,0 +1,175 @@
+/* payment.css - cart.css 스타일 기반 */
+* {
+    margin: 0;
+    padding: 0;
+    box-sizing: border-box;
+}
+
+body {
+    font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', 'Malgun Gothic', sans-serif;
+    background-color: #f5f6f7;
+    color: #333;
+}
+
+.container {
+    max-width: 1000px;
+    margin: 0 auto;
+    padding: 20px;
+}
+
+header {
+    background-color: #4A7C59; /* Book2OnAndOn 테마 컬러 */
+    color: white;
+    padding: 20px 0;
+    margin-bottom: 30px;
+    box-shadow: 0 4px 6px rgba(0,0,0,0.1);
+}
+
+header h1 {
+    text-align: center;
+    font-size: 24px;
+}
+
+/* 레이아웃: 좌우 분할 (데스크탑) */
+.payment-layout {
+    display: flex;
+    gap: 30px;
+    align-items: flex-start;
+}
+
+.payment-methods-section {
+    flex: 2;
+    background: white;
+    padding: 30px;
+    border-radius: 8px;
+    box-shadow: 0 2px 8px rgba(0,0,0,0.05);
+}
+
+.payment-summary {
+    flex: 1;
+    background: white;
+    padding: 30px;
+    border-radius: 8px;
+    box-shadow: 0 2px 8px rgba(0,0,0,0.05);
+    position: sticky;
+    top: 20px;
+}
+
+h2 {
+    font-size: 18px;
+    margin-bottom: 20px;
+    color: #333;
+    border-bottom: 2px solid #4A7C59;
+    padding-bottom: 10px;
+}
+
+/* 결제 수단 그리드 */
+.payment-method-grid {
+    display: grid;
+    grid-template-columns: repeat(3, 1fr);
+    gap: 15px;
+}
+
+.method-btn {
+    display: flex;
+    flex-direction: column;
+    align-items: center;
+    justify-content: center;
+    height: 100px;
+    border: 1px solid #ddd;
+    border-radius: 8px;
+    background-color: white;
+    cursor: pointer;
+    font-size: 14px;
+    font-weight: 600;
+    color: #555;
+    transition: all 0.2s;
+}
+
+.method-btn .icon {
+    font-size: 24px;
+    margin-bottom: 8px;
+}
+
+.method-btn:hover {
+    background-color: #f0f9f4;
+    border-color: #4A7C59;
+    color: #4A7C59;
+}
+
+/* 선택된 결제 수단 스타일 */
+.method-btn.selected {
+    background-color: #e8f5e9;
+    border: 2px solid #4A7C59;
+    color: #4A7C59;
+    box-shadow: 0 0 0 1px #4A7C59 inset;
+}
+
+/* 요약 영역 스타일 */
+.summary-row {
+    display: flex;
+    justify-content: space-between;
+    margin-bottom: 15px;
+    font-size: 14px;
+    color: #666;
+}
+
+.summary-divider {
+    height: 1px;
+    background-color: #eee;
+    margin: 20px 0;
+}
+
+.summary-row.total {
+    color: #333;
+    align-items: center;
+}
+
+.total-price {
+    font-size: 24px;
+    font-weight: bold;
+    color: #4A7C59;
+}
+
+/* 결제 버튼 */
+.btn-checkout {
+    width: 100%;
+    padding: 18px;
+    background-color: #4A7C59;
+    color: white;
+    border: none;
+    border-radius: 8px;
+    font-size: 18px;
+    font-weight: bold;
+    cursor: pointer;
+    margin-top: 20px;
+    transition: background-color 0.3s;
+}
+
+.btn-checkout:hover {
+    background-color: #3d6649;
+}
+
+.btn-secondary {
+    padding: 15px;
+    background-color: #95a5a6;
+    color: white;
+    border: none;
+    border-radius: 8px;
+    cursor: pointer;
+    font-size: 16px;
+}
+
+/* 모바일 반응형 */
+@media (max-width: 768px) {
+    .payment-layout {
+        flex-direction: column;
+    }
+    .payment-method-grid {
+        grid-template-columns: repeat(2, 1fr);
+    }
+    .payment-summary {
+        position: static;
+        width: 100%;
+    }
+}
