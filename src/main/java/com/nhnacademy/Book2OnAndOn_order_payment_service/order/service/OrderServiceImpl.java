@@ -1,3 +1,4 @@
+
 package com.nhnacademy.Book2OnAndOn_order_payment_service.order.service;
 
 import com.nhnacademy.Book2OnAndOn_order_payment_service.exception.OrderVerificationException;
@@ -14,13 +15,11 @@ import com.nhnacademy.Book2OnAndOn_order_payment_service.order.dto.order.OrderCr
 import com.nhnacademy.Book2OnAndOn_order_payment_service.order.dto.order.OrderDetailResponseDto;
 import com.nhnacademy.Book2OnAndOn_order_payment_service.order.dto.order.OrderPrepareRequestDto;
 import com.nhnacademy.Book2OnAndOn_order_payment_service.order.dto.order.OrderPrepareResponseDto;
-import com.nhnacademy.Book2OnAndOn_order_payment_service.order.dto.order.OrderResponseDto;
 import com.nhnacademy.Book2OnAndOn_order_payment_service.order.dto.order.OrderSimpleDto;
 import com.nhnacademy.Book2OnAndOn_order_payment_service.order.dto.order.OrderVerificationResult;
 import com.nhnacademy.Book2OnAndOn_order_payment_service.order.dto.order.orderitem.BookInfoDto;
 import com.nhnacademy.Book2OnAndOn_order_payment_service.order.dto.order.orderitem.OrderItemCalcContext;
 import com.nhnacademy.Book2OnAndOn_order_payment_service.order.dto.order.orderitem.OrderItemRequestDto;
-import com.nhnacademy.Book2OnAndOn_order_payment_service.order.dto.order.orderitem.OrderItemResponseDto;
 import com.nhnacademy.Book2OnAndOn_order_payment_service.order.entity.delivery.DeliveryAddress;
 import com.nhnacademy.Book2OnAndOn_order_payment_service.order.entity.delivery.DeliveryPolicy;
 import com.nhnacademy.Book2OnAndOn_order_payment_service.order.entity.order.Order;
@@ -41,7 +40,6 @@ import com.nhnacademy.Book2OnAndOn_order_payment_service.payment.domain.dto.requ
 import com.nhnacademy.Book2OnAndOn_order_payment_service.payment.domain.dto.response.PaymentCancelResponse;
 import com.nhnacademy.Book2OnAndOn_order_payment_service.payment.domain.dto.response.PaymentResponse;
 import com.nhnacademy.Book2OnAndOn_order_payment_service.payment.domain.entity.Payment;
-import com.nhnacademy.Book2OnAndOn_order_payment_service.payment.exception.NotFoundPaymentException;
 import com.nhnacademy.Book2OnAndOn_order_payment_service.payment.repository.PaymentRepository;
 import com.nhnacademy.Book2OnAndOn_order_payment_service.payment.service.PaymentService;
 import com.nhnacademy.Book2OnAndOn_order_payment_service.payment.strategy.PaymentStrategy;
@@ -78,7 +76,7 @@ public class OrderServiceImpl implements OrderService2 {
     private final OrderNumberProvider orderNumberProvider;
 
     private final OrderViewAssembler orderViewAssembler;
-    private final OrderResourceReservationManager reservationManager;
+    private final OrderResourceManager resourceManager;
 
     /**
      * 책 클라이언트를 통해 책 정보를 가져오는 공용 메서드입니다.
@@ -169,14 +167,14 @@ public class OrderServiceImpl implements OrderService2 {
         OrderVerificationResult result = verifyOrder(userId, req);
 
         // 선점 메서드
-        reservationManager.reserve(userId, req, result);
+        resourceManager.prepareResources(userId, req, result);
 
         try {
             return createPendingOrder(userId, result);
         } catch (Exception e){
             log.error("알 수 없는 오류 발생! 복구 트랜잭션 실행");
             // 복구 메서드
-            reservationManager.release(result.orderNumber());
+            resourceManager.releaseResources(result.orderNumber(), req.getMemberCouponId(), userId, result.pointDiscount());
             throw e;
         }
     }
@@ -427,24 +425,24 @@ public class OrderServiceImpl implements OrderService2 {
                                             int totalItemAmount){
         // 특정 도서 대상
         if(targetBookIds != null && !targetBookIds.isEmpty()
-        && (targetCategoryIds == null || targetCategoryIds.isEmpty())){
+                && (targetCategoryIds == null || targetCategoryIds.isEmpty())){
             return calcContextList.stream()
                     .filter(ctx -> targetBookIds.contains(ctx.getBookId()))
                     .mapToInt(OrderItemCalcContext::getItemTotalPrice)
                     .sum();
-        // 특정 카테고리 도서 대상
+            // 특정 카테고리 도서 대상
         }else if((targetBookIds == null || targetBookIds.isEmpty())
                 && targetCategoryIds != null && !targetCategoryIds.isEmpty()){
             return calcContextList.stream()
                     .filter(ctx -> targetCategoryIds.contains(ctx.getCategoryId()))
                     .mapToInt(OrderItemCalcContext::getItemTotalPrice)
                     .sum();
-        // 금액 대상
+            // 금액 대상
         }else if((targetBookIds == null || targetBookIds.isEmpty())
                 && targetCategoryIds == null || targetCategoryIds.isEmpty()){
             return totalItemAmount;
 
-        // 특정 도서, 카테고리 대상
+            // 특정 도서, 카테고리 대상
         }else{
             return calcContextList.stream()
                     .filter(ctx ->
