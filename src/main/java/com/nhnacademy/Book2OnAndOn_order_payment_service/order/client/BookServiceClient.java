@@ -12,7 +12,7 @@ import org.springframework.web.bind.annotation.RequestHeader;
 import org.springframework.web.bind.annotation.RequestParam;
 
 // OrderServiceClient 인터페이스 (Book Service의 구매 검증 API 호출용)
-@FeignClient(name = "book-service") // ⬅️ Book Service로의 Feign Client
+@FeignClient(name = "book-service") //  Book Service로의 Feign Client
 public interface BookServiceClient {
     // 주문에 필요한 도서 정보 목록 조회
     @GetMapping("/internal/books")

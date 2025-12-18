@@ -47,7 +47,6 @@ h2 {
 }
 
 .history-header-wrapper h2 {
-    /* 제목은 가능한 공간을 차지하되, 구겨지지 않도록 최소 여백 확보 */
     flex-shrink: 1;
     margin: 0;
     padding-top: 0;
@@ -76,13 +75,13 @@ input[type="text"], input[type="password"], textarea, select {
     font-size: 16px;
 }
 
+/* 정렬 드롭다운 */
 select#sortOrderSelect {
-    /* 🚨 [수정] 정렬 드롭다운을 작게 만듭니다. */
     width: auto;
     padding: 5px 10px;
     font-size: 14px;
     height: 35px;
-    flex-shrink: 0; /* 공간이 부족해도 줄어들지 않음 */
+    flex-shrink: 0;
 }
 
 .btn-primary {
@@ -219,4 +218,104 @@ select#sortOrderSelect {
     color: #333;
     text-decoration: none;
     cursor: pointer;
+}
+
+/* ------------------------------------------- */
+/* 주문 검색 필터 박스 스타일 */
+/* ------------------------------------------- */
+
+.order-filter-box {
+    border: 1px solid #ddd;
+    border-radius: 8px;
+    padding: 20px;
+    margin-bottom: 25px;
+    background-color: #fcfcfc;
+}
+
+#orderFilterForm {
+    display: flex;
+    flex-wrap: wrap;
+    gap: 15px;
+    align-items: flex-start;
+}
+
+.filter-group {
+    display: flex;
+    align-items: center;
+    gap: 8px;
+}
+
+.filter-group label {
+    font-weight: bold;
+    color: #555;
+    white-space: nowrap;
+}
+
+#orderFilterForm select, #orderFilterForm input[type="text"] {
+    padding: 8px;
+    font-size: 14px;
+    width: auto;
+    margin-bottom: 0;
+}
+
+/* 찾기/초기화 버튼 그룹을 오른쪽으로 배치하고 정렬 */
+#orderFilterForm > button {
+    height: 35px;
+    align-self: flex-end;
+    margin-left: 5px;
+}
+
+
+/* 주문 안내 가이드 섹션 */
+.order-guide-section {
+    margin: 40px 0 20px 0;
+    padding: 20px;
+    background-color: #fcfcfc;
+    border: 1px solid #eee;
+    border-radius: 8px;
+    font-size: 13px;
+    color: #555;
+}
+
+.guide-header { margin-bottom: 20px; line-height: 1.8; color: #666; }
+.guide-header strong { color: #1a73e8; }
+
+.process-container {
+    display: flex;
+    justify-content: space-between;
+    align-items: center;
+    background: #fff;
+    padding: 25px 15px;
+    border: 1px solid #e0e0e0;
+    border-radius: 6px;
+}
+
+.process-step { text-align: center; flex: 1; }
+.step-icon { font-size: 26px; margin-bottom: 8px; opacity: 0.7; }
+.process-step span { font-weight: bold; color: #333; display: block; margin-bottom: 4px; font-size: 14px; }
+.step-desc { font-size: 11px; color: #999; margin: 0; }
+.process-arrow { color: #ddd; font-size: 12px; font-weight: normal; }
+
+.guide-footer-bar {
+    display: flex;
+    margin-top: 8px;
+    height: 32px;
+    line-height: 32px;
+    text-align: center;
+    font-weight: bold;
+    font-size: 12px;
+}
+
+.cancel-zone {
+    flex: 3; /* 주문접수 ~ 출고작업중까지의 비중 */
+    background-color: #e8f0fe;
+    color: #1a73e8;
+    border-radius: 4px 0 0 4px;
+}
+
+.return-zone {
+    flex: 1; /* 배송중/완료 비중 */
+    background-color: #f1f1f1;
+    color: #777;
+    border-radius: 0 4px 4px 0;
 }

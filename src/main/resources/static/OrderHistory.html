@@ -35,10 +35,76 @@
             </select>
         </div>
 
+        <div class="order-filter-box">
+            <form id="orderFilterForm">
+                <div class="filter-group">
+                    <label>주문 기간 조회:</label>
+                    <select id="filterYear"></select> 년
+                    <select id="filterMonth"></select> 월
+                </div>
+
+                <div class="filter-group">
+                    <label>주문 검색:</label>
+                    <select id="searchType">
+                        <option value="orderItemName">주문 상품</option>
+                        <option value="orderNumber">주문 번호</option>
+                        <option value="recipientName">수령인</option>
+                    </select>
+                    <input type="text" id="searchKeyword" placeholder="검색어 입력" style="width: 150px;">
+                </div>
+
+                <div class="filter-group">
+                    <label>배송 상태별 조회:</label>
+                    <select id="filterStatus"></select>
+                </div>
+
+                <button type="submit" class="btn-primary" id="filterSearchButton" style="width: 100px; margin-top: 10px;">찾기</button>
+                <button type="button" class="btn-secondary" id="filterResetButton" style="width: 100px; margin-top: 10px;">초기화</button>
+            </form>
+        </div>
+
         <div id="orderList">
         </div>
         <p id="noOrdersMessage" class="hidden">주문 내역이 없습니다.</p>
     </section>
+
+    <div class="order-guide-section">
+        <div class="guide-header">
+            <p>• 발송 전 주문은 주문상세내역에서 <strong>주문취소, 배송 주소 변경</strong>이 가능합니다.</p>
+            <p>• 주문번호를 클릭하시면 주문상세내역을 확인하실 수 있습니다.</p>
+        </div>
+
+        <div class="process-container">
+            <div class="process-step">
+                <div class="step-icon">📄</div>
+                <span>주문접수</span>
+                <p class="step-desc">입금 전 상태입니다</p>
+            </div>
+            <div class="process-arrow">▶</div>
+            <div class="process-step">
+                <div class="step-icon">💳</div>
+                <span>결제완료</span>
+                <p class="step-desc">재고 확인 중</p>
+            </div>
+            <div class="process-arrow">▶</div>
+            <div class="process-step">
+                <div class="step-icon">🎁</div>
+                <span>출고작업중</span>
+                <p class="step-desc">상품 포장 중</p>
+            </div>
+            <div class="process-arrow">▶</div>
+            <div class="process-step">
+                <div class="step-icon">🚚</div>
+                <span>배송중/완료</span>
+                <p class="step-desc">택배사 전달 완료</p>
+            </div>
+        </div>
+
+        <div class="guide-footer-bar">
+            <div class="cancel-zone">주문취소 가능</div>
+            <div class="return-zone">반품을 이용해주세요</div>
+        </div>
+    </div>
 
     <section id="orderDetailSection" class="order-list-container hidden">
         <h2>주문 상세 정보</h2>

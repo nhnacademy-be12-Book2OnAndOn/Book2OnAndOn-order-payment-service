@@ -13,13 +13,13 @@ public interface WrappingPaperService {
     // C: 포장지 생성
     WrappingPaperResponseDto createWrappingPaper(WrappingPaperRequestDto requestDto);
 
-    // R: 포장지 단건 조회
+    // R: 포장지 단건 조회(관리자용, 포장지 상세 정보 확인)
     WrappingPaperResponseDto getWrappingPaper(Long wrappingPaperId);
 
     // R: 포장지 전체 목록 조회 (사용자용, 경량 DTO 반환)
     Page<WrappingPaperSimpleResponseDto> getWrappingPaperList(Pageable pageable);
 
-    // R: 포장지 전체 목록 조회 (관리자용)
+    // R: 포장지 전체 목록 조회 (관리자용, 전체 목록 확인)
     Page<WrappingPaperResponseDto> getAllWrappingPapers(Pageable pageable);
 
     // U: 포장지 수정
