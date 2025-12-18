@@ -8,6 +8,7 @@ import com.nhnacademy.Book2OnAndOn_order_payment_service.order.dto.order.OrderDe
 import com.nhnacademy.Book2OnAndOn_order_payment_service.order.dto.order.OrderPrepareRequestDto;
 import com.nhnacademy.Book2OnAndOn_order_payment_service.order.dto.order.OrderPrepareResponseDto;
 import com.nhnacademy.Book2OnAndOn_order_payment_service.order.dto.order.OrderSimpleDto;
+import com.nhnacademy.Book2OnAndOn_order_payment_service.order.dto.order.OrderVerificationResult;
 import com.nhnacademy.Book2OnAndOn_order_payment_service.order.service.OrderService2;
 import lombok.RequiredArgsConstructor;
 import lombok.extern.slf4j.Slf4j;
@@ -51,9 +52,11 @@ public class OrderUserController2 {
     public ResponseEntity<OrderCreateResponseDto> createPreOrder(@RequestHeader(USER_ID_HEADER) Long userId,
                                                                  @RequestBody OrderCreateRequestDto req){
         log.info("POST /orders 호출 : 사전 주문 데이터 생성");
-        OrderCreateResponseDto orderResponseDto = orderService.createOrder(userId, req);
+        OrderVerificationResult orderVerificationResult = orderService.verifyOrder(userId, req);
 
-        return ResponseEntity.status(HttpStatus.CREATED).body(orderResponseDto);
+        OrderCreateResponseDto orderCreateResponseDto = orderService.createPendingOrder(userId, orderVerificationResult);
+
+        return ResponseEntity.status(HttpStatus.CREATED).body(orderCreateResponseDto);
     }
 
     // 주문조회 리스트 반환

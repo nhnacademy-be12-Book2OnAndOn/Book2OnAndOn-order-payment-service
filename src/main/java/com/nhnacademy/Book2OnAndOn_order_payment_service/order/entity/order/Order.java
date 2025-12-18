@@ -43,7 +43,6 @@ public class Order {
     private Long orderId;
 
     @Column(name = "user_id")
-    @NotNull
     private Long userId;
 
     @Column(name = "order_number", unique = true, columnDefinition = "CHAR(15)")
@@ -104,46 +103,26 @@ public class Order {
         this.orderStatus = status;
     }
 
-    public OrderSimpleDto toOrderSimpleDto(){
-        return new OrderSimpleDto(
-                this.orderId,
-                this.orderNumber,
-                this.orderStatus,
-                this.orderDateTime,
-                this.totalAmount,
-                this.orderTitle
-        );
-    }
-
-    public OrderResponseDto toOrderResponseDto(List<OrderItemResponseDto> orderItemResponseDtoList){
-        return new OrderResponseDto(
-                this.orderId,
-                this.orderNumber,
-                this.orderStatus,
-                this.orderDateTime,
-
-                this.totalAmount,
-                this.totalDiscountAmount,
-                this.totalItemAmount,
-                this.deliveryFee,
-                this.wrappingFee,
-                this.couponDiscount,
-                this.pointDiscount,
-
-                this.wantDeliveryDate,
-                orderItemResponseDtoList,
-                this.deliveryAddress.toDeliveryAddressResponseDto(),
-                null
-        );
-    }
-
-    public void addOrderItem(OrderItem item){
-        this.orderItems.add(item);
-        item.setOrder(this);
+    public void addOrderItem(List<OrderItem> items){
+        for (OrderItem item : items) {
+            this.orderItems.add(item);
+            item.setOrder(this);
+        }
     }
 
     public void addDeliveryAddress(DeliveryAddress deliveryAddress){
         this.deliveryAddress = deliveryAddress;
         deliveryAddress.setOrder(this);
+    }
+
+    public void addRefund(Refund refund) {
+        if (refund == null) {
+            return;
+        }
+        if (this.refunds == null) {
+            this.refunds = new ArrayList<>();
+        }
+        this.refunds.add(refund);
+        refund.setOrder(this);
     }
 }

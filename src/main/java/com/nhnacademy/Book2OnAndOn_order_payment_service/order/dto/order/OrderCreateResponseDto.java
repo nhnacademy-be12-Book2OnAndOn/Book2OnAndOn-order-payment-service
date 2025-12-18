@@ -1,6 +1,6 @@
 package com.nhnacademy.Book2OnAndOn_order_payment_service.order.dto.order;
 
-import com.nhnacademy.Book2OnAndOn_order_payment_service.order.dto.order.orderitem.OrderItemResponseDto;
+import com.nhnacademy.Book2OnAndOn_order_payment_service.order.dto.order.orderitem.OrderItemCreateResponseDto;
 import java.time.LocalDate;
 import java.util.List;
 import lombok.AllArgsConstructor;
@@ -25,6 +25,6 @@ public class OrderCreateResponseDto {
     private int totalAmount;
     private LocalDate wantDeliveryDate;
 
-    private List<OrderItemResponseDto> orderItems;
+    private List<OrderItemCreateResponseDto> orderItemCreateResponseDtoList;
     private DeliveryAddressResponseDto deliveryAddressResponseDto;
 }

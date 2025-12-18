@@ -13,7 +13,7 @@ public class OrderItemResponseDto {
     private Long orderItemId;
     private Long bookId;
     private String bookTitle;
-    private String bookImagePath;
+    private String bookImageUrl;
     private Integer orderItemQuantity;
     private Integer unitPrice;
     private boolean isWrapped;

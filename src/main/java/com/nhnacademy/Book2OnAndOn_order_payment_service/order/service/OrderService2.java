@@ -8,15 +8,19 @@ import com.nhnacademy.Book2OnAndOn_order_payment_service.order.dto.order.OrderDe
 import com.nhnacademy.Book2OnAndOn_order_payment_service.order.dto.order.OrderPrepareRequestDto;
 import com.nhnacademy.Book2OnAndOn_order_payment_service.order.dto.order.OrderPrepareResponseDto;
 import com.nhnacademy.Book2OnAndOn_order_payment_service.order.dto.order.OrderSimpleDto;
+import com.nhnacademy.Book2OnAndOn_order_payment_service.order.dto.order.OrderVerificationResult;
+import com.nhnacademy.Book2OnAndOn_order_payment_service.order.entity.order.Order;
 import java.time.LocalDateTime;
 import java.util.List;
+import java.util.Optional;
 import org.springframework.data.domain.Page;
 import org.springframework.data.domain.Pageable;
 
 public interface OrderService2 {
     // 회원 전용
     OrderPrepareResponseDto prepareOrder(Long userId, OrderPrepareRequestDto req);
-    OrderCreateResponseDto createOrder(Long userId, OrderCreateRequestDto req);
+    OrderVerificationResult verifyOrder(Long userId, OrderCreateRequestDto req);
+    OrderCreateResponseDto createPendingOrder(Long userId, OrderVerificationResult result);
     Page<OrderSimpleDto> getOrderList(Long userId, Pageable pageable);
     OrderDetailResponseDto getOrderDetail(Long userId, String orderNumber);
     OrderCancelResponseDto cancelOrder(Long userId, String orderNumber, OrderCancelRequestDto req);
@@ -30,4 +34,5 @@ public interface OrderService2 {
 
     // -- 결제 --
     Boolean existsOrderByUserIdAndOrderNumber(Long userId, String orderNumber);
+    Integer findTotalAmoundByOrderNumber(String orderNumber);
 }

@@ -55,14 +55,4 @@ public class DeliveryAddress {
     @JoinColumn(name = "order_id")
     @NotNull
     private Order order;
-
-    public DeliveryAddressResponseDto toDeliveryAddressResponseDto(){
-        return new DeliveryAddressResponseDto(
-                this.deliveryAddress,
-                this.deliveryAddressDetail,
-                this.deliveryMessage,
-                this.recipient,
-                this.recipientPhoneNumber
-        );
-    }
 }
