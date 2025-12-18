@@ -245,19 +245,6 @@ function updateSelectedAmount() {
     if (display) display.textContent = total.toLocaleString();
 }
 
-function renderActionButtons(detail) {
-    const container = document.getElementById('actionButtons');
-    if (!container) return;
-    container.innerHTML = '';
-    if (detail.status === ORDER_STATUS.PENDING) {
-        container.innerHTML = '<button class="btn-secondary" id="btnCancel">선택 항목 취소</button>';
-        document.getElementById('btnCancel').onclick = () => showModal('cancel', detail);
-    } else if (detail.status === ORDER_STATUS.DELIVERED) {
-        container.innerHTML = '<button class="btn-primary" id="btnReturn">선택 항목 반품</button>';
-        document.getElementById('btnReturn').onclick = () => showModal('return', detail);
-    }
-}
-
 /*
  * --- 모달 및 공통 기능 (기존 유지) ---
  */
@@ -288,6 +275,7 @@ function showModal(actionType, detail) {
     modal.classList.remove('hidden');
 }
 
+// 사용자가 취소 or 반품 클릭했을때 실행
 async function handleActionRequest(type, detail, amount) {
     alert(`성공적으로 처리되었습니다.\n금액: ${amount.toLocaleString()}원`);
     hideModal();
@@ -295,6 +283,7 @@ async function handleActionRequest(type, detail, amount) {
     showMemberHistory();
 }
 
+// (취소/환불)모달창 숨기기
 function hideModal() { document.getElementById('actionModal').classList.add('hidden'); }
 function setupModalListeners() {
     document.querySelector('#actionModal .close-button')?.addEventListener('click', hideModal);
@@ -341,7 +330,6 @@ function showOrderDetail() {
 
 }
 
-
 /*
  * --- 검색 및 정렬 기능 (기존 유지) ---
  */
@@ -376,8 +364,24 @@ function sortOrdersAndRender(sortType, orders) {
     renderOrderList(sorted);
 }
 
-function handleOrderFiltering(e) { e.preventDefault(); sortOrdersAndRender('latest', filterMockOrders(memberOrders, getCurrentFilters())); }
-function getCurrentFilters() { return { year: document.getElementById('filterYear').value, month: document.getElementById('filterMonth').value, status: document.getElementById('filterStatus').value, keyword: document.getElementById('searchKeyword').value.trim() }; }
+// 필터 폼 제출 시 실행
+function handleOrderFiltering(e) {
+    e.preventDefault(); // 페이지 새로고침 방지
+    sortOrdersAndRender('latest', filterMockOrders(memberOrders, getCurrentFilters()));
+}
+
+// 화면의 (년도, 월, 상태, 키워드) <- 현재 사용자가 선택하거나 입력한 값들 수집하여 하나 객체로 반환
+function getCurrentFilters() {
+    return {
+        year: document.getElementById('filterYear').value,
+        month: document.getElementById('filterMonth').value,
+        status: document.getElementById('filterStatus').value,
+        keyword: document.getElementById('searchKeyword').value
+            .trim()
+    };
+}
+
+// 실제 데이터 필터링 로직 ( 주문 날짜와 선택된 기간이 일치하는지 확인 , 사용자가 특정 상태를 선택했다면 해당 주문들만 남김)
 function filterMockOrders(orders, f) {
     return orders.filter(o => {
         const d = new Date(o.date);
@@ -387,4 +391,8 @@ function filterMockOrders(orders, f) {
         return true;
     });
 }
-function handleGuestLookup(e) { e.preventDefault(); fetchOrderDetail('G1001', 'GUEST_MODE'); }
+// 비회원이 주문 정보를 입력하고 조회 버튼 눌렀을때 실행
+function handleGuestLookup(e) {
+    e.preventDefault();
+    fetchOrderDetail('G1001', 'GUEST_MODE');
+}
