@@ -14,8 +14,10 @@ import com.nhnacademy.Book2OnAndOn_order_payment_service.order.dto.order.OrderCr
 import com.nhnacademy.Book2OnAndOn_order_payment_service.order.dto.order.OrderDetailResponseDto;
 import com.nhnacademy.Book2OnAndOn_order_payment_service.order.dto.order.OrderPrepareRequestDto;
 import com.nhnacademy.Book2OnAndOn_order_payment_service.order.dto.order.OrderPrepareResponseDto;
+import com.nhnacademy.Book2OnAndOn_order_payment_service.order.dto.order.OrderResponseDto;
 import com.nhnacademy.Book2OnAndOn_order_payment_service.order.dto.order.OrderSimpleDto;
 import com.nhnacademy.Book2OnAndOn_order_payment_service.order.dto.order.OrderVerificationResult;
+import com.nhnacademy.Book2OnAndOn_order_payment_service.order.dto.order.orderitem.BookInfoDto;
 import com.nhnacademy.Book2OnAndOn_order_payment_service.order.dto.order.orderitem.OrderItemCalcContext;
 import com.nhnacademy.Book2OnAndOn_order_payment_service.order.dto.order.orderitem.OrderItemRequestDto;
 import com.nhnacademy.Book2OnAndOn_order_payment_service.order.dto.order.orderitem.OrderItemResponseDto;
@@ -76,6 +78,7 @@ public class OrderServiceImpl implements OrderService2 {
     private final OrderNumberProvider orderNumberProvider;
 
     private final OrderViewAssembler orderViewAssembler;
+    private final OrderResourceReservationManager reservationManager;
 
     /**
      * 책 클라이언트를 통해 책 정보를 가져오는 공용 메서드입니다.
@@ -137,7 +140,7 @@ public class OrderServiceImpl implements OrderService2 {
 
         // 책 id
         List<Long> bookIds = req.bookItems().stream()
-                .map(OrderPrepareRequestDto.BookInfoDto::bookId)
+                .map(BookInfoDto::bookId)
                 .toList();
 
 
@@ -160,7 +163,26 @@ public class OrderServiceImpl implements OrderService2 {
     }
 
     @Override
-    public OrderVerificationResult verifyOrder(Long userId, OrderCreateRequestDto req) {
+    public OrderCreateResponseDto createPreOrder(Long userId, OrderCreateRequestDto req) {
+        log.info("임시 주문 데이터 생성 및 검증 로직 실행 (회원 아이디 : {})", userId);
+
+        OrderVerificationResult result = verifyOrder(userId, req);
+
+        // 선점 메서드
+        reservationManager.reserve(userId, req, result);
+
+        try {
+            return createPendingOrder(userId, result);
+        } catch (Exception e){
+            log.error("알 수 없는 오류 발생! 복구 트랜잭션 실행");
+            // 복구 메서드
+            reservationManager.release(result.orderNumber());
+            throw e;
+        }
+    }
+
+    // 임시 주문 생성을 위한 헬퍼 메서드
+    private OrderVerificationResult verifyOrder(Long userId, OrderCreateRequestDto req) {
         log.info("주문 데이터 생성 및 검증 로직 실행 (회원 아이디 : {})", userId);
 
         List<OrderItemRequestDto> orderItemResponseDtoList = req.getOrderItems();
@@ -182,7 +204,7 @@ public class OrderServiceImpl implements OrderService2 {
                 .sum();
         int deliveryFee = createDeliveryFee(totalItemAmount, req.getDeliveryPolicyId());
         int wrappingFee = createWrappingFee(orderItemList);
-        int couponDiscount = createCouponDiscount(req.getCouponId(), orderItemList, bookOrderResponseList, totalItemAmount);
+        int couponDiscount = createCouponDiscount(req.getMemberCouponId(), orderItemList, bookOrderResponseList, totalItemAmount);
 
         int currentAmount = totalItemAmount + deliveryFee + wrappingFee - couponDiscount;
 
@@ -211,8 +233,8 @@ public class OrderServiceImpl implements OrderService2 {
         );
     }
 
-    @Override
-    public OrderCreateResponseDto createPendingOrder(Long userId, OrderVerificationResult result) {
+    @Transactional
+    protected OrderCreateResponseDto createPendingOrder(Long userId, OrderVerificationResult result) {
         log.info("주문 임시 데이터 저장 로직 실행");
 
         Order order = Order.builder()
@@ -238,7 +260,7 @@ public class OrderServiceImpl implements OrderService2 {
         return orderViewAssembler.toOrderCreateView(saved);
     }
 
-    // Helper Method
+
     /**
      * 사용 가능한 쿠폰을 받기위해 쿠폰 서비스에 요청하는 Dto 생성 로직
      * @param resp
@@ -560,7 +582,7 @@ public class OrderServiceImpl implements OrderService2 {
         log.info("주문 전 데이터 정보 가져오기 로직 실행 (비회원 유저 : {})", guestId);
 
         List<Long> bookIds = req.bookItems().stream()
-                .map(OrderPrepareRequestDto.BookInfoDto::bookId)
+                .map(BookInfoDto::bookId)
                 .toList();
 
         List<BookOrderResponse> bookOrderResponseList = fetchBookInfo(bookIds);

@@ -1,5 +1,6 @@
 package com.nhnacademy.Book2OnAndOn_order_payment_service.order.dto.order;
 
+import com.nhnacademy.Book2OnAndOn_order_payment_service.order.dto.order.orderitem.BookInfoDto;
 import java.util.List;
 
 /**
@@ -7,5 +8,4 @@ import java.util.List;
  * @param bookItems
  */
 public record OrderPrepareRequestDto(List<BookInfoDto> bookItems) {
-    public record BookInfoDto(Long bookId, Integer quantity){}
 }
