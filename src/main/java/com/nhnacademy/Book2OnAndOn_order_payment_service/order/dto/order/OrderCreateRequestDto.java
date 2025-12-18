@@ -25,6 +25,6 @@ public class OrderCreateRequestDto {
     private Long deliveryPolicyId; // 배송 방법 아이디
     @NotNull(message = "원하는 배송날짜를 선택해주세요")
     private LocalDate wantDeliveryDate;
-    private Long couponId; // 하나의 주문에 하나의 쿠폰만 사용
+    private Long memberCouponId; // 하나의 주문에 하나의 쿠폰만 사용
     private Integer point;
 }

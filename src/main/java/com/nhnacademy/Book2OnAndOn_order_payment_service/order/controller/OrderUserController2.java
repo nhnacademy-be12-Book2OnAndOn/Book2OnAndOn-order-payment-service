@@ -25,6 +25,7 @@ import org.springframework.web.bind.annotation.PostMapping;
 import org.springframework.web.bind.annotation.RequestBody;
 import org.springframework.web.bind.annotation.RequestHeader;
 import org.springframework.web.bind.annotation.RequestMapping;
+import org.springframework.web.bind.annotation.RequestParam;
 import org.springframework.web.bind.annotation.RestController;
 
 @Slf4j
@@ -39,7 +40,7 @@ public class OrderUserController2 {
     // 장바구니 혹은 바로구매시 준비할 데이터 (책 정보, 회원 배송지 정보)
     @PostMapping("/prepare")
     public ResponseEntity<OrderPrepareResponseDto> getOrderPrepare(@RequestHeader(USER_ID_HEADER) Long userId,
-                                                                 @RequestBody OrderPrepareRequestDto req){
+                                                                   @RequestBody OrderPrepareRequestDto req){
         log.info("GET /orders/prepare 호출 : 주문시 필요한 데이터 반환 (회원 아이디 : {})", userId);
 
         // 회원 주문 로직
@@ -52,9 +53,7 @@ public class OrderUserController2 {
     public ResponseEntity<OrderCreateResponseDto> createPreOrder(@RequestHeader(USER_ID_HEADER) Long userId,
                                                                  @RequestBody OrderCreateRequestDto req){
         log.info("POST /orders 호출 : 사전 주문 데이터 생성");
-        OrderVerificationResult orderVerificationResult = orderService.verifyOrder(userId, req);
-
-        OrderCreateResponseDto orderCreateResponseDto = orderService.createPendingOrder(userId, orderVerificationResult);
+        OrderCreateResponseDto orderCreateResponseDto = orderService.createPreOrder(userId, req);
 
         return ResponseEntity.status(HttpStatus.CREATED).body(orderCreateResponseDto);
     }

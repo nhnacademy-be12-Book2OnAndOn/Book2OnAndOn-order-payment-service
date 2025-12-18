@@ -19,8 +19,7 @@ import org.springframework.data.domain.Pageable;
 public interface OrderService2 {
     // 회원 전용
     OrderPrepareResponseDto prepareOrder(Long userId, OrderPrepareRequestDto req);
-    OrderVerificationResult verifyOrder(Long userId, OrderCreateRequestDto req);
-    OrderCreateResponseDto createPendingOrder(Long userId, OrderVerificationResult result);
+    OrderCreateResponseDto createPreOrder(Long userId, OrderCreateRequestDto req);
     Page<OrderSimpleDto> getOrderList(Long userId, Pageable pageable);
     OrderDetailResponseDto getOrderDetail(Long userId, String orderNumber);
     OrderCancelResponseDto cancelOrder(Long userId, String orderNumber, OrderCancelRequestDto req);
