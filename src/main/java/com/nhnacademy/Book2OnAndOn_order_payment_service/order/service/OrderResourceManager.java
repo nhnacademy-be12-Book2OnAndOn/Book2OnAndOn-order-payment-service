@@ -3,7 +3,7 @@ package com.nhnacademy.Book2OnAndOn_order_payment_service.order.service;
 import com.nhnacademy.Book2OnAndOn_order_payment_service.order.client.BookServiceClient;
 import com.nhnacademy.Book2OnAndOn_order_payment_service.order.client.CouponServiceClient;
 import com.nhnacademy.Book2OnAndOn_order_payment_service.order.client.UserServiceClient;
-import com.nhnacademy.Book2OnAndOn_order_payment_service.order.client.dto.CouponUsedRequestDto;
+import com.nhnacademy.Book2OnAndOn_order_payment_service.order.client.dto.UseCouponRequestDto;
 import com.nhnacademy.Book2OnAndOn_order_payment_service.order.client.dto.PointUsedRequestDto;
 import com.nhnacademy.Book2OnAndOn_order_payment_service.order.client.dto.ReserveBookRequestDto;
 import com.nhnacademy.Book2OnAndOn_order_payment_service.order.dto.order.OrderCreateRequestDto;
@@ -56,11 +56,11 @@ public class OrderResourceManager {
     private void releaseCoupon(String orderNumber, Long memberCouponId){
         if(memberCouponId == null) return;
 
-        new CouponUsedRequestDto(orderNumber, memberCouponId);
+        new UseCouponRequestDto(orderNumber, memberCouponId);
     }
     private void confirmCoupon(String orderNumber, Long memberCouponId){
         if(memberCouponId == null) return;
-        new CouponUsedRequestDto(orderNumber, memberCouponId);
+        new UseCouponRequestDto(orderNumber, memberCouponId);
     }
 
     private void releasePoint(String orderNumber, Long userId, Integer point){
