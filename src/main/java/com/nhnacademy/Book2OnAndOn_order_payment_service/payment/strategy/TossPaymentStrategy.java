@@ -1,27 +1,23 @@
 package com.nhnacademy.Book2OnAndOn_order_payment_service.payment.strategy;
 
-import static com.netflix.spectator.api.Statistic.totalAmount;
-
-import com.nhnacademy.Book2OnAndOn_order_payment_service.order.dto.order.OrderResponseDto;
-import com.nhnacademy.Book2OnAndOn_order_payment_service.order.service.OrderService2;
+import com.nhnacademy.Book2OnAndOn_order_payment_service.exception.PaymentException;
 import com.nhnacademy.Book2OnAndOn_order_payment_service.payment.client.TossPaymentsApiClient;
 import com.nhnacademy.Book2OnAndOn_order_payment_service.payment.domain.dto.CommonCancelRequest;
 import com.nhnacademy.Book2OnAndOn_order_payment_service.payment.domain.dto.CommonCancelResponse;
 import com.nhnacademy.Book2OnAndOn_order_payment_service.payment.domain.dto.CommonConfirmRequest;
-import com.nhnacademy.Book2OnAndOn_order_payment_service.payment.domain.dto.CommonConfirmResponse;
+import com.nhnacademy.Book2OnAndOn_order_payment_service.payment.domain.dto.CommonResponse;
 import com.nhnacademy.Book2OnAndOn_order_payment_service.payment.domain.dto.api.TossCancelRequest;
 import com.nhnacademy.Book2OnAndOn_order_payment_service.payment.domain.dto.api.TossCancelResponse;
 import com.nhnacademy.Book2OnAndOn_order_payment_service.payment.domain.dto.api.TossConfirmRequest;
-import com.nhnacademy.Book2OnAndOn_order_payment_service.payment.domain.dto.api.TossConfirmResponse;
+import com.nhnacademy.Book2OnAndOn_order_payment_service.payment.domain.dto.api.TossResponse;
 import com.nhnacademy.Book2OnAndOn_order_payment_service.payment.domain.dto.request.PaymentUpdatePaymentStatusRequest;
 import com.nhnacademy.Book2OnAndOn_order_payment_service.payment.domain.dto.request.PaymentUpdateRefundAmountRequest;
-import com.nhnacademy.Book2OnAndOn_order_payment_service.payment.exception.AmountMismatchException;
+import com.nhnacademy.Book2OnAndOn_order_payment_service.payment.domain.entity.Payment;
 import com.nhnacademy.Book2OnAndOn_order_payment_service.payment.property.TossPaymentsProperties;
 import com.nhnacademy.Book2OnAndOn_order_payment_service.payment.service.PaymentService;
 import java.nio.charset.StandardCharsets;
 import java.util.Base64;
 
-import java.util.Objects;
 import lombok.RequiredArgsConstructor;
 import lombok.extern.slf4j.Slf4j;
 import org.springframework.stereotype.Component;
@@ -32,7 +28,6 @@ import org.springframework.stereotype.Component;
 public class TossPaymentStrategy implements PaymentStrategy{
 
     private final PaymentService paymentService;
-//    private final OrderService2 orderService;
     private final TossPaymentsApiClient tossPaymentsApiClient;
     private final TossPaymentsProperties properties;
 
@@ -42,32 +37,24 @@ public class TossPaymentStrategy implements PaymentStrategy{
     }
 
     @Override
-    public CommonConfirmResponse confirmAndProcessPayment(CommonConfirmRequest req) {
+    public CommonResponse confirmPayment(CommonConfirmRequest req, String idempotencyKey) {
         log.info("토스 결제 승인 시작\norderId : {}\npaymentKey : {}\namount : {}", req.orderId(), req.paymentKey(), req.amount());
         // 보안 헤더 생성
         String authorization = buildAuthorizationHeader();
-
-        // TODO 서비스를 서로 호출해서 순화참조 오류 발생 차라리 repo로 해결할것
-
-//        OrderResponseDto orderResp = orderService.getOrderByOrderNumber(req.orderId());
-//        Integer totalAmount = orderResp.getTotalAmount();
-
-        // 금액 검증
-        if(!Objects.equals(totalAmount, req.amount())){
-            log.error("결제금액과 주문금액이 같지 않습니다");
-            throw new AmountMismatchException("결제 금액과 주문금액이 같지 않습니다");
-        }
-
-        // 공통 요청 -> 토스 승인 요청 변환
         TossConfirmRequest tossConfirmRequest = req.toTossConfirmRequest();
 
-        // API 호출
-        log.info("Toss Payments API 승인 요청");
-        TossConfirmResponse tossConfirmResponse = tossPaymentsApiClient.confirmPayment(authorization, tossConfirmRequest);
-        log.info("Toss Payments API 승인 성공");
+        try{
+            TossResponse tossResponse = findPayment(req.orderId());
 
-        // 결제사 응답값 -> 공용 db 처리
-        return tossConfirmResponse.toCommonConfirmResponse();
+            if(!tossResponse.status().equals("DONE")){
+                tossResponse = tossPaymentsApiClient.confirmPayment(authorization, idempotencyKey, tossConfirmRequest);
+            }
+
+            return tossResponse.toCommonConfirmResponse();
+        } catch (Exception e) {
+            log.error("결제 승인 중 오류 발생 : {}", e.getMessage());
+            throw new PaymentException("결제 승인 중 오류 발생 : " + e.getMessage());
+        }
     }
 
     @Override
@@ -80,14 +67,26 @@ public class TossPaymentStrategy implements PaymentStrategy{
 
         // 결제 취소시 결제 상태 변경
         PaymentUpdatePaymentStatusRequest updateStatusReq = new PaymentUpdatePaymentStatusRequest(orderNumber, cancelResponse.status());
-        paymentService.updatePaymentStatus(updateStatusReq);
+//        paymentService.updatePaymentStatus(updateStatusReq);
 
         PaymentUpdateRefundAmountRequest updateRefundAmountReq = new PaymentUpdateRefundAmountRequest(orderNumber, req.paymentKey());
-        paymentService.updateRefundAmount(updateRefundAmountReq);
+//        paymentService.updateRefundAmount(updateRefundAmountReq);
 
         // TODO 이벤트 핸들러 작성
 
         return cancelResponse.toCommonCancelResponse();
+    }
+
+    // 결제 조회
+    public TossResponse findPayment(String orderNumber){
+        log.info("토스 결제 조회 시작 (주문 번호 : {})", orderNumber);
+
+        String authorization = buildAuthorizationHeader();
+
+        log.debug("Toss Api 호출 시도");
+        TossResponse tossResponse = tossPaymentsApiClient.findPayment(authorization, orderNumber);
+        log.debug("Toss Api 호출 성공");
+        return tossResponse;
     }
 
     private String buildAuthorizationHeader(){

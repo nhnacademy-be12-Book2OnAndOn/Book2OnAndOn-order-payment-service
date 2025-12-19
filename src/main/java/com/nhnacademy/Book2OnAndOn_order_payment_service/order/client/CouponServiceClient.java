@@ -17,4 +17,7 @@ public interface CouponServiceClient {
 
     @GetMapping("/member-coupon/{memberCouponId}/targets")
     CouponTargetResponseDto getCouponTargets(@PathVariable("memberCouponId") Long memberCouponId);
+
+    @PostMapping("/{member-coupon-id}/use")
+    void useCoupon
 }

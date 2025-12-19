@@ -1,5 +1,13 @@
 package com.nhnacademy.Book2OnAndOn_order_payment_service.payment.service.impl;
 
+import com.nhnacademy.Book2OnAndOn_order_payment_service.exception.OrderVerificationException;
+import com.nhnacademy.Book2OnAndOn_order_payment_service.exception.PaymentException;
+import com.nhnacademy.Book2OnAndOn_order_payment_service.order.config.RabbitConfig;
+import com.nhnacademy.Book2OnAndOn_order_payment_service.order.entity.order.Order;
+import com.nhnacademy.Book2OnAndOn_order_payment_service.order.exception.OrderNotFoundException;
+import com.nhnacademy.Book2OnAndOn_order_payment_service.order.repository.order.OrderRepository;
+import com.nhnacademy.Book2OnAndOn_order_payment_service.payment.domain.dto.CommonConfirmRequest;
+import com.nhnacademy.Book2OnAndOn_order_payment_service.payment.domain.dto.CommonResponse;
 import com.nhnacademy.Book2OnAndOn_order_payment_service.payment.domain.dto.api.Cancel;
 import com.nhnacademy.Book2OnAndOn_order_payment_service.payment.domain.dto.request.PaymentCancelCreateRequest;
 import com.nhnacademy.Book2OnAndOn_order_payment_service.payment.domain.dto.request.PaymentCreateRequest;
@@ -18,16 +26,19 @@ import com.nhnacademy.Book2OnAndOn_order_payment_service.payment.exception.NotFo
 import com.nhnacademy.Book2OnAndOn_order_payment_service.payment.repository.PaymentCancelRepository;
 import com.nhnacademy.Book2OnAndOn_order_payment_service.payment.repository.PaymentRepository;
 import com.nhnacademy.Book2OnAndOn_order_payment_service.payment.service.PaymentService;
-import jakarta.transaction.Transactional;
+import com.nhnacademy.Book2OnAndOn_order_payment_service.payment.strategy.PaymentStrategy;
+import com.nhnacademy.Book2OnAndOn_order_payment_service.payment.strategy.PaymentStrategyFactory;
 
 import java.util.ArrayList;
 import java.util.List;
-import java.util.Objects;
 import java.util.Optional;
+import java.util.UUID;
 import java.util.stream.Collectors;
 import lombok.RequiredArgsConstructor;
 import lombok.extern.slf4j.Slf4j;
+import org.springframework.amqp.rabbit.core.RabbitTemplate;
 import org.springframework.stereotype.Service;
+import org.springframework.transaction.annotation.Transactional;
 
 @Slf4j
 @Service
@@ -36,6 +47,11 @@ public class PaymentServiceImpl implements PaymentService {
 
     private final PaymentRepository paymentRepository;
     private final PaymentCancelRepository paymentCancelRepository;
+    private final PaymentStrategyFactory factory;
+
+    private final OrderRepository orderRepository;
+    private final RabbitTemplate rabbitTemplate;
+    private static final int MAX_TRY = 5;
 
     // 주문조회시 결제정보도 출력
     @Override
@@ -47,17 +63,18 @@ public class PaymentServiceImpl implements PaymentService {
         return payment.toResponse();
     }
 
-    // 결제 성공 혹은 실패시 생성할 결제 정보 FeignClient 호출
     @Override
-    public PaymentResponse createPayment(PaymentCreateRequest req) {
-        log.info("결제 정보 생성 (주문번호 : {}, 결제금액 : {})", req.orderNumber(), req.totalAmount());
-        validateAndGetPayment(req.orderNumber(), false);
-        Payment payment = new Payment(req);
-        log.info("결제 엔티티 생성 : {}", payment);
-        Payment saved = paymentRepository.save(payment);
-        log.info("결제 정보 저장 (주문번호 : {}, 결제상태 : {})", saved.getOrderNumber(), saved.getPaymentStatus());
+    public PaymentResponse confirmAndCreatePayment(String provider, CommonConfirmRequest req) {
+        fetchAndValidateOrder(req);
 
-        return saved.toResponse();
+        PaymentResponse paymentResponse =  confirmPaymentWithRetry(provider, req);
+
+        rabbitTemplate.convertAndSend(
+                RabbitConfig.EXCHANGE,
+                RabbitConfig.ROUTING_KEY_COMPLETED,
+                req.orderId()
+        );
+        return paymentResponse;
     }
 
     // 결제 내역 삭제
@@ -72,57 +89,37 @@ public class PaymentServiceImpl implements PaymentService {
     }
 
     // 환불 금액 업데이트
-    @Transactional
-    @Override
-    public PaymentResponse updateRefundAmount(PaymentUpdateRefundAmountRequest req) {
-        log.info("결제 환불 금액 업데이트 (주문번호 : {})", req.orderNumber());
-        Payment payment = validateAndGetPayment(req.orderNumber(), true);
-
-        List<PaymentCancel> cancelList = paymentCancelRepository.findByPaymentKey(req.paymentKey());
-        log.info("결제 취소 사이즈 : {}", cancelList.size());
-
-        Integer refundAmount = cancelList.stream()
-                        .mapToInt(PaymentCancel::getCancelAmount)
-                        .sum();
-
-        payment.setRefundAmount(refundAmount);
-        log.info("결제 환불 금액 업데이트 성공 (주문번호 : {}, 환불금액 : {})", payment.getOrderNumber(), payment.getRefundAmount());
-        return payment.toResponse();
-    }
-
-    // 같은 결제 건의 상태 변경이 필요함
-    @Transactional
-    @Override
-    public PaymentResponse updatePaymentStatus(PaymentUpdatePaymentStatusRequest req) {
-        log.info("결제 상태 업데이트 (주문번호 : {})", req.orderNumber());
-        Payment payment = validateAndGetPayment(req.orderNumber(), true);
-        payment.setPaymentStatus(PaymentStatus.fromExternal(req.PaymentStatus()));
-        log.info("결제 상태 업데이트 성공 (주문번호 : {}, 결제상태 : {})", payment.getOrderNumber(), payment.getRefundAmount());
-
-        return payment.toResponse();
-    }
-
-
-    private Payment validateAndGetPayment(String orderNumber, boolean shouldExist){
-        Optional<Payment> optionalPayment = paymentRepository.findByOrderNumber(orderNumber);
-
-        if(shouldExist && optionalPayment.isEmpty()){
-            // 조회 및 삭제 : 데이터가 없으면 안됨
-            log.warn("결제 정보를 찾을 수 없습니다 (주문번호 : {})", orderNumber);
-            throw new NotFoundPaymentException("Not Found Payment : " + orderNumber);
-        }
-
-        if(!shouldExist && optionalPayment.isPresent()){
-            // 생성 : 중복 데이터가 있으면 안됨
-            log.warn("중복 결제 데이터입니다 (주문번호 : {})", orderNumber);
-            throw new DuplicatePaymentException("Duplicate Payment Data : " + orderNumber);
-        }
-
-        return optionalPayment.orElse(null);
-    }
+//    @Transactional
+//    @Override
+//    public PaymentResponse updateRefundAmount(PaymentUpdateRefundAmountRequest req) {
+//        log.info("결제 환불 금액 업데이트 (주문번호 : {})", req.orderNumber());
+//        Payment payment = validateAndGetPayment(req.orderNumber(), true);
+//
+//        List<PaymentCancel> cancelList = paymentCancelRepository.findByPaymentKey(req.paymentKey());
+//        log.info("결제 취소 사이즈 : {}", cancelList.size());
+//
+//        Integer refundAmount = cancelList.stream()
+//                .mapToInt(PaymentCancel::getCancelAmount)
+//                .sum();
+//
+//        payment.setRefundAmount(refundAmount);
+//        log.info("결제 환불 금액 업데이트 성공 (주문번호 : {}, 환불금액 : {})", payment.getOrderNumber(), payment.getRefundAmount());
+//        return payment.toResponse();
+//    }
+//
+//    // 같은 결제 건의 상태 변경이 필요함
+//    @Transactional
+//    @Override
+//    public PaymentResponse updatePaymentStatus(PaymentUpdatePaymentStatusRequest req) {
+//        log.info("결제 상태 업데이트 (주문번호 : {})", req.orderNumber());
+//        Payment payment = validateAndGetPayment(req.orderNumber(), true);
+//        payment.setPaymentStatus(PaymentStatus.fromExternal(req.PaymentStatus()));
+//        log.info("결제 상태 업데이트 성공 (주문번호 : {}, 결제상태 : {})", payment.getOrderNumber(), payment.getRefundAmount());
+//
+//        return payment.toResponse();
+//    }
 
     // 결제 취소 로직
-
     @Override
     public List<PaymentCancelResponse> createPaymentCancel(PaymentCancelCreateRequest req) {
         log.info("결제 취소 생성 시작 (결제키 : {})", req.paymentKey());
@@ -162,4 +159,61 @@ public class PaymentServiceImpl implements PaymentService {
                 .orElseThrow(() -> new NotFoundPaymentException("Not Found Payment : " + orderNumber));
     }
 
+    // ============== 헬퍼 메서드 ==============
+    private Payment validateAndGetPayment(String orderNumber, boolean shouldExist){
+        Optional<Payment> optionalPayment = paymentRepository.findByOrderNumber(orderNumber);
+
+        if(shouldExist && optionalPayment.isEmpty()){
+            // 조회 및 삭제 : 데이터가 없으면 안됨
+            log.warn("결제 정보를 찾을 수 없습니다 (주문번호 : {})", orderNumber);
+            throw new NotFoundPaymentException("Not Found Payment : " + orderNumber);
+        }
+
+        if(!shouldExist && optionalPayment.isPresent()){
+            // 생성 : 중복 데이터가 있으면 안됨
+            log.warn("중복 결제 데이터입니다 (주문번호 : {})", orderNumber);
+            throw new DuplicatePaymentException("Duplicate Payment Data : " + orderNumber);
+        }
+
+        return optionalPayment.orElse(null);
+    }
+
+    // 주문 조회 및 금액 검증
+    @Transactional(readOnly = true)
+    public void fetchAndValidateOrder(CommonConfirmRequest req){
+        Order order = orderRepository.findByOrderNumber(req.orderId())
+                .orElseThrow(() -> new OrderNotFoundException("해당 주문을 찾을 수 없습니다 : " + req.orderId()));
+
+        // 검증
+        if(order.getTotalAmount().equals(req.amount())){
+            log.error("데이터베이스에 저장된 금액과 결제 금액이 일치하지 않습니다 (저장 금액 : {}, 결제 금액 : {})", order.getTotalAmount(), req.amount());
+            throw new OrderVerificationException("금액 불일치, 저장 금액 : " + order.getTotalAmount() + ", 결제 금액 : " + req.amount());
+        }
+    }
+
+    // 승인
+    private PaymentResponse confirmPaymentWithRetry(String provider, CommonConfirmRequest req){
+        String idempotencyKey = UUID.randomUUID().toString();
+        int retryCount = 0;
+        PaymentStrategy paymentStrategy = factory.getStrategy(provider);
+
+        while(retryCount < MAX_TRY){
+            try{
+                // 승인된 결제 상태만 반환
+                CommonResponse commonResponse = paymentStrategy.confirmPayment(req, idempotencyKey);
+
+                // Payment 생성
+                PaymentCreateRequest paymentCreateRequest = commonResponse.toPaymentCreateRequest(provider);
+                Payment payment = new Payment(paymentCreateRequest);
+
+                // DB 저장
+                Payment saved = paymentRepository.save(payment);
+                return saved.toResponse();
+            } catch (Exception e) {
+                retryCount++;
+                log.error("결제 승인 처리 중 오류 발생, {}", e.getMessage());
+            }
+        }
+        throw new PaymentException("결제 승인 최대 재시도 횟수 초과");
+    }
 }

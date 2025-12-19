@@ -7,7 +7,7 @@
 //import com.nhnacademy.Book2OnAndOn_order_payment_service.payment.domain.dto.api.TossCancelRequest;
 //import com.nhnacademy.Book2OnAndOn_order_payment_service.payment.domain.dto.api.TossCancelResponse;
 //import com.nhnacademy.Book2OnAndOn_order_payment_service.payment.domain.dto.api.TossConfirmRequest;
-//import com.nhnacademy.Book2OnAndOn_order_payment_service.payment.domain.dto.api.TossConfirmResponse;
+//import com.nhnacademy.Book2OnAndOn_order_payment_service.payment.domain.dto.api.TossResponse;
 //import com.nhnacademy.Book2OnAndOn_order_payment_service.payment.domain.dto.request.PaymentCreateRequest;
 //import com.nhnacademy.Book2OnAndOn_order_payment_service.payment.domain.entity.Payment;
 //import com.nhnacademy.Book2OnAndOn_order_payment_service.payment.domain.entity.PaymentStatus;
@@ -73,13 +73,13 @@
 //        given(orderService.getTotalAmount(orderId)).willReturn(amount);
 //
 //        // Toss API 응답 Mocking
-//        TossConfirmResponse tossResponse = new TossConfirmResponse(
+//        TossResponse tossResponse = new TossResponse(
 //                orderId,
 //                amount,
 //                "카드",
 //                "DONE",
 //                LocalDateTime.now(),
-//                new TossConfirmResponse.Receipt("http://url"),
+//                new TossResponse.Receipt("http://url"),
 //                paymentKey
 //        );
 //        given(tossPaymentsApiClient.confirmPayment(anyString(), any(TossConfirmRequest.class)))
