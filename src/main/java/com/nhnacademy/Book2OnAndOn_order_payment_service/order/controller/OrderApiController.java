@@ -1,7 +1,6 @@
 package com.nhnacademy.Book2OnAndOn_order_payment_service.order.controller;
 
 import com.nhnacademy.Book2OnAndOn_order_payment_service.order.service.OrderApiService;
-import com.nhnacademy.Book2OnAndOn_order_payment_service.order.service.OrderService2;
 import java.time.LocalDate;
 import java.util.List;
 import lombok.RequiredArgsConstructor;
@@ -33,7 +32,7 @@ public class OrderApiController {
     @GetMapping("/orders/bestsellers")
     public ResponseEntity<List<Long>> getBestSellers(@RequestParam("period") String period){
         List<Long> bestSellerIds = orderApiService.getBestSellers(period);
-        return null;
+        return ResponseEntity.ok(bestSellerIds);
     }
 
     @GetMapping("/orders/users/{userId}/net-amount")

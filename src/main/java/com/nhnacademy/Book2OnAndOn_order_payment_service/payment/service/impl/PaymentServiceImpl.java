@@ -65,15 +65,17 @@ public class PaymentServiceImpl implements PaymentService {
 
     @Override
     public PaymentResponse confirmAndCreatePayment(String provider, CommonConfirmRequest req) {
-        fetchAndValidateOrder(req);
+        Order order = fetchAndValidateOrder(req);
 
         PaymentResponse paymentResponse =  confirmPaymentWithRetry(provider, req);
 
         rabbitTemplate.convertAndSend(
                 RabbitConfig.EXCHANGE,
                 RabbitConfig.ROUTING_KEY_COMPLETED,
-                req.orderId()
+                order.getOrderId()
         );
+
+
         return paymentResponse;
     }
 
@@ -180,7 +182,7 @@ public class PaymentServiceImpl implements PaymentService {
 
     // 주문 조회 및 금액 검증
     @Transactional(readOnly = true)
-    public void fetchAndValidateOrder(CommonConfirmRequest req){
+    public Order fetchAndValidateOrder(CommonConfirmRequest req){
         Order order = orderRepository.findByOrderNumber(req.orderId())
                 .orElseThrow(() -> new OrderNotFoundException("해당 주문을 찾을 수 없습니다 : " + req.orderId()));
 
@@ -189,6 +191,8 @@ public class PaymentServiceImpl implements PaymentService {
             log.error("데이터베이스에 저장된 금액과 결제 금액이 일치하지 않습니다 (저장 금액 : {}, 결제 금액 : {})", order.getTotalAmount(), req.amount());
             throw new OrderVerificationException("금액 불일치, 저장 금액 : " + order.getTotalAmount() + ", 결제 금액 : " + req.amount());
         }
+
+        return order;
     }
 
     // 승인
@@ -211,7 +215,7 @@ public class PaymentServiceImpl implements PaymentService {
                 return saved.toResponse();
             } catch (Exception e) {
                 retryCount++;
-                log.error("결제 승인 처리 중 오류 발생, {}", e.getMessage());
+                log.error("결제 승인 처리 중 오류 발생 (재시도 횟수 : {}/{}), {}",retryCount, MAX_TRY, e.getMessage());
             }
         }
         throw new PaymentException("결제 승인 최대 재시도 횟수 초과");

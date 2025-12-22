@@ -1,7 +1,7 @@
 package com.nhnacademy.Book2OnAndOn_order_payment_service.payment.controller;
 
 import com.nhnacademy.Book2OnAndOn_order_payment_service.order.exception.NotFoundOrderException;
-import com.nhnacademy.Book2OnAndOn_order_payment_service.order.service.OrderService2;
+import com.nhnacademy.Book2OnAndOn_order_payment_service.order.service.OrderService;
 import com.nhnacademy.Book2OnAndOn_order_payment_service.payment.domain.dto.CommonCancelRequest;
 import com.nhnacademy.Book2OnAndOn_order_payment_service.payment.domain.dto.CommonCancelResponse;
 import com.nhnacademy.Book2OnAndOn_order_payment_service.payment.domain.dto.CommonConfirmRequest;
@@ -30,7 +30,7 @@ import org.springframework.web.bind.annotation.RestController;
 @RequiredArgsConstructor
 public class PaymentController {
     private final PaymentService paymentService;
-    private final OrderService2 orderService;
+    private final OrderService orderService;
     private final PaymentStrategyFactory factory;
 
     // 결제 성공 및 검증 후 승인 요청
