@@ -15,13 +15,13 @@ public class PaymentCompleteMessageListener {
 
     // 결제 성공 이벤트 큐에서 메세지를 가져옴
     @RabbitListener(queues = RabbitConfig.QUEUE_COMPLETED)
-    public void receive(String orderNumber){
+    public void receive(Long orderId){
         log.info("RabbitMQ -> 결제 성공 이벤트 수신 (결제 성공 핸들러 실행)");
 
         try{
-            manager.finalizeBooks(orderNumber);
+            manager.finalizeBooks(orderId);
         }catch (Exception e){
-            log.error("결제 성공 핸들러 실패 (주문번호 : {})", orderNumber);
+            log.error("결제 성공 핸들러 실패 (주문 아이디 : {})", orderId);
             throw e;
         }
     }

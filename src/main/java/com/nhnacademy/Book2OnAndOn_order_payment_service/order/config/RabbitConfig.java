@@ -32,7 +32,7 @@ public class RabbitConfig {
 //    public static final String DLX_ROUTING_KEY_FAILED = "order-payment.failed.dlq";
 
     // 결제 취소시 쿠폰 상태변경 위한 라우팅 키
-    public static final String ROUTING_KEY_CANCEL = "coupon.cancel";
+    public static final String ROUTING_KEY_CANCEL_COUPON = "coupon.cancel";
 
     // 공통 EXCHANGE
     @Bean

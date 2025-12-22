@@ -1,6 +1,7 @@
 package com.nhnacademy.Book2OnAndOn_order_payment_service.payment.strategy;
 
-import com.nhnacademy.Book2OnAndOn_order_payment_service.exception.PaymentException;
+import static com.netflix.spectator.api.Statistic.totalAmount;
+
 import com.nhnacademy.Book2OnAndOn_order_payment_service.payment.client.TossPaymentsApiClient;
 import com.nhnacademy.Book2OnAndOn_order_payment_service.payment.domain.dto.CommonCancelRequest;
 import com.nhnacademy.Book2OnAndOn_order_payment_service.payment.domain.dto.CommonCancelResponse;
@@ -12,12 +13,12 @@ import com.nhnacademy.Book2OnAndOn_order_payment_service.payment.domain.dto.api.
 import com.nhnacademy.Book2OnAndOn_order_payment_service.payment.domain.dto.api.TossResponse;
 import com.nhnacademy.Book2OnAndOn_order_payment_service.payment.domain.dto.request.PaymentUpdatePaymentStatusRequest;
 import com.nhnacademy.Book2OnAndOn_order_payment_service.payment.domain.dto.request.PaymentUpdateRefundAmountRequest;
-import com.nhnacademy.Book2OnAndOn_order_payment_service.payment.domain.entity.Payment;
+import com.nhnacademy.Book2OnAndOn_order_payment_service.payment.exception.AmountMismatchException;
 import com.nhnacademy.Book2OnAndOn_order_payment_service.payment.property.TossPaymentsProperties;
-import com.nhnacademy.Book2OnAndOn_order_payment_service.payment.service.PaymentService;
 import java.nio.charset.StandardCharsets;
 import java.util.Base64;
 
+import java.util.Objects;
 import lombok.RequiredArgsConstructor;
 import lombok.extern.slf4j.Slf4j;
 import org.springframework.stereotype.Component;
@@ -27,7 +28,6 @@ import org.springframework.stereotype.Component;
 @RequiredArgsConstructor
 public class TossPaymentStrategy implements PaymentStrategy{
 
-    private final PaymentService paymentService;
     private final TossPaymentsApiClient tossPaymentsApiClient;
     private final TossPaymentsProperties properties;
 
@@ -37,24 +37,21 @@ public class TossPaymentStrategy implements PaymentStrategy{
     }
 
     @Override
-    public CommonResponse confirmPayment(CommonConfirmRequest req, String idempotencyKey) {
+    public CommonResponse confirmPayment(CommonConfirmRequest req, String idempontencyKey) {
         log.info("토스 결제 승인 시작\norderId : {}\npaymentKey : {}\namount : {}", req.orderId(), req.paymentKey(), req.amount());
         // 보안 헤더 생성
         String authorization = buildAuthorizationHeader();
+
+        // 공통 요청 -> 토스 승인 요청 변환
         TossConfirmRequest tossConfirmRequest = req.toTossConfirmRequest();
 
-        try{
-            TossResponse tossResponse = findPayment(req.orderId());
+        // API 호출
+        log.info("Toss Payments API 승인 요청");
+        TossResponse tossConfirmResponse = tossPaymentsApiClient.confirmPayment(authorization, idempontencyKey, tossConfirmRequest);
+        log.info("Toss Payments API 승인 성공");
 
-            if(!tossResponse.status().equals("DONE")){
-                tossResponse = tossPaymentsApiClient.confirmPayment(authorization, idempotencyKey, tossConfirmRequest);
-            }
-
-            return tossResponse.toCommonConfirmResponse();
-        } catch (Exception e) {
-            log.error("결제 승인 중 오류 발생 : {}", e.getMessage());
-            throw new PaymentException("결제 승인 중 오류 발생 : " + e.getMessage());
-        }
+        // 결제사 응답값 -> 공용 db 처리
+        return tossConfirmResponse.toCommonConfirmResponse();
     }
 
     @Override
@@ -77,18 +74,7 @@ public class TossPaymentStrategy implements PaymentStrategy{
         return cancelResponse.toCommonCancelResponse();
     }
 
-    // 결제 조회
-    public TossResponse findPayment(String orderNumber){
-        log.info("토스 결제 조회 시작 (주문 번호 : {})", orderNumber);
-
-        String authorization = buildAuthorizationHeader();
-
-        log.debug("Toss Api 호출 시도");
-        TossResponse tossResponse = tossPaymentsApiClient.findPayment(authorization, orderNumber);
-        log.debug("Toss Api 호출 성공");
-        return tossResponse;
-    }
-
+    // 인증 헤더 생성
     private String buildAuthorizationHeader(){
         String encodeSecretKey = Base64.getEncoder().encodeToString((properties.getSecretKey() + ":").getBytes(
                 StandardCharsets.UTF_8));
