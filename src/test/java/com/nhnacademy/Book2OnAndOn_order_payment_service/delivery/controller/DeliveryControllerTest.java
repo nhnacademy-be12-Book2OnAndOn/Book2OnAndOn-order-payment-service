@@ -4,13 +4,11 @@ import com.fasterxml.jackson.databind.ObjectMapper;
 import com.nhnacademy.Book2OnAndOn_order_payment_service.order.controller.DeliveryController;
 import com.nhnacademy.Book2OnAndOn_order_payment_service.order.dto.delivery.DeliveryResponseDto;
 import com.nhnacademy.Book2OnAndOn_order_payment_service.order.dto.delivery.DeliveryWaybillUpdateDto;
-
 import com.nhnacademy.Book2OnAndOn_order_payment_service.order.service.DeliveryService;
 import org.junit.jupiter.api.DisplayName;
 import org.junit.jupiter.api.Test;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.boot.test.autoconfigure.web.servlet.WebMvcTest;
-
 import org.springframework.data.domain.Page;
 import org.springframework.data.domain.PageImpl;
 import org.springframework.data.domain.Pageable;
@@ -31,8 +29,11 @@ import static org.springframework.test.web.servlet.request.MockMvcRequestBuilder
 import static org.springframework.test.web.servlet.result.MockMvcResultHandlers.print;
 import static org.springframework.test.web.servlet.result.MockMvcResultMatchers.*;
 
-@WebMvcTest(DeliveryController.class)
-@WithMockUser(username = "admin", roles = {"ADMIN"})
+@WebMvcTest(controllers = DeliveryController.class, properties = {
+        "spring.cloud.config.enabled=false",      // Config Server 끄기
+        "book.service.url=http://localhost:8080"  // 구멍난 설정값 메워주기
+})
+@WithMockUser(username = "admin", roles = {"SUPER_ADMIN"})
 class DeliveryControllerTest {
 
     @Autowired
@@ -55,17 +56,18 @@ class DeliveryControllerTest {
                 1L, orderId, "SHIPPING", "우체국택배", "123456789", LocalDateTime.now(), "http://tracking-url.com"
         );
 
-        given(deliveryService.getDelivery(eq(orderId), eq(userId)))
+        given(deliveryService.getDelivery(eq(orderId), eq(userId), isNull()))
                 .willReturn(responseDto);
 
         // When & Then
         mockMvc.perform(get("/deliveries")
                         .param("orderId", String.valueOf(orderId))
-                        .header("X-USER-ID", userId)
+                        .header("X-User-Id", userId)
                         .accept(MediaType.APPLICATION_JSON))
                 .andDo(print())
                 .andExpect(status().isOk())
-                .andExpect(jsonPath("$.deliveryId").value(1L));
+                .andExpect(jsonPath("$.deliveryId").value(1L))
+                .andExpect(jsonPath("$.orderId").value(orderId));
     }
 
     @Test
@@ -84,7 +86,8 @@ class DeliveryControllerTest {
                         .param("size", "10")
                         .accept(MediaType.APPLICATION_JSON))
                 .andDo(print())
-                .andExpect(status().isOk());
+                .andExpect(status().isOk())
+                .andExpect(jsonPath("$.content[0].orderId").value(10L));
     }
 
     @Test
@@ -96,7 +99,7 @@ class DeliveryControllerTest {
 
         // When & Then
         mockMvc.perform(put("/admin/deliveries/{deliveryId}/waybill", deliveryId)
-                        .with(csrf()) // [핵심 2] PUT 요청은 CSRF 토큰 필수
+                        .with(csrf()) // PUT 요청 필수
                         .contentType(MediaType.APPLICATION_JSON)
                         .content(objectMapper.writeValueAsString(requestDto)))
                 .andDo(print())
@@ -114,7 +117,7 @@ class DeliveryControllerTest {
 
         // When & Then
         mockMvc.perform(put("/admin/deliveries/{deliveryId}/info", deliveryId)
-                        .with(csrf()) // [핵심 2] CSRF 토큰 추가
+                        .with(csrf())
                         .contentType(MediaType.APPLICATION_JSON)
                         .content(objectMapper.writeValueAsString(requestDto)))
                 .andDo(print())
@@ -128,6 +131,7 @@ class DeliveryControllerTest {
     void registerWaybill_validation_fail() throws Exception {
         // Given
         Long deliveryId = 1L;
+
         DeliveryWaybillUpdateDto invalidRequest = new DeliveryWaybillUpdateDto("CJ대한통운", null);
 
         // When & Then
@@ -136,6 +140,6 @@ class DeliveryControllerTest {
                         .contentType(MediaType.APPLICATION_JSON)
                         .content(objectMapper.writeValueAsString(invalidRequest)))
                 .andDo(print())
-                .andExpect(status().isBadRequest());
+                .andExpect(status().isBadRequest()); // 400 Bad Request 기대
     }
 }

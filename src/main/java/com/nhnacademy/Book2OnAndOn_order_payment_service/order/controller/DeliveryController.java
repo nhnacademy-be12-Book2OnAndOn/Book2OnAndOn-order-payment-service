@@ -20,10 +20,11 @@ public class DeliveryController {
     @GetMapping("/deliveries")
     public ResponseEntity<DeliveryResponseDto> getDeliveryByOrder(
             @RequestParam Long orderId,
-            @RequestHeader("X-USER-ID") Long userId) { // [추가] 헤더 받기
+            @RequestHeader(value = "X-User-Id", required = false) Long userId,
+            @RequestHeader(value = "X-Guest-Token", required = false) String guestToken) {
 
         // 서비스에 userId도 같이 전달
-        DeliveryResponseDto response = deliveryService.getDelivery(orderId, userId);
+        DeliveryResponseDto response = deliveryService.getDelivery(orderId, userId, guestToken);
         return ResponseEntity.ok(response);
     }
 
