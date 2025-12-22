@@ -284,7 +284,9 @@ async function handleActionRequest(type, detail, amount) {
 }
 
 // (취소/환불)모달창 숨기기
-function hideModal() { document.getElementById('actionModal').classList.add('hidden'); }
+function hideModal() {
+    document.getElementById('actionModal').classList.add('hidden');
+}
 function setupModalListeners() {
     document.querySelector('#actionModal .close-button')?.addEventListener('click', hideModal);
 }
@@ -376,6 +378,7 @@ function getCurrentFilters() {
         year: document.getElementById('filterYear').value,
         month: document.getElementById('filterMonth').value,
         status: document.getElementById('filterStatus').value,
+        searchType: document.getElementById('searchType').value,
         keyword: document.getElementById('searchKeyword').value
             .trim()
     };
@@ -385,9 +388,33 @@ function getCurrentFilters() {
 function filterMockOrders(orders, f) {
     return orders.filter(o => {
         const d = new Date(o.date);
-        if (f.year !== 'all' && f.year !== String(d.getFullYear())) return false;
-        if (f.month !== 'all' && f.month !== String(d.getMonth() + 1).padStart(2, '0')) return false;
-        if (f.status !== 'all' && f.status !== o.status) return false;
+        if (f.year !== 'all' && f.year !== String(d.getFullYear())) {
+            return false;
+        }
+        if (f.month !== 'all' && f.month !== String(d.getMonth() + 1).padStart(2, '0')) {
+            return false;
+        }
+        if (f.status !== 'all' && f.status !== o.status) {
+            return false;
+        }
+        if (f.keyword) {
+            if (f.searchType === 'orderItemName') {
+                // 주문 상품명 검색 (여러 상품일 수 있으므로 join하여 검색)
+                const productNames = o.items.map(item => item.name).join(' ').toLowerCase();
+                if (!productNames.includes(f.keyword)) return false;
+            }
+            else if (f.searchType === 'orderNumber') {
+                // 주문 번호 검색
+                if (!o.orderId.toLowerCase().includes(f.keyword)) return false;
+            }
+            else if (f.searchType === 'recipientName') {
+                // 임시 수령인 검색
+                const mockRecipients = { 'M1001': '홍길동', 'M1002': '김철수', 'M1003': '이영희', 'M1004': '박민준', 'M1005': '최현우' };
+                const recipient = mockRecipients[o.orderId] || "";
+                if (!recipient.toLowerCase().includes(f.keyword)) return false;
+            }
+        }
+
         return true;
     });
 }
