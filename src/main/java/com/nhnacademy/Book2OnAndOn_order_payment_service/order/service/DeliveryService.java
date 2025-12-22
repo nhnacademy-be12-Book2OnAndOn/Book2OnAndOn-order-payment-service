@@ -9,6 +9,7 @@ import com.nhnacademy.Book2OnAndOn_order_payment_service.order.entity.order.Orde
 import com.nhnacademy.Book2OnAndOn_order_payment_service.order.entity.order.OrderStatus;
 import com.nhnacademy.Book2OnAndOn_order_payment_service.order.exception.DeliveryNotFoundException;
 import com.nhnacademy.Book2OnAndOn_order_payment_service.order.exception.OrderNotFoundException;
+import com.nhnacademy.Book2OnAndOn_order_payment_service.order.provider.GuestTokenProvider;
 import com.nhnacademy.Book2OnAndOn_order_payment_service.order.repository.delivery.DeliveryRepository;
 import com.nhnacademy.Book2OnAndOn_order_payment_service.order.repository.order.OrderRepository;
 import lombok.RequiredArgsConstructor;
@@ -28,8 +29,9 @@ public class DeliveryService {
 
     private final DeliveryRepository deliveryRepository;
     private final OrderRepository orderRepository;
+    private final GuestTokenProvider guestTokenProvider;
 
-//    @Value("${smart-delivery.api-key}")
+    @Value("${smart-delivery.api-key}")
     private String sweetTrackerApiKey;
 
 
@@ -74,13 +76,12 @@ public class DeliveryService {
 
     // 배송 정보 단일 조회
     @Transactional(readOnly = true)
-    public DeliveryResponseDto getDelivery(Long orderId, Long userId) {
+    public DeliveryResponseDto getDelivery(Long orderId, Long userId, String guestToken) {
+
         Delivery delivery = deliveryRepository.findByOrder_OrderId(orderId)
                 .orElseThrow(() -> new DeliveryNotFoundException("배송 정보를 찾을 수 없습니다. Order ID: " + orderId));
 
-        if(!delivery.getOrder().getUserId().equals(userId)) {
-            throw new AccessDeniedException("본인의 배송정보만 조회할 수 있습니다.");
-        }
+        validateAuthority(delivery, userId, guestToken);
 
         // API 키 주입하여 DTO 생성 (추적 URL 포함)
         return new DeliveryResponseDto(delivery, sweetTrackerApiKey);
@@ -111,5 +112,28 @@ public class DeliveryService {
         delivery.updateTrackingInfo(company, requestDto.getWaybill());
 
         log.info("배송 정보 수정 완료: deliveryId={}, waybill={}", deliveryId, requestDto.getWaybill());
+    }
+
+    private void validateAuthority(Delivery delivery, Long userId, String guestToken) {
+
+        Long orderId = delivery.getOrder().getOrderId();
+
+        if(userId != null) {
+
+            if(!userId.equals(delivery.getOrder().getUserId())) {
+                throw new AccessDeniedException("본인의 주문 배송지만 조회할 수 있습니다.");
+            }
+            return;
+        }
+
+        if(guestToken != null) {
+            Long tokenOrderId = guestTokenProvider.validateTokenAndGetOrderId(guestToken);
+
+            if(!tokenOrderId.equals(orderId)) {
+                throw new AccessDeniedException("본인의 주문 배송지만 조회할 수 있습니다.");
+            }
+            return;
+        }
+        throw new AccessDeniedException("로그인이 필요하거나 잘못된 접근입니다.");
     }
 }
