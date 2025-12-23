@@ -1,5 +1,5 @@
 
-package com.nhnacademy.Book2OnAndOn_order_payment_service.order.service;
+package com.nhnacademy.Book2OnAndOn_order_payment_service.order.service.impl;
 
 import com.nhnacademy.Book2OnAndOn_order_payment_service.exception.OrderVerificationException;
 import com.nhnacademy.Book2OnAndOn_order_payment_service.order.assembler.OrderViewAssembler;
@@ -33,6 +33,9 @@ import com.nhnacademy.Book2OnAndOn_order_payment_service.order.exception.OrderNo
 import com.nhnacademy.Book2OnAndOn_order_payment_service.order.provider.OrderNumberProvider;
 import com.nhnacademy.Book2OnAndOn_order_payment_service.order.repository.delivery.DeliveryPolicyRepository;
 import com.nhnacademy.Book2OnAndOn_order_payment_service.order.repository.order.OrderRepository;
+import com.nhnacademy.Book2OnAndOn_order_payment_service.order.service.OrderResourceManager;
+import com.nhnacademy.Book2OnAndOn_order_payment_service.order.service.OrderService;
+import com.nhnacademy.Book2OnAndOn_order_payment_service.order.service.WrappingPaperService;
 import com.nhnacademy.Book2OnAndOn_order_payment_service.payment.domain.dto.CommonCancelRequest;
 import com.nhnacademy.Book2OnAndOn_order_payment_service.payment.domain.dto.CommonCancelResponse;
 import com.nhnacademy.Book2OnAndOn_order_payment_service.payment.domain.dto.request.PaymentCancelCreateRequest;
@@ -175,12 +178,12 @@ public class OrderServiceImpl implements OrderService {
 
         try {
             // 선점 메서드
-            resourceManager.prepareResources(userId, orderCreateResponseDto.getOrderId(), req, result);
+            resourceManager.prepareResources(userId, req, result, orderCreateResponseDto.getOrderId());
             return orderCreateResponseDto;
         } catch (Exception e){
             log.error("알 수 없는 오류 발생! 복구 트랜잭션 실행");
             // 복구 메서드
-            resourceManager.releaseResources(result.orderNumber(), req.getMemberCouponId(), userId, orderCreateResponseDto.getOrderId(), result.pointDiscount());
+            resourceManager.releaseResources(result.orderNumber(), req.getMemberCouponId(), userId, result.pointDiscount(), orderCreateResponseDto.getOrderId());
             throw new OrderVerificationException("주문 내부 오류 발생 " + e.getMessage());
         }
     }
@@ -230,7 +233,7 @@ public class OrderServiceImpl implements OrderService {
                 deliveryFee,
                 wrappingFee,
                 couponDiscount,
-                pointDiscount,
+                pointDiscount, // 포인트 사용량
                 wantDeliveryDate,
                 orderItemList,
                 deliveryAddress

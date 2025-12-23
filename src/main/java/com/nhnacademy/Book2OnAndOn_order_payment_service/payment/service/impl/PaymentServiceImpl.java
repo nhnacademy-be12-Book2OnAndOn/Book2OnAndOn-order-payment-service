@@ -74,7 +74,6 @@ public class PaymentServiceImpl implements PaymentService {
     @Override
     public PaymentResponse confirmAndCreatePayment(String provider, CommonConfirmRequest req) {
         log.info("결제 승인 요청 및 결제 엔티티 생성 (주문번호 : {})", req.orderId());
-        // TODO 결제 성공후 이벤트 구현하기
         // 1. 주문 금액 검증
         paymentTransactionService.validateOrderAmount(req);
 

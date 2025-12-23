@@ -3,13 +3,15 @@ package com.nhnacademy.Book2OnAndOn_order_payment_service.order.service;
 import com.nhnacademy.Book2OnAndOn_order_payment_service.order.client.BookServiceClient;
 import com.nhnacademy.Book2OnAndOn_order_payment_service.order.client.CouponServiceClient;
 import com.nhnacademy.Book2OnAndOn_order_payment_service.order.client.UserServiceClient;
+import com.nhnacademy.Book2OnAndOn_order_payment_service.order.client.dto.OrderCanceledEvent;
 import com.nhnacademy.Book2OnAndOn_order_payment_service.order.client.dto.UseCouponRequestDto;
-import com.nhnacademy.Book2OnAndOn_order_payment_service.order.client.dto.PointUsedRequestDto;
+import com.nhnacademy.Book2OnAndOn_order_payment_service.order.client.dto.UsePointInternalRequestDto;
 import com.nhnacademy.Book2OnAndOn_order_payment_service.order.client.dto.ReserveBookRequestDto;
 import com.nhnacademy.Book2OnAndOn_order_payment_service.order.config.RabbitConfig;
 import com.nhnacademy.Book2OnAndOn_order_payment_service.order.dto.order.OrderCreateRequestDto;
 import com.nhnacademy.Book2OnAndOn_order_payment_service.order.dto.order.OrderVerificationResult;
 import com.nhnacademy.Book2OnAndOn_order_payment_service.order.dto.order.orderitem.BookInfoDto;
+import java.time.LocalDateTime;
 import java.util.List;
 import lombok.RequiredArgsConstructor;
 import org.springframework.amqp.rabbit.core.RabbitTemplate;
@@ -29,38 +31,46 @@ public class OrderResourceManager {
     private final RabbitTemplate rabbitTemplate;
 
     // 자원 준비
-    public void prepareResources(Long userId, Long orderId, OrderCreateRequestDto req, OrderVerificationResult result){
+    public void prepareResources(Long userId, OrderCreateRequestDto req, OrderVerificationResult result, Long orderId){
         List<BookInfoDto> bookInfoDtoList = req.getOrderItems().stream()
                 .map(item -> new BookInfoDto(item.getBookId(), item.getQuantity()))
                 .toList();
 
-        reserveBook(orderId, bookInfoDtoList);
+        reserveBook(result.orderNumber(), bookInfoDtoList);
         confirmCoupon(result.orderNumber(), userId, req.getMemberCouponId());
-        confirmPoint(result.orderNumber(), userId, result.pointDiscount());
+        confirmPoint(orderId, userId, result.pointDiscount());
     }
 
     // 자원 복구
-    public void releaseResources(String orderNumber, Long memberCouponId, Long userId, Long orderId, Integer point){
-        releaseBook(orderId);
+    public void releaseResources(String orderNumber, Long memberCouponId, Long userId, Integer point, Long orderId){
+        releaseBook(orderNumber);
         releaseCoupon(orderNumber, memberCouponId);
-        releasePoint(orderNumber, userId, point);
+        releasePoint(orderId, userId, point);
     }
 
     // 도서 확정 (결제 성공시 이벤트 핸들러용)
-    public void finalizeBooks(Long orderId){
-        confirmBook(orderId);
+    public void finalizeBooks(String orderNumber){
+        confirmBook(orderNumber);
     }
 
     /// 실제 로직
     // 도서
-    private void reserveBook(Long orderId, List<BookInfoDto> bookInfoDtoList){
-        new ReserveBookRequestDto(orderId, bookInfoDtoList);
+    private void reserveBook(String orderNumber, List<BookInfoDto> bookInfoDtoList){
+        bookServiceClient.reserveStock(new ReserveBookRequestDto(orderNumber, bookInfoDtoList));
     }
-    private void releaseBook(Long orderId){
-
+    private void releaseBook(String orderNumber){
+        rabbitTemplate.convertAndSend(
+                RabbitConfig.EXCHANGE,
+                RabbitConfig.ROUTING_KEY_CANCEL_BOOK,
+                orderNumber
+        );
     }
-    private void confirmBook(Long orderId){
-
+    private void confirmBook(String orderNumber){
+        rabbitTemplate.convertAndSend(
+                RabbitConfig.EXCHANGE,
+                RabbitConfig.ROUTING_KEY_CONFIRM_BOOK,
+                orderNumber
+        );
     }
 
     // 쿠폰
@@ -79,14 +89,19 @@ public class OrderResourceManager {
     }
 
     // 포인트
-    private void releasePoint(String orderNumber, Long userId, Integer point){
+    private void releasePoint(Long orderId, Long userId, Integer point){
         if(point == null || point <= 0) return;
 
-        new PointUsedRequestDto(orderNumber, userId, point);
+        rabbitTemplate.convertAndSend(
+                RabbitConfig.EXCHANGE,
+                RabbitConfig.ROUTING_KEY_CANCEL_POINT,
+                new OrderCanceledEvent(userId, orderId, point, LocalDateTime.now())
+        );
     }
-    private void confirmPoint(String orderNumber, Long userId, Integer point){
+    private void confirmPoint(Long orderId, Long userId, Integer point){
         if(point == null || point <= 0) return;
-        new PointUsedRequestDto(orderNumber, userId, point);
+        userServiceClient.usePoint(userId, new UsePointInternalRequestDto(orderId, point));
+
     }
 
 }
