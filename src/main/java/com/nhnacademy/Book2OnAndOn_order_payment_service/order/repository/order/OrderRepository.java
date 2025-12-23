@@ -124,7 +124,7 @@ public interface OrderRepository extends JpaRepository<Order, Long> {
                                         OrderStatus orderStatus,
                                         OrderItemStatus orderItemStatus,
                                         Pageable pageable);
-
+    @EntityGraph(attributePaths = {"orderItems"})
     Optional<Order> findByOrderNumber(String orderNumber);
 }
 
