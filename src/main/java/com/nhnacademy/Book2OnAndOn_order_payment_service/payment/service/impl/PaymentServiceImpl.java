@@ -1,10 +1,6 @@
 package com.nhnacademy.Book2OnAndOn_order_payment_service.payment.service.impl;
 
-import com.nhnacademy.Book2OnAndOn_order_payment_service.exception.OrderVerificationException;
 import com.nhnacademy.Book2OnAndOn_order_payment_service.exception.PaymentException;
-import com.nhnacademy.Book2OnAndOn_order_payment_service.order.config.RabbitConfig;
-import com.nhnacademy.Book2OnAndOn_order_payment_service.order.entity.order.Order;
-import com.nhnacademy.Book2OnAndOn_order_payment_service.order.exception.OrderNotFoundException;
 import com.nhnacademy.Book2OnAndOn_order_payment_service.order.repository.order.OrderRepository;
 import com.nhnacademy.Book2OnAndOn_order_payment_service.order.service.OrderResourceManager;
 import com.nhnacademy.Book2OnAndOn_order_payment_service.payment.domain.dto.CommonConfirmRequest;
@@ -14,14 +10,11 @@ import com.nhnacademy.Book2OnAndOn_order_payment_service.payment.domain.dto.requ
 import com.nhnacademy.Book2OnAndOn_order_payment_service.payment.domain.dto.request.PaymentCreateRequest;
 import com.nhnacademy.Book2OnAndOn_order_payment_service.payment.domain.dto.request.PaymentDeleteRequest;
 import com.nhnacademy.Book2OnAndOn_order_payment_service.payment.domain.dto.request.PaymentRequest;
-import com.nhnacademy.Book2OnAndOn_order_payment_service.payment.domain.dto.request.PaymentUpdatePaymentStatusRequest;
-import com.nhnacademy.Book2OnAndOn_order_payment_service.payment.domain.dto.request.PaymentUpdateRefundAmountRequest;
 import com.nhnacademy.Book2OnAndOn_order_payment_service.payment.domain.dto.response.PaymentCancelResponse;
 import com.nhnacademy.Book2OnAndOn_order_payment_service.payment.domain.dto.response.PaymentDeleteResponse;
 import com.nhnacademy.Book2OnAndOn_order_payment_service.payment.domain.dto.response.PaymentResponse;
 import com.nhnacademy.Book2OnAndOn_order_payment_service.payment.domain.entity.Payment;
 import com.nhnacademy.Book2OnAndOn_order_payment_service.payment.domain.entity.PaymentCancel;
-import com.nhnacademy.Book2OnAndOn_order_payment_service.payment.domain.entity.PaymentStatus;
 import com.nhnacademy.Book2OnAndOn_order_payment_service.payment.exception.DuplicatePaymentException;
 import com.nhnacademy.Book2OnAndOn_order_payment_service.payment.exception.NotFoundPaymentException;
 import com.nhnacademy.Book2OnAndOn_order_payment_service.payment.repository.PaymentCancelRepository;
@@ -43,7 +36,6 @@ import org.springframework.amqp.rabbit.core.RabbitTemplate;
 import org.springframework.retry.annotation.Backoff;
 import org.springframework.retry.annotation.Retryable;
 import org.springframework.stereotype.Service;
-import org.springframework.transaction.annotation.Transactional;
 
 @Slf4j
 @Service

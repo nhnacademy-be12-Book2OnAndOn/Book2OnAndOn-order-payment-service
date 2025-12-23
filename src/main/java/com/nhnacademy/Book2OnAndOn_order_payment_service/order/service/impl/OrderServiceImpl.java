@@ -1,12 +1,18 @@
 
 package com.nhnacademy.Book2OnAndOn_order_payment_service.order.service.impl;
 
+import com.nhnacademy.Book2OnAndOn_order_payment_service.client.dto.BookOrderResponse;
+import com.nhnacademy.Book2OnAndOn_order_payment_service.client.dto.CouponPolicyDiscountType;
+import com.nhnacademy.Book2OnAndOn_order_payment_service.client.dto.CouponTargetResponseDto;
+import com.nhnacademy.Book2OnAndOn_order_payment_service.client.dto.CurrentPointResponseDto;
+import com.nhnacademy.Book2OnAndOn_order_payment_service.client.dto.MemberCouponResponseDto;
+import com.nhnacademy.Book2OnAndOn_order_payment_service.client.dto.OrderCouponCheckRequestDto;
+import com.nhnacademy.Book2OnAndOn_order_payment_service.client.dto.UserAddressResponseDto;
 import com.nhnacademy.Book2OnAndOn_order_payment_service.exception.OrderVerificationException;
 import com.nhnacademy.Book2OnAndOn_order_payment_service.order.assembler.OrderViewAssembler;
-import com.nhnacademy.Book2OnAndOn_order_payment_service.order.client.BookServiceClient;
-import com.nhnacademy.Book2OnAndOn_order_payment_service.order.client.CouponServiceClient;
-import com.nhnacademy.Book2OnAndOn_order_payment_service.order.client.UserServiceClient;
-import com.nhnacademy.Book2OnAndOn_order_payment_service.order.client.dto.*;
+import com.nhnacademy.Book2OnAndOn_order_payment_service.client.BookServiceClient;
+import com.nhnacademy.Book2OnAndOn_order_payment_service.client.CouponServiceClient;
+import com.nhnacademy.Book2OnAndOn_order_payment_service.client.UserServiceClient;
 import com.nhnacademy.Book2OnAndOn_order_payment_service.order.dto.order.DeliveryAddressRequestDto;
 import com.nhnacademy.Book2OnAndOn_order_payment_service.order.dto.order.OrderCancelRequestDto;
 import com.nhnacademy.Book2OnAndOn_order_payment_service.order.dto.order.OrderCancelResponseDto;

@@ -1,9 +1,9 @@
 package com.nhnacademy.Book2OnAndOn_order_payment_service.order.dto.order;
 
-import com.nhnacademy.Book2OnAndOn_order_payment_service.order.client.dto.BookOrderResponse;
-import com.nhnacademy.Book2OnAndOn_order_payment_service.order.client.dto.CurrentPointResponseDto;
-import com.nhnacademy.Book2OnAndOn_order_payment_service.order.client.dto.MemberCouponResponseDto;
-import com.nhnacademy.Book2OnAndOn_order_payment_service.order.client.dto.UserAddressResponseDto;
+import com.nhnacademy.Book2OnAndOn_order_payment_service.client.dto.BookOrderResponse;
+import com.nhnacademy.Book2OnAndOn_order_payment_service.client.dto.CurrentPointResponseDto;
+import com.nhnacademy.Book2OnAndOn_order_payment_service.client.dto.MemberCouponResponseDto;
+import com.nhnacademy.Book2OnAndOn_order_payment_service.client.dto.UserAddressResponseDto;
 import java.util.List;
 
 public record OrderPrepareResponseDto(

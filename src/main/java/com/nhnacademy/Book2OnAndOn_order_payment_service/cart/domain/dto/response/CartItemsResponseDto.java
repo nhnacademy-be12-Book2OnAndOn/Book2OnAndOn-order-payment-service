@@ -19,10 +19,4 @@ public class CartItemsResponseDto {
     private int selectedQuantity;    // 선택된 항목 수량 합
     private int selectedTotalPrice;  // 선택된 항목 총 금액
 
-    // === 배송 정책 관련 추가 ===
-//    private int deliveryFee;             // 배송비
-//    private int freeDeliveryThreshold;   // 무료배송 기준
-
-    // === 최종 결제금액 (옵션이지만 권장) ===
-//    private int finalPaymentAmount;      // selectedTotalPrice + 배송비
 }

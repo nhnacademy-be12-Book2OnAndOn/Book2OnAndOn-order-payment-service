@@ -25,6 +25,15 @@ public class CartRedisRepositoryImpl implements CartRedisRepository {
     private final RedisTemplate<String, CartRedisItem> redisTemplate;
     private final StringRedisTemplate stringRedisTemplate;
 
+    private static final String DIRTY_USERS = USER_CART_DIRTY_SET_KEY;
+    private static final String DIRTY_ITEMS_PREFIX = "cart-service:user:dirty:items:";
+    private static final String DIRTY_DELETED_PREFIX = "cart-service:user:dirty:deleted:";
+    private static final String DIRTY_CLEAR_PREFIX = "cart-service:user:dirty:clear:";
+
+    private String dirtyItemsKey(Long userId) { return DIRTY_ITEMS_PREFIX + userId; }
+    private String dirtyDeletedKey(Long userId) { return DIRTY_DELETED_PREFIX + userId; }
+    private String dirtyClearKey(Long userId) { return DIRTY_CLEAR_PREFIX + userId; }
+
     // ======================
     // 0. Redis 기본 설정
     // ======================
@@ -116,31 +125,6 @@ public class CartRedisRepositoryImpl implements CartRedisRepository {
         redisTemplate.delete(userKey(userId));
     }
 
-    // 5) Dirty Mark 등록 : 회원 카트 Redis가 수정될 때마다 userId를 “Dirty Set”에 추가
-    @Override
-    public void markUserCartDirty(Long userId) {
-        stringRedisTemplate.opsForSet().add(USER_CART_DIRTY_SET_KEY, String.valueOf(userId));
-    }
-
-    // 6) Dirty ID 목록 조회 : Dirty Set에 들어있는 userId에 대해서만 DB flush가 발생. (Scheduler 사용)
-    @Override
-    public Set<Long> getDirtyUserIds() {
-        Set<String> members = stringRedisTemplate.opsForSet().members(USER_CART_DIRTY_SET_KEY);
-        if (members == null || members.isEmpty()) {
-            return Collections.emptySet();
-        }
-        return members.stream()
-                .map(Long::valueOf)
-                .collect(Collectors.toSet());
-    }
-
-    // 7) Dirty Mark 해제 : flush 완료 후, Dirty Set에서 해당 userId 제거
-    @Override
-    public void clearUserCartDirty(Long userId) {
-        stringRedisTemplate.opsForSet().remove(USER_CART_DIRTY_SET_KEY, String.valueOf(userId));
-    }
-
-
     // ======================
     // 2. 비회원 장바구니
     // ======================
@@ -218,4 +202,68 @@ public class CartRedisRepositoryImpl implements CartRedisRepository {
     public void clearGuestCart(String uuid) {
         redisTemplate.delete(guestKey(uuid));
     }
+
+
+    // ======================
+    // 3. 장바구니 동기화 관리
+    // ======================
+    // 1) Dirty Mark 등록 : 회원 카트 Redis가 수정될 때마다 userId를 “Dirty Set”에 추가
+    @Override
+    public void markUserCartDirty(Long userId) {
+        stringRedisTemplate.opsForSet().add(USER_CART_DIRTY_SET_KEY, String.valueOf(userId));
+    }
+
+    @Override
+    public void markUserItemDirty(Long userId, Long bookId) {
+
+    }
+
+    @Override
+    public void markUserItemDeleted(Long userId, Long bookId) {
+
+    }
+
+    // 6) Dirty ID 목록 조회 : Dirty Set에 들어있는 userId에 대해서만 DB flush가 발생. (Scheduler 사용)
+    @Override
+    public Set<Long> getDirtyUserIds() {
+        Set<String> members = stringRedisTemplate.opsForSet().members(USER_CART_DIRTY_SET_KEY);
+        if (members == null || members.isEmpty()) {
+            return Collections.emptySet();
+        }
+        return members.stream()
+                .map(Long::valueOf)
+                .collect(Collectors.toSet());
+    }
+
+    @Override
+    public Set<Long> getDirtyItemIds(Long userId) {
+        return Set.of();
+    }
+
+    @Override
+    public Set<Long> getDeletedItemIds(Long userId) {
+        return Set.of();
+    }
+
+    // 7) Dirty Mark 해제 : flush 완료 후, Dirty Set에서 해당 userId 제거
+    @Override
+    public void clearUserCartDirty(Long userId) {
+        stringRedisTemplate.opsForSet().remove(USER_CART_DIRTY_SET_KEY, String.valueOf(userId));
+    }
+
+    @Override
+    public void markUserCartClear(Long userId) {
+
+    }
+
+    @Override
+    public boolean consumeUserCartClear(Long userId) {
+        return false;
+    }
+
+    @Override
+    public void cleanupUserDirtyKeys(Long userId) {
+
+    }
+
 }

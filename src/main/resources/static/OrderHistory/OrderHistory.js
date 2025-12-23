@@ -226,6 +226,15 @@ function renderActionButtons(detail) {
         returnButton.onclick = () => showModal('return', detail);
         buttonContainer.appendChild(returnButton);
     }
+
+    // 2. 반품 신청 버튼: 배송 완료(DELIVERED) 상태에서만 가능
+    if (status === ORDER_STATUS.RETURN_REQUESTED) {
+        const revoteButton = document.createElement('button');
+        revoteButton.className = 'btn-primary';
+        revoteButton.textContent = '반품 취소';
+        revoteButton.onclick = () => showModal('revote', detail);
+        buttonContainer.appendChild(revoteButton);
+    }
 }
 
 function hideModal() {

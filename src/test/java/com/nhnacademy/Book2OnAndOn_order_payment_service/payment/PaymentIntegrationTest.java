@@ -1,7 +1,7 @@
 //package com.nhnacademy.Book2OnAndOn_order_payment_service.payment;
 //
 //import com.nhnacademy.Book2OnAndOn_order_payment_service.order.service.OrderService;
-//import com.nhnacademy.Book2OnAndOn_order_payment_service.payment.client.TossPaymentsApiClient;
+//import com.nhnacademy.Book2OnAndOn_order_payment_service.client.TossPaymentsApiClient;
 //import com.nhnacademy.Book2OnAndOn_order_payment_service.payment.domain.dto.CommonCancelRequest;
 //import com.nhnacademy.Book2OnAndOn_order_payment_service.payment.domain.dto.api.Cancel;
 //import com.nhnacademy.Book2OnAndOn_order_payment_service.payment.domain.dto.api.TossCancelRequest;

@@ -1,6 +1,6 @@
 package com.nhnacademy.Book2OnAndOn_order_payment_service.order.service;
 
-import com.nhnacademy.Book2OnAndOn_order_payment_service.order.client.dto.BookOrderResponse;
+import com.nhnacademy.Book2OnAndOn_order_payment_service.client.dto.BookOrderResponse;
 import com.nhnacademy.Book2OnAndOn_order_payment_service.order.dto.order.BookOrderContext;
 import com.nhnacademy.Book2OnAndOn_order_payment_service.order.dto.order.orderitem.OrderItemRequestDto;
 import com.nhnacademy.Book2OnAndOn_order_payment_service.order.entity.order.OrderItem;

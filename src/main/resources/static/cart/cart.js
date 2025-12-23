@@ -7,7 +7,7 @@ let uuid = localStorage.getItem('uuid');
 
 const isGuest = !userId;
 const API_BASE = '/cart';
-const USE_DUMMY = false; // 나중에 false로 변경
+const USE_DUMMY = true; // 나중에 false로 변경
 
 // 서버 응답 전체를 담아둘 상태 (배송비, 최종 결제금액 포함)
 let cartSummaryData = null;

@@ -2,7 +2,7 @@ package com.nhnacademy.Book2OnAndOn_order_payment_service.order.assembler.impl;
 
 import com.nhnacademy.Book2OnAndOn_order_payment_service.exception.OrderVerificationException;
 import com.nhnacademy.Book2OnAndOn_order_payment_service.order.assembler.OrderViewAssembler;
-import com.nhnacademy.Book2OnAndOn_order_payment_service.order.client.dto.BookOrderResponse;
+import com.nhnacademy.Book2OnAndOn_order_payment_service.client.dto.BookOrderResponse;
 import com.nhnacademy.Book2OnAndOn_order_payment_service.order.dto.order.DeliveryAddressResponseDto;
 import com.nhnacademy.Book2OnAndOn_order_payment_service.order.dto.order.OrderCreateResponseDto;
 import com.nhnacademy.Book2OnAndOn_order_payment_service.order.dto.order.OrderDetailResponseDto;

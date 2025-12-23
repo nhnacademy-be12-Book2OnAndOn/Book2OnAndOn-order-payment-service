@@ -1,8 +1,6 @@
 package com.nhnacademy.Book2OnAndOn_order_payment_service.payment.strategy;
 
-import static com.netflix.spectator.api.Statistic.totalAmount;
-
-import com.nhnacademy.Book2OnAndOn_order_payment_service.payment.client.TossPaymentsApiClient;
+import com.nhnacademy.Book2OnAndOn_order_payment_service.client.TossPaymentsApiClient;
 import com.nhnacademy.Book2OnAndOn_order_payment_service.payment.domain.dto.CommonCancelRequest;
 import com.nhnacademy.Book2OnAndOn_order_payment_service.payment.domain.dto.CommonCancelResponse;
 import com.nhnacademy.Book2OnAndOn_order_payment_service.payment.domain.dto.CommonConfirmRequest;
@@ -13,12 +11,10 @@ import com.nhnacademy.Book2OnAndOn_order_payment_service.payment.domain.dto.api.
 import com.nhnacademy.Book2OnAndOn_order_payment_service.payment.domain.dto.api.TossResponse;
 import com.nhnacademy.Book2OnAndOn_order_payment_service.payment.domain.dto.request.PaymentUpdatePaymentStatusRequest;
 import com.nhnacademy.Book2OnAndOn_order_payment_service.payment.domain.dto.request.PaymentUpdateRefundAmountRequest;
-import com.nhnacademy.Book2OnAndOn_order_payment_service.payment.exception.AmountMismatchException;
 import com.nhnacademy.Book2OnAndOn_order_payment_service.payment.property.TossPaymentsProperties;
 import java.nio.charset.StandardCharsets;
 import java.util.Base64;
 
-import java.util.Objects;
 import lombok.RequiredArgsConstructor;
 import lombok.extern.slf4j.Slf4j;
 import org.springframework.stereotype.Component;
