@@ -38,7 +38,7 @@ public class TossPaymentStrategy implements PaymentStrategy{
 
     @Override
     public CommonResponse confirmPayment(CommonConfirmRequest req, String idempontencyKey) {
-        log.info("토스 결제 승인 시작\norderId : {}\npaymentKey : {}\namount : {}", req.orderId(), req.paymentKey(), req.amount());
+        log.info("토스 결제 승인 요청\norderId : {}\npaymentKey : {}\namount : {}", req.orderId(), req.paymentKey(), req.amount());
         // 보안 헤더 생성
         String authorization = buildAuthorizationHeader();
 
