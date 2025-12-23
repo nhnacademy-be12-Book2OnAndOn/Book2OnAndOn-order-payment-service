@@ -1,6 +1,9 @@
 package com.nhnacademy.Book2OnAndOn_order_payment_service.order.entity.order;
 
+import com.nhnacademy.Book2OnAndOn_order_payment_service.order.converter.PhoneNumberConverter;
 import jakarta.persistence.Column;
+import jakarta.persistence.Convert;
+import jakarta.persistence.Converter;
 import jakarta.persistence.Entity;
 import jakarta.persistence.FetchType;
 import jakarta.persistence.GeneratedValue;
@@ -36,7 +39,8 @@ public class GuestOrder {
     @NotNull
     private String guestName;
 
-    @Column(name = "guest_phonenumber", columnDefinition = "CHAR(11)")
+    @Convert(converter = PhoneNumberConverter.class)
+    @Column(name = "guest_phonenumber", length = 100)
     @NotNull
     private String guestPhonenumber;
 
@@ -46,7 +50,7 @@ public class GuestOrder {
     private String guestPassword;
 
     @OneToOne(fetch = FetchType.LAZY)
-    @JoinColumn(name = "order_id")
+    @JoinColumn(name = "order_number")
     private Order order;
 
 }

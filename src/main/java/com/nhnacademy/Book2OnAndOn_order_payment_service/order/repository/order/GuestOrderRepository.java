@@ -7,5 +7,5 @@ import org.springframework.stereotype.Repository;
 
 @Repository
 public interface GuestOrderRepository extends JpaRepository<GuestOrder, Long> {
-    Optional<GuestOrder> findByOrder_OrderId(Long orderId);
+    Optional<GuestOrder> findByOrder_OrderNumber(String orderNumber);
 }

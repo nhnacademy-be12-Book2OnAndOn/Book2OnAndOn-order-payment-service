@@ -18,13 +18,9 @@ import java.util.List;
 @NoArgsConstructor
 @AllArgsConstructor
 public class GuestOrderCreateDto {
+    private String orderNumber;
     private String guestName;
     private String guestPhoneNumber;
     private String guestPassword;
-    private List<OrderItemRequestDto> orderItems;
-    private DeliveryAddressRequestDto deliveryAddress;
 
-    // 쿠폰 , 포인트
-    private int couponDiscountAmount;
-    private int pointDiscountAmount;
 }
