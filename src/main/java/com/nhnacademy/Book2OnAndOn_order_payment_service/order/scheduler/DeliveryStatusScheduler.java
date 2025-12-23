@@ -1,6 +1,6 @@
 package com.nhnacademy.Book2OnAndOn_order_payment_service.order.scheduler;
 
-import com.nhnacademy.Book2OnAndOn_order_payment_service.order.client.SmartDeliveryClient;
+import com.nhnacademy.Book2OnAndOn_order_payment_service.client.SmartDeliveryClient;
 import com.nhnacademy.Book2OnAndOn_order_payment_service.order.entity.delivery.Delivery;
 import com.nhnacademy.Book2OnAndOn_order_payment_service.order.entity.order.OrderStatus;
 import com.nhnacademy.Book2OnAndOn_order_payment_service.order.repository.delivery.DeliveryRepository;

@@ -15,7 +15,7 @@ public class CartItemResponseDto {
     private String thumbnailUrl;
 
     private int originalPrice;  // 정가
-    private int price;          // 판매가
+    private int salePrice;          // 판매가
     private int quantity;
 
     private boolean selected;

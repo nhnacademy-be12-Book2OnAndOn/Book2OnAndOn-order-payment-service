@@ -1,6 +1,7 @@
 package com.nhnacademy.Book2OnAndOn_order_payment_service.order.repository.refund;
 
 import com.nhnacademy.Book2OnAndOn_order_payment_service.order.entity.refund.Refund;
+import com.nhnacademy.Book2OnAndOn_order_payment_service.order.entity.refund.RefundStatus;
 import jakarta.persistence.LockModeType;
 import java.time.LocalDateTime;
 import java.util.Collection;
@@ -23,7 +24,7 @@ public interface RefundRepository extends JpaRepository<Refund, Long> {
     Page<Refund> findByOrderUserId(Long orderUserId, Pageable pageable);
 
     // 3. 특정 주문에 대해 '진행 중' 상태의 반품 목록 조회
-    List<Refund> findByOrderOrderIdAndRefundStatusIn(Long orderId, Collection<Integer> refundStatuses);
+    List<Refund> findByOrderOrderIdAndRefundStatusIn(Long orderId, Collection<RefundStatus> refundStatuses);
 
     // 4. 관리자 검색용
     /**
@@ -34,20 +35,21 @@ public interface RefundRepository extends JpaRepository<Refund, Long> {
      * - orderNumber: null 이면 주문번호 필터 없음 (부분 일치 검색)
      */
     @Query("""
-        select r
-        from Refund r
-        join r.order o
-        where (:refundStatus is null or r.refundStatus = :refundStatus)
-          and (:from is null or r.refundCreatedAt >= :from)
-          and (:to is null or r.refundCreatedAt < :to)
-          and (:userId is null or o.userId = :userId)
-          and (:orderNumber is null or o.orderNumber = :orderNumber)
-          and (:includeGuest = true
-                  or (:includeGuest = false and o.userId is not null)
+    select r
+    from Refund r
+    join r.order o
+    where (:refundStatus is null or r.refundStatus = :refundStatus)
+      and (:from is null or r.refundCreatedAt >= :from)
+      and (:to is null or r.refundCreatedAt < :to)
+      and (:userId is null or o.userId = :userId)
+      and (:orderNumber is null or o.orderNumber like concat('%', :orderNumber, '%'))
+      and (
+            :includeGuest = true
+            or (:includeGuest = false and o.userId is not null)
           )
-        """)
+    """)
     Page<Refund> searchRefunds(
-            @Param("refundStatus") Integer refundStatus,
+            @Param("refundStatus") RefundStatus refundStatus,
             @Param("from") LocalDateTime from,
             @Param("to") LocalDateTime to,
             @Param("userId") Long userId,
@@ -56,10 +58,41 @@ public interface RefundRepository extends JpaRepository<Refund, Long> {
             Pageable pageable
     );
 
+
     // 동시성/멱등성 방어: 상태 변경 시 row lock
     @Lock(LockModeType.PESSIMISTIC_WRITE)
-    @Query("select r from Refund r where r.refundId = :refundId")
+    @Query("select r from Refund r join fetch r.order where r.refundId = :refundId")
     Refund findByIdForUpdate(@Param("refundId") Long refundId);
 
+    @Query("""
+           select (count(r) > 0)
+           from Refund r
+           where r.order.orderId = :orderId
+             and r.refundId <> :excludeRefundId
+             and r.refundStatus in :activeStatuses
+    """)
+    boolean existsActiveRefundByOrderIdExcludingRefundId(
+            @Param("orderId") Long orderId,
+            @Param("excludeRefundId") Long excludeRefundId,
+            @Param("activeStatuses") List<RefundStatus> activeStatuses
+    );
+
+    /**
+     * "주문당 1회" 배송비 차감 정책을 위해:
+     * 이미 완료된 반품 중 배송비 차감이 적용된 건이 있는지 확인
+     */
+    @Query("""
+        select (count(r) > 0)
+        from Refund r
+        where r.order.orderId = :orderId
+          and r.refundId <> :excludeRefundId
+          and r.refundStatus = :completedStatus
+          and coalesce(r.shippingDeductionAmount, 0) > 0
+    """)
+    boolean existsCompletedRefundWithShippingDeduction(
+            @Param("orderId") Long orderId,
+            @Param("excludeRefundId") Long excludeRefundId,
+            @Param("completedStatus") RefundStatus completedStatus
+    );
 }
 

@@ -1,7 +1,8 @@
 package com.nhnacademy.Book2OnAndOn_order_payment_service.order.controller;
 
-import com.nhnacademy.Book2OnAndOn_order_payment_service.order.dto.refund.RefundResponseDto;
-import com.nhnacademy.Book2OnAndOn_order_payment_service.order.dto.refund.RefundStatusUpdateDto;
+import com.nhnacademy.Book2OnAndOn_order_payment_service.order.dto.refund.response.RefundResponseDto;
+import com.nhnacademy.Book2OnAndOn_order_payment_service.order.dto.refund.request.RefundStatusUpdateRequestDto;
+import com.nhnacademy.Book2OnAndOn_order_payment_service.order.entity.refund.RefundStatus;
 import com.nhnacademy.Book2OnAndOn_order_payment_service.order.service.RefundService;
 import java.time.LocalDate;
 import lombok.RequiredArgsConstructor;
@@ -33,17 +34,20 @@ public class RefundAdminController {
             @RequestParam(name = "includeGuest", defaultValue = "true") boolean includeGuest,
             Pageable pageable
     ) {
-        Page<RefundResponseDto> result = refundService.getRefundListForAdmin(
-                refundStatus,
-                startDate,
-                endDate,
-                userId,
-                userKeyword,
-                orderNumber,
-                includeGuest,
-                pageable
+        RefundStatus status = refundStatus != null ? RefundStatus.fromCode(refundStatus) : null;
+
+        return ResponseEntity.ok(
+                refundService.getRefundListForAdmin(
+                        status,
+                        startDate,
+                        endDate,
+                        userId,
+                        userKeyword,
+                        orderNumber,
+                        includeGuest,
+                        pageable
+                )
         );
-        return ResponseEntity.ok(result);
     }
 
     // 관리자 반품 상세 조회
@@ -59,9 +63,8 @@ public class RefundAdminController {
     @PatchMapping("/{refundId}")
     public ResponseEntity<RefundResponseDto> updateRefundStatus(
             @PathVariable Long refundId,
-            @Valid @RequestBody RefundStatusUpdateDto request
+            @Valid @RequestBody RefundStatusUpdateRequestDto request
     ) {
-        RefundResponseDto response = refundService.updateRefundStatus(refundId, request);
-        return ResponseEntity.ok(response);
+        return ResponseEntity.ok(refundService.updateRefundStatus(refundId, request));
     }
 }

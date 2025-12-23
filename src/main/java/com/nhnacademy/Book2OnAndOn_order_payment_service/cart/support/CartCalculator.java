@@ -1,7 +1,7 @@
 package com.nhnacademy.Book2OnAndOn_order_payment_service.cart.support;
 
 import com.nhnacademy.Book2OnAndOn_order_payment_service.cart.domain.entity.CartItemUnavailableReason;
-import com.nhnacademy.Book2OnAndOn_order_payment_service.cart.client.BookServiceClient.BookSnapshot;
+import com.nhnacademy.Book2OnAndOn_order_payment_service.client.BookServiceClient.BookSnapshot;
 import lombok.Getter;
 import lombok.RequiredArgsConstructor;
 import org.springframework.stereotype.Component;
@@ -26,7 +26,7 @@ public class CartCalculator {
         // 내부변수 초기화
         boolean available = true;
         CartItemUnavailableReason reason = null;
-        int price = 0;
+        int salePrice = 0;
         int originalPrice = 0;
         int stock = 0;
         boolean lowStock = false;
@@ -41,7 +41,7 @@ public class CartCalculator {
             title = snapshot.getTitle();
             thumbnailUrl = snapshot.getThumbnailUrl();
             originalPrice = snapshot.getOriginalPrice();
-            price = snapshot.getPrice();
+            salePrice = snapshot.getSalePrice();
             stock = snapshot.getStockCount();
             lowStock = (stock > 0 && stock < LOW_STOCK_THRESHOLD);
 
@@ -52,22 +52,22 @@ public class CartCalculator {
             } else if (snapshot.isSaleEnded()) {
                 available = false;
                 reason = CartItemUnavailableReason.SALE_ENDED;
-            } else if (snapshot.isHidden()) {
-                available = false;
-                reason = CartItemUnavailableReason.BOOK_HIDDEN;
+//            } else if (snapshot.isHidden()) {
+//                available = false;
+//                reason = CartItemUnavailableReason.BOOK_HIDDEN;
             } else if (stock <= 0) {
                 available = false;
                 reason = CartItemUnavailableReason.OUT_OF_STOCK;
             }
         }
         // 최종 금액 계산
-        int lineTotalPrice = price * quantity;
+        int lineTotalPrice = salePrice * quantity;
         // CartItemPricingResult 객체 생성 및 결과 반환
         return new CartItemPricingResult(
                 title,
                 thumbnailUrl,
                 originalPrice,
-                price,
+                salePrice,
                 stock,
                 lowStock,
                 available,
@@ -81,7 +81,7 @@ public class CartCalculator {
         private final String title;
         private final String thumbnailUrl;
         private final int originalPrice;
-        private final int price;
+        private final int salePrice;
         private final int stockCount;
         private final boolean lowStock;
         private final boolean available;
@@ -92,7 +92,7 @@ public class CartCalculator {
                 String title,
                 String thumbnailUrl,
                 int originalPrice,
-                int price,
+                int salePrice,
                 int stockCount,
                 boolean lowStock,
                 boolean available,
@@ -102,7 +102,7 @@ public class CartCalculator {
             this.title = title;
             this.thumbnailUrl = thumbnailUrl;
             this.originalPrice = originalPrice;
-            this.price = price;
+            this.salePrice = salePrice;
             this.stockCount = stockCount;
             this.lowStock = lowStock;
             this.available = available;

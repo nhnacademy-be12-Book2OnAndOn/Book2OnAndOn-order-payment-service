@@ -16,5 +16,4 @@ public class CartMergeStatusResponseDto {
     // 비회원 장바구니에 몇 개의 아이템이 있는지 (모달에 표시할 숫자).
     private int guestItemCount;
 
-    // 필요하면 mergePossible 등 추가
 }
