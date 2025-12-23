@@ -1,10 +1,10 @@
-package com.nhnacademy.Book2OnAndOn_order_payment_service.order.service;
+package com.nhnacademy.Book2OnAndOn_order_payment_service.order.service.impl;
 
 import com.nhnacademy.Book2OnAndOn_order_payment_service.order.entity.order.OrderItemStatus;
 import com.nhnacademy.Book2OnAndOn_order_payment_service.order.entity.order.OrderStatus;
 import com.nhnacademy.Book2OnAndOn_order_payment_service.order.repository.order.OrderRepository;
+import com.nhnacademy.Book2OnAndOn_order_payment_service.order.service.OrderApiService;
 import java.time.LocalDate;
-import java.time.LocalDateTime;
 import java.util.List;
 import lombok.RequiredArgsConstructor;
 import lombok.extern.slf4j.Slf4j;
@@ -16,12 +16,12 @@ import org.springframework.transaction.annotation.Transactional;
 @Service
 @Slf4j
 @RequiredArgsConstructor
-public class OrderApiServiceImpl implements OrderApiService{
+public class OrderApiServiceImpl implements OrderApiService {
 
     private final OrderRepository orderRepository;
     private final Pageable TOP_10 = PageRequest.of(0, 10);
     private final OrderStatus ORDER_STATUS_DELIVERED = OrderStatus.DELIVERED;
-    private final OrderItemStatus ORDER_ITEM_STATUS_DELIVERED = null/*OrderItemStatus.DELIVERED*/;
+    private final OrderItemStatus ORDER_ITEM_STATUS_DELIVERED = OrderItemStatus.DELIVERED;
 
     @Transactional(readOnly = true)
     @Override

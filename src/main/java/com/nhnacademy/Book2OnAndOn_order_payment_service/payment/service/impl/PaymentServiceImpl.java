@@ -6,6 +6,7 @@ import com.nhnacademy.Book2OnAndOn_order_payment_service.order.config.RabbitConf
 import com.nhnacademy.Book2OnAndOn_order_payment_service.order.entity.order.Order;
 import com.nhnacademy.Book2OnAndOn_order_payment_service.order.exception.OrderNotFoundException;
 import com.nhnacademy.Book2OnAndOn_order_payment_service.order.repository.order.OrderRepository;
+import com.nhnacademy.Book2OnAndOn_order_payment_service.order.service.OrderResourceManager;
 import com.nhnacademy.Book2OnAndOn_order_payment_service.payment.domain.dto.CommonConfirmRequest;
 import com.nhnacademy.Book2OnAndOn_order_payment_service.payment.domain.dto.CommonResponse;
 import com.nhnacademy.Book2OnAndOn_order_payment_service.payment.domain.dto.api.Cancel;
@@ -26,6 +27,8 @@ import com.nhnacademy.Book2OnAndOn_order_payment_service.payment.exception.NotFo
 import com.nhnacademy.Book2OnAndOn_order_payment_service.payment.repository.PaymentCancelRepository;
 import com.nhnacademy.Book2OnAndOn_order_payment_service.payment.repository.PaymentRepository;
 import com.nhnacademy.Book2OnAndOn_order_payment_service.payment.service.PaymentService;
+import com.nhnacademy.Book2OnAndOn_order_payment_service.payment.service.PaymentSuccessEventHandler;
+import com.nhnacademy.Book2OnAndOn_order_payment_service.payment.service.PaymentTransactionService;
 import com.nhnacademy.Book2OnAndOn_order_payment_service.payment.strategy.PaymentStrategy;
 import com.nhnacademy.Book2OnAndOn_order_payment_service.payment.strategy.PaymentStrategyFactory;
 
@@ -37,6 +40,8 @@ import java.util.stream.Collectors;
 import lombok.RequiredArgsConstructor;
 import lombok.extern.slf4j.Slf4j;
 import org.springframework.amqp.rabbit.core.RabbitTemplate;
+import org.springframework.retry.annotation.Backoff;
+import org.springframework.retry.annotation.Retryable;
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
 
@@ -47,9 +52,12 @@ public class PaymentServiceImpl implements PaymentService {
 
     private final PaymentRepository paymentRepository;
     private final PaymentCancelRepository paymentCancelRepository;
+    private final PaymentTransactionService paymentTransactionService;
     private final PaymentStrategyFactory factory;
 
     private final OrderRepository orderRepository;
+    private final OrderResourceManager orderResourceManager;
+    private final PaymentSuccessEventHandler successEventHandler;
     private final RabbitTemplate rabbitTemplate;
     private static final int MAX_TRY = 5;
 
@@ -65,16 +73,22 @@ public class PaymentServiceImpl implements PaymentService {
 
     @Override
     public PaymentResponse confirmAndCreatePayment(String provider, CommonConfirmRequest req) {
-        fetchAndValidateOrder(req);
+        log.info("결제 승인 요청 및 결제 엔티티 생성 (주문번호 : {})", req.orderId());
+        // 1. 주문 금액 검증
+        paymentTransactionService.validateOrderAmount(req);
 
-        PaymentResponse paymentResponse =  confirmPaymentWithRetry(provider, req);
+        // 2. 결제 승인 요청 (5회 재시도 후 오류시 관리자 호출)
+        CommonResponse commonResponse = confirmPaymentWithRetry(provider, req);
 
-        rabbitTemplate.convertAndSend(
-                RabbitConfig.EXCHANGE,
-                RabbitConfig.ROUTING_KEY_COMPLETED,
-                req.orderId()
-        );
-        return paymentResponse;
+        // 3. DB 저장 요청 (2회 재시도 후 오류시 관리자 호출)
+        Payment saved = savePayment(provider, commonResponse);
+
+        // 4. 이벤트 핸들러 구현
+        // 외부
+        orderResourceManager.finalizeBooks(req.orderId());
+        successEventHandler.successHandler(req.orderId());
+
+        return saved.toResponse();
     }
 
     // 결제 내역 삭제
@@ -178,42 +192,42 @@ public class PaymentServiceImpl implements PaymentService {
         return optionalPayment.orElse(null);
     }
 
-    // 주문 조회 및 금액 검증
-    @Transactional(readOnly = true)
-    public void fetchAndValidateOrder(CommonConfirmRequest req){
-        Order order = orderRepository.findByOrderNumber(req.orderId())
-                .orElseThrow(() -> new OrderNotFoundException("해당 주문을 찾을 수 없습니다 : " + req.orderId()));
-
-        // 검증
-        if(order.getTotalAmount().equals(req.amount())){
-            log.error("데이터베이스에 저장된 금액과 결제 금액이 일치하지 않습니다 (저장 금액 : {}, 결제 금액 : {})", order.getTotalAmount(), req.amount());
-            throw new OrderVerificationException("금액 불일치, 저장 금액 : " + order.getTotalAmount() + ", 결제 금액 : " + req.amount());
-        }
-    }
-
-    // 승인
-    private PaymentResponse confirmPaymentWithRetry(String provider, CommonConfirmRequest req){
+    // 승인 요청
+    private CommonResponse confirmPaymentWithRetry(String provider, CommonConfirmRequest req){
+        log.debug("결제 승인 요청 로직 실행");
         String idempotencyKey = UUID.randomUUID().toString();
+        log.debug("멱등키 : {}", idempotencyKey);
+
         int retryCount = 0;
         PaymentStrategy paymentStrategy = factory.getStrategy(provider);
 
         while(retryCount < MAX_TRY){
             try{
                 // 승인된 결제 상태만 반환
-                CommonResponse commonResponse = paymentStrategy.confirmPayment(req, idempotencyKey);
-
-                // Payment 생성
-                PaymentCreateRequest paymentCreateRequest = commonResponse.toPaymentCreateRequest(provider);
-                Payment payment = new Payment(paymentCreateRequest);
-
-                // DB 저장
-                Payment saved = paymentRepository.save(payment);
-                return saved.toResponse();
+                return paymentStrategy.confirmPayment(req, idempotencyKey);
             } catch (Exception e) {
                 retryCount++;
-                log.error("결제 승인 처리 중 오류 발생, {}", e.getMessage());
+                log.error("결제 승인 처리 중 오류 발생 (재시도 횟수 : {}/{}), {}", retryCount, MAX_TRY, e.getMessage());
             }
         }
-        throw new PaymentException("결제 승인 최대 재시도 횟수 초과");
+        throw new PaymentException("결제 승인 최대 재시도 횟수 초과, 관리자를 호출해주세요");
+    }
+
+    // DB 저장
+    @Retryable(
+            value = Exception.class,
+            maxAttempts = 2,
+            backoff = @Backoff(delay = 300)
+    )
+    private Payment savePayment(String provider, CommonResponse commonResponse){
+        log.debug("결제 내역 DB 저장 로직 실행");
+        try {
+            PaymentCreateRequest paymentCreateRequest = commonResponse.toPaymentCreateRequest(provider);
+            Payment payment = new Payment(paymentCreateRequest);
+            return paymentRepository.save(payment);
+        }catch (Exception e){
+            log.error("결제 내역 DB 저장 중 오류 발생! 관리자를 호출하세요");
+            throw new PaymentException("결제 내역 DB 저장 재시도 횟수 초과, 관리자를 호출해주세요" + e.getMessage());
+        }
     }
 }

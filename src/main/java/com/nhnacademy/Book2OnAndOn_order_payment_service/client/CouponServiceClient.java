@@ -19,7 +19,7 @@ public interface CouponServiceClient {
     CouponTargetResponseDto getCouponTargets(@PathVariable("memberCouponId") Long memberCouponId);
 
     @PostMapping("/{member-coupon-id}/use")
-    void useCoupon(@PathVariable("member-coupon-id") Long memberCouponId,
-                   @RequestHeader("X-User-Id") Long userId,
-                   @RequestBody UseCouponRequestDto requestDto);
+    ResponseEntity<Void> useCoupon(@PathVariable("member-coupon-id") Long memberCouponId,
+                                          @RequestHeader("X-User-Id") Long userId,
+                                          @RequestBody UseCouponRequestDto requestDto);
 }

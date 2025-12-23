@@ -16,7 +16,5 @@ public class BookOrderResponse {
     private boolean isPackable;
     private Integer stockCount;
     private String stockStatus;
-
-    // TODO : Long 도서 카테고리 아이디 받기
     private Long categoryId;
 }

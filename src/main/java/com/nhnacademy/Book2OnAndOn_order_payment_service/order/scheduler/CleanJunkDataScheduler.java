@@ -1,29 +1,21 @@
 package com.nhnacademy.Book2OnAndOn_order_payment_service.order.scheduler;
 
-import com.nhnacademy.Book2OnAndOn_order_payment_service.order.entity.order.Order;
-import com.nhnacademy.Book2OnAndOn_order_payment_service.order.entity.order.OrderStatus;
-import com.nhnacademy.Book2OnAndOn_order_payment_service.order.repository.order.OrderRepository;
-import com.nhnacademy.Book2OnAndOn_order_payment_service.order.service.OrderService2;
+import com.nhnacademy.Book2OnAndOn_order_payment_service.order.service.OrderService;
 import java.time.LocalDateTime;
 import java.util.List;
 import lombok.RequiredArgsConstructor;
 import lombok.extern.slf4j.Slf4j;
 import net.javacrumbs.shedlock.spring.annotation.SchedulerLock;
-import org.springframework.data.domain.Page;
-import org.springframework.data.domain.PageRequest;
-import org.springframework.data.domain.Pageable;
-import org.springframework.data.domain.Sort;
 import org.springframework.data.jpa.repository.Modifying;
 import org.springframework.scheduling.annotation.Scheduled;
 import org.springframework.stereotype.Component;
-import org.springframework.transaction.annotation.Transactional;
 
 @Slf4j
 @Component
 @RequiredArgsConstructor
 public class CleanJunkDataScheduler {
 
-    private final OrderService2 orderService;
+    private final OrderService orderService;
     private final int DELETE_SIZE = 1000;
 
     /*

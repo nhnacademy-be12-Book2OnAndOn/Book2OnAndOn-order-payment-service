@@ -1,5 +1,5 @@
 
-package com.nhnacademy.Book2OnAndOn_order_payment_service.order.service;
+package com.nhnacademy.Book2OnAndOn_order_payment_service.order.service.impl;
 
 import com.nhnacademy.Book2OnAndOn_order_payment_service.client.dto.BookOrderResponse;
 import com.nhnacademy.Book2OnAndOn_order_payment_service.client.dto.CouponPolicyDiscountType;
@@ -39,6 +39,9 @@ import com.nhnacademy.Book2OnAndOn_order_payment_service.order.exception.OrderNo
 import com.nhnacademy.Book2OnAndOn_order_payment_service.order.provider.OrderNumberProvider;
 import com.nhnacademy.Book2OnAndOn_order_payment_service.order.repository.delivery.DeliveryPolicyRepository;
 import com.nhnacademy.Book2OnAndOn_order_payment_service.order.repository.order.OrderRepository;
+import com.nhnacademy.Book2OnAndOn_order_payment_service.order.service.OrderResourceManager;
+import com.nhnacademy.Book2OnAndOn_order_payment_service.order.service.OrderService;
+import com.nhnacademy.Book2OnAndOn_order_payment_service.order.service.WrappingPaperService;
 import com.nhnacademy.Book2OnAndOn_order_payment_service.payment.domain.dto.CommonCancelRequest;
 import com.nhnacademy.Book2OnAndOn_order_payment_service.payment.domain.dto.CommonCancelResponse;
 import com.nhnacademy.Book2OnAndOn_order_payment_service.payment.domain.dto.request.PaymentCancelCreateRequest;
@@ -67,7 +70,7 @@ import org.springframework.transaction.annotation.Transactional;
 @Slf4j
 @Service
 @RequiredArgsConstructor
-public class OrderServiceImpl implements OrderService2 {
+public class OrderServiceImpl implements OrderService {
     private final OrderRepository orderRepository;
     private final PaymentRepository paymentRepository;
     private final DeliveryPolicyRepository deliveryPolicyRepository;
@@ -171,17 +174,23 @@ public class OrderServiceImpl implements OrderService2 {
         log.info("임시 주문 데이터 생성 및 검증 로직 실행 (회원 아이디 : {})", userId);
 
         OrderVerificationResult result = verifyOrder(userId, req);
-
-        // 선점 메서드
-        resourceManager.prepareResources(userId, req, result);
+        OrderCreateResponseDto orderCreateResponseDto = null;
+        try{
+            orderCreateResponseDto = createPendingOrder(userId, result);
+        } catch (Exception e) {
+            log.error("주문 DB 생성 중 오류 : {}", e.getMessage());
+            throw new OrderVerificationException("주문 DB 생성 중 오류 " + e.getMessage());
+        }
 
         try {
-            return createPendingOrder(userId, result);
+            // 선점 메서드
+            resourceManager.prepareResources(userId, req, result, orderCreateResponseDto.getOrderId());
+            return orderCreateResponseDto;
         } catch (Exception e){
             log.error("알 수 없는 오류 발생! 복구 트랜잭션 실행");
             // 복구 메서드
-            resourceManager.releaseResources(result.orderNumber(), req.getMemberCouponId(), userId, result.pointDiscount());
-            throw e;
+            resourceManager.releaseResources(result.orderNumber(), req.getMemberCouponId(), userId, result.pointDiscount(), orderCreateResponseDto.getOrderId());
+            throw new OrderVerificationException("주문 내부 오류 발생 " + e.getMessage());
         }
     }
 
@@ -230,7 +239,7 @@ public class OrderServiceImpl implements OrderService2 {
                 deliveryFee,
                 wrappingFee,
                 couponDiscount,
-                pointDiscount,
+                pointDiscount, // 포인트 사용량
                 wantDeliveryDate,
                 orderItemList,
                 deliveryAddress
