@@ -6,6 +6,7 @@ import com.nhnacademy.Book2OnAndOn_order_payment_service.client.dto.OrderCouponC
 import com.nhnacademy.Book2OnAndOn_order_payment_service.client.dto.UseCouponRequestDto;
 import java.util.List;
 import org.springframework.cloud.openfeign.FeignClient;
+import org.springframework.http.ResponseEntity;
 import org.springframework.web.bind.annotation.*;
 
 @FeignClient(name = "coupon-service")
@@ -20,6 +21,6 @@ public interface CouponServiceClient {
 
     @PostMapping("/{member-coupon-id}/use")
     ResponseEntity<Void> useCoupon(@PathVariable("member-coupon-id") Long memberCouponId,
-                                          @RequestHeader("X-User-Id") Long userId,
-                                          @RequestBody UseCouponRequestDto requestDto);
+                                   @RequestHeader("X-User-Id") Long userId,
+                                   @RequestBody UseCouponRequestDto requestDto);
 }

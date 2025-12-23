@@ -1,13 +1,13 @@
 package com.nhnacademy.Book2OnAndOn_order_payment_service.order.service;
 
-import com.nhnacademy.Book2OnAndOn_order_payment_service.order.client.BookServiceClient;
-import com.nhnacademy.Book2OnAndOn_order_payment_service.order.client.CouponServiceClient;
-import com.nhnacademy.Book2OnAndOn_order_payment_service.order.client.UserServiceClient;
+import com.nhnacademy.Book2OnAndOn_order_payment_service.client.BookServiceClient;
+import com.nhnacademy.Book2OnAndOn_order_payment_service.client.CouponServiceClient;
+import com.nhnacademy.Book2OnAndOn_order_payment_service.client.UserServiceClient;
+import com.nhnacademy.Book2OnAndOn_order_payment_service.client.dto.ReserveBookRequestDto;
+import com.nhnacademy.Book2OnAndOn_order_payment_service.client.dto.UseCouponRequestDto;
+import com.nhnacademy.Book2OnAndOn_order_payment_service.client.dto.UsePointInternalRequestDto;
 import com.nhnacademy.Book2OnAndOn_order_payment_service.order.client.dto.OrderCanceledEvent;
-import com.nhnacademy.Book2OnAndOn_order_payment_service.order.client.dto.UseCouponRequestDto;
-import com.nhnacademy.Book2OnAndOn_order_payment_service.order.client.dto.UsePointInternalRequestDto;
-import com.nhnacademy.Book2OnAndOn_order_payment_service.order.client.dto.ReserveBookRequestDto;
-import com.nhnacademy.Book2OnAndOn_order_payment_service.order.config.RabbitConfig;
+import com.nhnacademy.Book2OnAndOn_order_payment_service.config.RabbitConfig;
 import com.nhnacademy.Book2OnAndOn_order_payment_service.order.dto.order.OrderCreateRequestDto;
 import com.nhnacademy.Book2OnAndOn_order_payment_service.order.dto.order.OrderVerificationResult;
 import com.nhnacademy.Book2OnAndOn_order_payment_service.order.dto.order.orderitem.BookInfoDto;

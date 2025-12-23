@@ -1,6 +1,6 @@
 //package com.nhnacademy.Book2OnAndOn_order_payment_service.payment
 //
-//import com.nhnacademy.Book2OnAndOn_order_payment_service.order.config.RabbitConfig;
+//import com.nhnacademy.Book2OnAndOn_order_payment_service.config.RabbitConfig;
 //import com.nhnacademy.Book2OnAndOn_order_payment_service.payment.listener.PaymentCompleteMessageListener;
 //import com.nhnacademy.Book2OnAndOn_order_payment_service.order.service.OrderResourceManager;
 //import org.junit.jupiter.api.Test;

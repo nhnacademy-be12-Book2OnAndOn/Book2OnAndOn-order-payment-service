@@ -1,6 +1,6 @@
 package com.nhnacademy.Book2OnAndOn_order_payment_service.order.generator;
 
-import com.nhnacademy.Book2OnAndOn_order_payment_service.order.config.Snowflake;
+import com.nhnacademy.Book2OnAndOn_order_payment_service.config.Snowflake;
 import lombok.RequiredArgsConstructor;
 import lombok.extern.slf4j.Slf4j;
 import org.springframework.stereotype.Component;

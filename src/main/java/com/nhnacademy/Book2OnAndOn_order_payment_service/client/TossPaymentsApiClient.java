@@ -1,4 +1,4 @@
-package com.nhnacademy.Book2OnAndOn_order_payment_service.payment.client;
+package com.nhnacademy.Book2OnAndOn_order_payment_service.client;
 
 import com.nhnacademy.Book2OnAndOn_order_payment_service.payment.domain.dto.api.TossCancelRequest;
 import com.nhnacademy.Book2OnAndOn_order_payment_service.payment.domain.dto.api.TossCancelResponse;

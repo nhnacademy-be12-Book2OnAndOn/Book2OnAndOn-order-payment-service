@@ -41,6 +41,7 @@ public interface BookServiceClient {
     @PatchMapping("/internal/books/stock/increase")
     void increaseStock(@RequestBody List<StockDecreaseRequest> request);
 
+    // <장바구니>
     // bookId 리스트를 받아서, 각 bookId에 대한 스냅샷 정보(가격/제목/재고 등)를 반환
     // (응답 전체(JSON) 캐싱 방법은 서버 부하는 최소일지 몰라도 도서 가격/재고 변경 시 캐시 무효화 지옥...)
     @PostMapping(value = "/internal/books/bulk", consumes = "application/json")

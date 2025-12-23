@@ -1,4 +1,4 @@
-package com.nhnacademy.Book2OnAndOn_order_payment_service.order.config;
+package com.nhnacademy.Book2OnAndOn_order_payment_service.config;
 
 import java.time.LocalDateTime;
 import java.time.ZoneId;

@@ -1,7 +1,6 @@
 package com.nhnacademy.Book2OnAndOn_order_payment_service.order.service;
 
 import com.nhnacademy.Book2OnAndOn_order_payment_service.client.BookServiceClient;
-import com.nhnacademy.Book2OnAndOn_order_payment_service.client.PointServiceClient;
 import com.nhnacademy.Book2OnAndOn_order_payment_service.client.UserServiceClient;
 import com.nhnacademy.Book2OnAndOn_order_payment_service.client.dto.BookOrderResponse;
 import com.nhnacademy.Book2OnAndOn_order_payment_service.client.dto.RefundPointInternalRequestDto;
@@ -49,8 +48,6 @@ import org.springframework.data.domain.Pageable;
 import org.springframework.security.access.AccessDeniedException;
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
-import org.springframework.transaction.event.TransactionPhase;
-import org.springframework.transaction.event.TransactionalEventListener;
 
 @Slf4j
 @Service
@@ -66,7 +63,6 @@ public class RefundServiceImpl implements RefundService {
 
     private final BookServiceClient bookServiceClient;
     private final UserServiceClient userServiceClient;
-    private final PointServiceClient pointServiceClient;
 
     private final ApplicationEventPublisher applicationEventPublisher;
     private static final int DEFAULT_RETURN_SHIPPING_FEE = 3000;
@@ -813,7 +809,7 @@ public class RefundServiceImpl implements RefundService {
 
         RefundCalcResult r = calculateRefundPointAmountProRate(refund);
 
-        pointServiceClient.refundPoint(
+        userServiceClient.refundPoint(
                 order.getUserId(),
                 new RefundPointInternalRequestDto(
                         order.getOrderId(),
@@ -858,25 +854,25 @@ public class RefundServiceImpl implements RefundService {
     }
 
 
-    @TransactionalEventListener(phase = TransactionPhase.AFTER_COMMIT)
-    public void handleRefundCompletedEvent(RefundCompletedEvent event) {
-        Refund refund = refundRepository.findById(event.refundId())
-                .orElseThrow(() -> new RefundNotFoundException(
-                        "환불 완료 이벤트 처리 중 반품 내역을 찾을 수 없습니다. id=" + event.refundId()
-                ));
-
-        if (refund.getRefundStatus() != RefundStatus.REFUND_COMPLETED) {
-            return;
-        }
-
-        try {
-            refundAsPoint(refund);
-            log.info("포인트 환불 성공: refundId={}", refund.getRefundId());
-        } catch (FeignException ex) {
-            // AFTER_COMMIT 이후이므로 예외를 던져도 DB 롤백 불가. 로그/모니터링 대상으로 남김.
-            log.error("포인트 환불 실패: refundId={}, message={}", refund.getRefundId(), ex.getMessage(), ex);
-        }
-    }
+//    @TransactionalEventListener(phase = TransactionPhase.AFTER_COMMIT)
+//    public void handleRefundCompletedEvent(RefundCompletedEvent event) {
+//        Refund refund = refundRepository.findById(event.refundId())
+//                .orElseThrow(() -> new RefundNotFoundException(
+//                        "환불 완료 이벤트 처리 중 반품 내역을 찾을 수 없습니다. id=" + event.refundId()
+//                ));
+//
+//        if (refund.getRefundStatus() != RefundStatus.REFUND_COMPLETED) {
+//            return;
+//        }
+//
+//        try {
+//            refundAsPoint(refund);
+//            log.info("포인트 환불 성공: refundId={}", refund.getRefundId());
+//        } catch (FeignException ex) {
+//            // AFTER_COMMIT 이후이므로 예외를 던져도 DB 롤백 불가. 로그/모니터링 대상으로 남김.
+//            log.error("포인트 환불 실패: refundId={}, message={}", refund.getRefundId(), ex.getMessage(), ex);
+//        }
+//    }
 
 
     // =========================
