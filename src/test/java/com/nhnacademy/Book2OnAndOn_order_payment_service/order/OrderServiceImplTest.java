@@ -13,7 +13,7 @@
 //import com.nhnacademy.Book2OnAndOn_order_payment_service.order.dto.order.OrderPrepareRequestDto;
 //import com.nhnacademy.Book2OnAndOn_order_payment_service.order.dto.order.OrderPrepareResponseDto;
 //import com.nhnacademy.Book2OnAndOn_order_payment_service.order.provider.OrderNumberProvider;
-//import com.nhnacademy.Book2OnAndOn_order_payment_service.order.service.OrderServiceImpl;
+//import com.nhnacademy.Book2OnAndOn_order_payment_service.order.service.impl.OrderServiceImpl;
 //import java.util.List;
 //import org.junit.jupiter.api.Test;
 //import org.junit.jupiter.api.extension.ExtendWith;
