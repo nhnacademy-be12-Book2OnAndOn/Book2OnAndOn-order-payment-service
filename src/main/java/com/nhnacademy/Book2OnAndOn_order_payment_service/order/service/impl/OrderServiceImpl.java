@@ -1,4 +1,3 @@
-
 package com.nhnacademy.Book2OnAndOn_order_payment_service.order.service.impl;
 
 import com.nhnacademy.Book2OnAndOn_order_payment_service.client.dto.BookOrderResponse;
@@ -41,6 +40,7 @@ import com.nhnacademy.Book2OnAndOn_order_payment_service.order.repository.delive
 import com.nhnacademy.Book2OnAndOn_order_payment_service.order.repository.order.OrderRepository;
 import com.nhnacademy.Book2OnAndOn_order_payment_service.order.service.OrderResourceManager;
 import com.nhnacademy.Book2OnAndOn_order_payment_service.order.service.OrderService;
+import com.nhnacademy.Book2OnAndOn_order_payment_service.order.service.OrderTransactionService;
 import com.nhnacademy.Book2OnAndOn_order_payment_service.order.service.WrappingPaperService;
 import com.nhnacademy.Book2OnAndOn_order_payment_service.payment.domain.dto.CommonCancelRequest;
 import com.nhnacademy.Book2OnAndOn_order_payment_service.payment.domain.dto.CommonCancelResponse;
@@ -77,6 +77,8 @@ public class OrderServiceImpl implements OrderService {
 
     private final WrappingPaperService wrappingPaperService;
     private final PaymentService paymentService;
+    private final OrderTransactionService orderTransactionService;
+
     private final BookServiceClient bookServiceClient;
     private final UserServiceClient userServiceClient;
     private final CouponServiceClient couponServiceClient;
@@ -176,7 +178,7 @@ public class OrderServiceImpl implements OrderService {
         OrderVerificationResult result = verifyOrder(userId, req);
         OrderCreateResponseDto orderCreateResponseDto = null;
         try{
-            orderCreateResponseDto = createPendingOrder(userId, result);
+            orderCreateResponseDto = orderTransactionService.createPendingOrder(userId, result);
         } catch (Exception e) {
             log.error("주문 DB 생성 중 오류 : {}", e.getMessage());
             throw new OrderVerificationException("주문 DB 생성 중 오류 " + e.getMessage());
@@ -244,33 +246,6 @@ public class OrderServiceImpl implements OrderService {
                 orderItemList,
                 deliveryAddress
         );
-    }
-
-    @Transactional
-    protected OrderCreateResponseDto createPendingOrder(Long userId, OrderVerificationResult result) {
-        log.info("주문 임시 데이터 저장 로직 실행");
-
-        Order order = Order.builder()
-                .userId(userId)
-                .orderNumber(result.orderNumber())
-                .orderStatus(OrderStatus.PENDING)
-                .orderTitle(result.orderTitle())
-                .totalAmount(result.totalAmount())
-                .totalDiscountAmount(result.totalDiscountAmount())
-                .totalItemAmount(result.totalItemAmount())
-                .deliveryFee(result.deliveryFee())
-                .wrappingFee(result.wrappingFee())
-                .couponDiscount(result.couponDiscount())
-                .pointDiscount(result.pointDiscount())
-                .wantDeliveryDate(result.wantDeliveryDate())
-                .build();
-
-        order.addOrderItem(result.orderItemList());
-        order.addDeliveryAddress(result.deliveryAddress());
-
-        Order saved = orderRepository.save(order);
-
-        return orderViewAssembler.toOrderCreateView(saved);
     }
 
 
@@ -544,28 +519,33 @@ public class OrderServiceImpl implements OrderService {
     }
 
     // 일반 사용자 주문 취소
-    @Transactional
     @Override
     public OrderCancelResponseDto cancelOrder(Long userId, String orderNumber, OrderCancelRequestDto req) {
         log.info("일반 사용자 주문 취소 로직 실행 (유저 아이디 : {}, 주문번호 : {})", userId, orderNumber);
 
-        Order order = validateOrderExistence(userId, orderNumber);
+        // 주문 검증
+        Order order = orderTransactionService.validateOrderExistence(userId, orderNumber);
 
-        Payment payment = paymentRepository.findByOrderNumber(orderNumber).orElseThrow();
+        // 결제 찾기
+        Payment payment = paymentService.getPaymentEntity(orderNumber);
 
+        // 결제 취소 요청
+        // TODO 멱등키 설정해서 결제 취소 하기
         CommonCancelResponse cancelResponse = cancelPaymentExternally(payment, req.cancelReason());
 
+        // 결제 취소 DB 저장
         List<PaymentCancelResponse> paymentCancelResponseList = savePaymentCancel(cancelResponse);
 
+        // 이벤트 핸들러
         order.setOrderStatus(OrderStatus.CANCELED);
-        Order saved = orderRepository.save(order);
 
         return new OrderCancelResponseDto(
-                saved.getOrderNumber(),
-                saved.getOrderStatus().getDescription(),
+                order.getOrderNumber(),
+                order.getOrderStatus().getDescription(),
                 paymentCancelResponseList
         );
     }
+
 
     // 결제 취소에 필요한 로직
     public Order validateOrderExistence(Long userId, String orderNumber){
@@ -573,6 +553,7 @@ public class OrderServiceImpl implements OrderService {
                 .orElseThrow(() -> new OrderNotFoundException("Not Found Order : " + orderNumber));
     }
 
+    // TODO Retryble사용해서 처리
     public CommonCancelResponse cancelPaymentExternally(Payment payment, String reason){
         CommonCancelRequest cancelRequest = new CommonCancelRequest(payment.getPaymentKey(), null, reason);
         String provider = payment.getPaymentProvider().name();
