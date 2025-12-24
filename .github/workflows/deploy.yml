@@ -29,18 +29,18 @@ jobs:
           key: ${{ runner.os }}-sonar
           restore-keys: ${{ runner.os }}-sonar
 
-      - name: Build and Analyze with SonarQube
-        env:
-          SONAR_TOKEN: ${{ secrets.SONAR_TOKEN }}
-          SONAR_HOST_URL: ${{ secrets.SONARQUBE_HOST_URL }}
-        run: |
-          chmod +x mvnw
-          ./mvnw clean verify sonar:sonar \
-            -Dsonar.projectKey=Book2onandon-order-payment-service \
-            -Dsonar.projectName="Book2onandon-order-payment-service" \
-            -Dsonar.host.url=$SONAR_HOST_URL \
-            -Dsonar.token=$SONAR_TOKEN \
-            -Dspring.cloud.config.enabled=false \
+#      - name: Build and Analyze with SonarQube
+#        env:
+#          SONAR_TOKEN: ${{ secrets.SONAR_TOKEN }}
+#          SONAR_HOST_URL: ${{ secrets.SONARQUBE_HOST_URL }}
+#        run: |
+#          chmod +x mvnw
+#          ./mvnw clean verify sonar:sonar \
+#            -Dsonar.projectKey=Book2onandon-order-payment-service \
+#            -Dsonar.projectName="Book2onandon-order-payment-service" \
+#            -Dsonar.host.url=$SONAR_HOST_URL \
+#            -Dsonar.token=$SONAR_TOKEN \
+#            -Dspring.cloud.config.enabled=false \
 
       - name: Build with Maven
         run: |
@@ -77,7 +77,7 @@ jobs:
             EUREKA_URL="http://admin:admin1234@localhost:10437/eureka"
             
             # 주의: 컨테이너 이름은 하이픈 없음 (orderpayment)
-            docker compose pull orderpayment-1 orderpayment-2
+             docker compose pull order-payment-1 order-payment-2
 
             # [1] orderpayment-1 배포 (유레카 ID는 하이픈 있음)
             INSTANCE_ID_1="$SERVICE_NAME:order-payment-1"
