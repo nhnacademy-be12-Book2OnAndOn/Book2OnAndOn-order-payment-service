@@ -83,7 +83,7 @@ jobs:
             INSTANCE_ID_1="$SERVICE_NAME:order-payment-1"
             curl -X PUT "$EUREKA_URL/apps/$SERVICE_NAME/$INSTANCE_ID_1/status?value=OUT_OF_SERVICE" || true
             sleep 30
-            docker compose up -d orderpayment-1
+            docker compose up -d order-payment-1
             sleep 40
             curl -X PUT "$EUREKA_URL/apps/$SERVICE_NAME/$INSTANCE_ID_1/status?value=UP" || true
 
@@ -91,7 +91,7 @@ jobs:
             INSTANCE_ID_2="$SERVICE_NAME:order-payment-2"
             curl -X PUT "$EUREKA_URL/apps/$SERVICE_NAME/$INSTANCE_ID_2/status?value=OUT_OF_SERVICE" || true
             sleep 30
-            docker compose up -d orderpayment-2
+            docker compose up -d order-payment-2
             sleep 40
             curl -X PUT "$EUREKA_URL/apps/$SERVICE_NAME/$INSTANCE_ID_2/status?value=UP" || true
 
