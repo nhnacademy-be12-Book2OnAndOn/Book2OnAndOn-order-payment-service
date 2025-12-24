@@ -1,6 +1,6 @@
 package com.nhnacademy.Book2OnAndOn_order_payment_service.order.entity.order;
 
-import com.nhnacademy.Book2OnAndOn_order_payment_service.order.entity.return1.ReturnItem;
+import com.nhnacademy.Book2OnAndOn_order_payment_service.order.entity.refund.RefundItem;
 import com.nhnacademy.Book2OnAndOn_order_payment_service.order.entity.wrappingpaper.WrappingPaper;
 import jakarta.persistence.CascadeType;
 import jakarta.persistence.Column;
@@ -15,10 +15,12 @@ import jakarta.persistence.OneToMany;
 import jakarta.persistence.OneToOne;
 import jakarta.persistence.Table;
 import jakarta.validation.constraints.NotNull;
+import jakarta.validation.constraints.Null;
 import java.util.ArrayList;
 import java.util.List;
 import lombok.AccessLevel;
 import lombok.AllArgsConstructor;
+import lombok.Builder;
 import lombok.Getter;
 import lombok.NoArgsConstructor;
 import lombok.Setter;
@@ -26,6 +28,7 @@ import lombok.Setter;
 @Entity
 @Getter
 @Setter
+@Builder
 @NoArgsConstructor(access = AccessLevel.PROTECTED)
 @AllArgsConstructor
 @Table(name = "OrderItem")
@@ -41,7 +44,7 @@ public class OrderItem {
 
     @Column(name = "order_item_quantity", columnDefinition = "TINYINT")
     @NotNull
-    private Byte orderItemQuantity = 1;
+    private Integer orderItemQuantity = 1;
 
     @Column(name = "unit_price")
     @NotNull
@@ -52,7 +55,6 @@ public class OrderItem {
     private boolean isWrapped = false;
 
     @Column(name = "order_item_status", columnDefinition = "TINYINT")
-    @NotNull
     private OrderItemStatus orderItemStatus;
 
     @ManyToOne(fetch = FetchType.LAZY)
@@ -60,11 +62,14 @@ public class OrderItem {
     @NotNull
     private Order order;
 
-    @OneToOne(fetch = FetchType.LAZY)
-    @JoinColumn(name = "wrapping_paper_id")
-    @NotNull
+    @OneToOne(fetch = FetchType.LAZY, cascade = CascadeType.ALL)
+    @JoinColumn(name = "wrapping_paper_id", nullable = true)
     private WrappingPaper wrappingPaper;
 
     @OneToMany(mappedBy = "orderItem", cascade = CascadeType.ALL)
-    private List<ReturnItem> returnItems = new ArrayList<>();
+    private List<RefundItem> refundItems = new ArrayList<>();
+
+    public void updateStatus(OrderItemStatus status){
+        this.orderItemStatus = status;
+    }
 }

@@ -1,13 +1,15 @@
 package com.nhnacademy.Book2OnAndOn_order_payment_service.order.entity.order;
 
-import com.nhnacademy.Book2OnAndOn_order_payment_service.order.converter.OrderStatusConverter;
-import com.nhnacademy.Book2OnAndOn_order_payment_service.order.entity.delivery.Delivery;
+import com.nhnacademy.Book2OnAndOn_order_payment_service.order.dto.order.OrderResponseDto;
+import com.nhnacademy.Book2OnAndOn_order_payment_service.order.dto.order.OrderSimpleDto;
+import com.nhnacademy.Book2OnAndOn_order_payment_service.order.dto.order.orderitem.OrderItemResponseDto;
 import com.nhnacademy.Book2OnAndOn_order_payment_service.order.entity.delivery.DeliveryAddress;
-import com.nhnacademy.Book2OnAndOn_order_payment_service.order.entity.return1.Return;
+import com.nhnacademy.Book2OnAndOn_order_payment_service.order.entity.refund.Refund;
+import com.nhnacademy.Book2OnAndOn_order_payment_service.payment.domain.dto.response.PaymentResponse;
 import jakarta.persistence.CascadeType;
 import jakarta.persistence.Column;
-import jakarta.persistence.Convert;
 import jakarta.persistence.Entity;
+import jakarta.persistence.FetchType;
 import jakarta.persistence.GeneratedValue;
 import jakarta.persistence.GenerationType;
 import jakarta.persistence.Id;
@@ -15,11 +17,13 @@ import jakarta.persistence.OneToMany;
 import jakarta.persistence.OneToOne;
 import jakarta.persistence.Table;
 import jakarta.validation.constraints.NotNull;
+import java.time.LocalDate;
 import java.time.LocalDateTime;
 import java.util.ArrayList;
 import java.util.List;
 import lombok.AccessLevel;
 import lombok.AllArgsConstructor;
+import lombok.Builder;
 import lombok.Getter;
 import lombok.NoArgsConstructor;
 import lombok.Setter;
@@ -27,6 +31,7 @@ import lombok.Setter;
 @Entity
 @Getter
 @Setter
+@Builder
 @NoArgsConstructor(access = AccessLevel.PROTECTED)
 @AllArgsConstructor
 @Table(name = "Orders")
@@ -38,20 +43,23 @@ public class Order {
     private Long orderId;
 
     @Column(name = "user_id")
-    @NotNull
     private Long userId;
 
-    @Column(name = "order_number", unique = true, columnDefinition = "CHAR(12)")
+    @Column(name = "order_number", unique = true, columnDefinition = "CHAR(15)")
     @NotNull
     private String orderNumber;
 
-    @Column(name = "order_datatime")
+    @Column(name = "order_date_time")
     @NotNull
-    private LocalDateTime orderDatetime = LocalDateTime.now();
+    @Builder.Default
+    private LocalDateTime orderDateTime = LocalDateTime.now();
 
     @Column(name = "order_status")
     @NotNull
     private OrderStatus orderStatus;
+
+    @Column(name = "order_title")
+    private String orderTitle;
 
     @Column(name = "total_amount")
     private Integer totalAmount;
@@ -74,9 +82,12 @@ public class Order {
     @Column(name = "point_discount")
     private Integer pointDiscount = 0;
 
+    @Column(name = "want_delivery_date")
+    private LocalDate wantDeliveryDate;
 
     // 양방향 연관관계
-    @OneToMany(mappedBy = "order", cascade = CascadeType.ALL, orphanRemoval = true)
+    @OneToMany(mappedBy = "order", fetch = FetchType.LAZY, cascade = CascadeType.ALL, orphanRemoval = true)
+    @Builder.Default
     private List<OrderItem> orderItems = new ArrayList<>();
 
     @OneToOne(mappedBy = "order", cascade = CascadeType.ALL, orphanRemoval = true)
@@ -85,9 +96,33 @@ public class Order {
     @OneToOne(mappedBy = "order", cascade = CascadeType.ALL)
     private GuestOrder guestOrder;
 
-    @OneToMany(mappedBy = "order", cascade = CascadeType.ALL)
-    private List<Delivery> deliveries = new ArrayList<>();
+    @OneToMany(mappedBy = "order", fetch = FetchType.LAZY, cascade = CascadeType.ALL, orphanRemoval = true)
+    private List<Refund> refunds = new ArrayList<>();
 
-    @OneToMany(mappedBy = "order", cascade = CascadeType.ALL, orphanRemoval = true)
-    private List<Return> returns = new ArrayList<>();
+    public void updateStatus(OrderStatus status){
+        this.orderStatus = status;
+    }
+
+    public void addOrderItem(List<OrderItem> items){
+        for (OrderItem item : items) {
+            this.orderItems.add(item);
+            item.setOrder(this);
+        }
+    }
+
+    public void addDeliveryAddress(DeliveryAddress deliveryAddress){
+        this.deliveryAddress = deliveryAddress;
+        deliveryAddress.setOrder(this);
+    }
+
+    public void addRefund(Refund refund) {
+        if (refund == null) {
+            return;
+        }
+        if (this.refunds == null) {
+            this.refunds = new ArrayList<>();
+        }
+        this.refunds.add(refund);
+        refund.setOrder(this);
+    }
 }

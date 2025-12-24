@@ -1,0 +1,185 @@
+/* =================================================================
+// orderHistory.css: 주문 내역 확인 페이지 스타일 (최종 버전)
+// ================================================================= */
+
+body {
+    font-family: 'Malgun Gothic', '맑은 고딕', 'Apple SD Gothic Neo', sans-serif;
+    background-color: #f7f7f7;
+    margin: 0;
+    padding: 0;
+}
+
+.container {
+    max-width: 1000px;
+    margin: 30px auto;
+    padding: 20px;
+    background-color: #fff;
+    border-radius: 12px;
+    box-shadow: 0 4px 12px rgba(0, 0, 0, 0.05);
+}
+
+h1 {
+    color: #333;
+    text-align: center;
+    margin-bottom: 30px;
+    border-bottom: 2px solid #eee;
+    padding-bottom: 10px;
+}
+
+h2 {
+    color: #4A7C59; /* 메인 브랜드 색상 */
+    border-left: 5px solid #4A7C59;
+    padding-left: 10px;
+    margin-top: 30px;
+    margin-bottom: 20px;
+}
+
+/* ------------------------------------------- */
+/* 버튼 및 폼 요소 공통 스타일 */
+/* ------------------------------------------- */
+
+input[type="text"], input[type="password"], textarea, select {
+    width: 100%;
+    padding: 12px;
+    margin-bottom: 15px;
+    border: 1px solid #ddd;
+    border-radius: 6px;
+    box-sizing: border-box;
+    font-size: 16px;
+}
+
+.btn-primary {
+    background-color: #4A7C59;
+    color: white;
+    padding: 12px 25px;
+    border: none;
+    cursor: pointer;
+    border-radius: 6px;
+    font-size: 16px;
+    transition: background-color 0.2s;
+}
+
+.btn-primary:hover {
+    background-color: #3f684c;
+}
+
+.btn-secondary {
+    background-color: #ccc;
+    color: #333;
+    padding: 12px 25px;
+    border: none;
+    cursor: pointer;
+    border-radius: 6px;
+    font-size: 16px;
+    transition: background-color 0.2s;
+}
+
+.btn-secondary:hover {
+    background-color: #bbb;
+}
+
+/* ------------------------------------------- */
+/* 주문 내역 목록 스타일 */
+/* ------------------------------------------- */
+
+.order-item {
+    display: flex;
+    justify-content: space-between;
+    align-items: center;
+    border: 1px solid #e0e0e0;
+    padding: 15px 20px;
+    margin-bottom: 10px;
+    border-radius: 8px;
+    background-color: #fff;
+    box-shadow: 0 1px 3px rgba(0, 0, 0, 0.05);
+    transition: background-color 0.2s;
+    cursor: pointer;
+}
+
+.order-item:hover {
+    background-color: #f9f9f9;
+}
+
+.order-info {
+    flex-grow: 1;
+    line-height: 1.6;
+}
+
+/* ------------------------------------------- */
+/* 상세 정보 스타일 */
+/* ------------------------------------------- */
+
+#orderDetailContent p {
+    margin: 8px 0;
+    font-size: 16px;
+}
+
+#orderDetailContent h4 {
+    margin-top: 25px;
+    color: #555;
+    border-bottom: 1px dashed #eee;
+    padding-bottom: 5px;
+}
+
+.order-item-detail {
+    background-color: #fcfcfc;
+    padding: 10px;
+    border-left: 3px solid #ddd;
+    margin-bottom: 5px;
+}
+
+.hidden {
+    display: none !important;
+}
+
+#noOrdersMessage {
+    text-align: center;
+    color: #888;
+    padding: 30px;
+    border: 1px dashed #ddd;
+    border-radius: 8px;
+    margin-top: 20px;
+}
+
+/* ------------------------------------------- */
+/* 모달 스타일 */
+/* ------------------------------------------- */
+
+.modal {
+    position: fixed;
+    z-index: 2000;
+    left: 0;
+    top: 0;
+    width: 100%;
+    height: 100%;
+    overflow: auto;
+    background-color: rgba(0,0,0,0.6);
+    display: flex;
+    justify-content: center;
+    align-items: center;
+}
+.modal-content {
+    background-color: #fff;
+    padding: 30px;
+    border-radius: 10px;
+    width: 90%;
+    max-width: 500px;
+    position: relative;
+    box-shadow: 0 5px 15px rgba(0,0,0,0.3);
+}
+.close-button {
+    color: #aaa;
+    float: right;
+    font-size: 28px;
+    font-weight: bold;
+    cursor: pointer;
+    position: absolute;
+    top: 10px;
+    right: 20px;
+}
+.close-button:hover,
+.close-button:focus {
+    color: #333;
+    text-decoration: none;
+    cursor: pointer;
+}

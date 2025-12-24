@@ -1,0 +1,49 @@
+<!DOCTYPE html>
+<html lang="ko">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>장바구니 - Book2OnAndOn</title>
+    <link rel="stylesheet" href="cart.css">
+</head>
+<body>
+<header>
+    <h1>장바구니</h1>
+</header>
+
+<div class="container">
+    <div class="cart-header">
+        <div class="select-all">
+            <input type="checkbox" id="selectAll" onchange="toggleSelectAll()">
+            <label for="selectAll">전체선택</label>
+        </div>
+        <div class="cart-actions">
+            <button class="btn btn-delete" onclick="deleteSelected()">선택삭제</button>
+            <button class="btn btn-secondary" onclick="clearCart()">전체삭제</button>
+        </div>
+    </div>
+
+    <div id="cartContent">
+        <!-- 장바구니 아이템이 여기에 표시됩니다 -->
+    </div>
+
+    <div class="cart-summary" id="cartSummary" style="display: none;">
+        <div class="summary-row">
+            <span>상품금액</span>
+            <span id="subtotal">0원</span>
+        </div>
+        <div class="summary-row">
+            <span>배송비</span>
+            <span id="shipping">무료</span>
+        </div>
+        <div class="summary-row total">
+            <span>총 결제금액</span>
+            <span id="total">0원</span>
+        </div>
+        <button class="btn-checkout" onclick="checkout()">주문하기</button>
+    </div>
+</div>
+
+<script src="cart.js"></script>
+</body>
+</html>

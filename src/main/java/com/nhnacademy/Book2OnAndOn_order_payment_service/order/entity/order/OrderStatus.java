@@ -8,7 +8,7 @@ public enum OrderStatus {
     DELIVERED(3, "배송 완료"),
     CANCELED(4, "주문 취소"),
     COMPLETED(5, "주문 완료"),
-    PARTIAL_RETURN(6, "부분 반품"),
+    PARTIAL_REFUND(6, "부분 반품"),
     RETURN_COMPLETED(7, "반품 완료"),
     RETURN_REQUESTED(8, "반품 신청");
 

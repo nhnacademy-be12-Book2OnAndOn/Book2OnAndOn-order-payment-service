@@ -32,6 +32,10 @@ build/
 ### VS Code ###
 .vscode/
 
+### 개인 설정 ###
 .env
+http/req.http
+src/main/resources/test.sql
+src/main/resources/application-local.properties
 
 

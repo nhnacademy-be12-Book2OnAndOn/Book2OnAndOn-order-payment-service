@@ -1,5 +1,6 @@
 package com.nhnacademy.Book2OnAndOn_order_payment_service.order.entity.wrappingpaper;
 
+import com.nhnacademy.Book2OnAndOn_order_payment_service.order.dto.wrapping.WrappingPaperResponseDto;
 import com.nhnacademy.Book2OnAndOn_order_payment_service.order.entity.order.OrderItem;
 import jakarta.persistence.Column;
 import jakarta.persistence.Entity;
@@ -11,6 +12,7 @@ import jakarta.persistence.Table;
 import jakarta.validation.constraints.NotNull;
 import lombok.AccessLevel;
 import lombok.AllArgsConstructor;
+import lombok.Builder;
 import lombok.Getter;
 import lombok.NoArgsConstructor;
 import lombok.Setter;
@@ -20,6 +22,7 @@ import lombok.Setter;
 @Setter
 @NoArgsConstructor(access = AccessLevel.PROTECTED)
 @AllArgsConstructor
+@Builder
 @Table(name = "WrappingPaper")
 public class WrappingPaper {
     @Id
@@ -41,4 +44,33 @@ public class WrappingPaper {
 
     @OneToOne(mappedBy = "wrappingPaper")
     private OrderItem orderItem;
+
+    // 생성자
+    private WrappingPaper(String wrappingPaperName, int wrappingPaperPrice, String wrappingPaperPath) {
+        this.wrappingPaperName = wrappingPaperName;
+        this.wrappingPaperPrice = wrappingPaperPrice;
+        this.wrappingPaperPath = wrappingPaperPath;
+    }
+
+    public static WrappingPaper create(String name, int price, String path) {
+        return new WrappingPaper(name, price, path);
+    }
+
+    // 비즈니스 로직
+    public void update(String name, int price, String path) {
+        this.wrappingPaperName = name;
+        this.wrappingPaperPrice = price;
+        this.wrappingPaperPath = path;
+    }
+
+    // DTO 변환
+    public WrappingPaperResponseDto toResponseDto() {
+        return new WrappingPaperResponseDto(
+                this.wrappingPaperId,
+                this.wrappingPaperName,
+                this.wrappingPaperPrice,
+                this.wrappingPaperPath
+        );
+    }
 }
+
