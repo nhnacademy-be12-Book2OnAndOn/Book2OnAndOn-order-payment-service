@@ -10,6 +10,7 @@ import com.nhnacademy.Book2OnAndOn_order_payment_service.payment.domain.dto.requ
 import com.nhnacademy.Book2OnAndOn_order_payment_service.payment.domain.dto.response.PaymentCancelResponse;
 import com.nhnacademy.Book2OnAndOn_order_payment_service.payment.domain.dto.response.PaymentDeleteResponse;
 import com.nhnacademy.Book2OnAndOn_order_payment_service.payment.domain.dto.response.PaymentResponse;
+import com.nhnacademy.Book2OnAndOn_order_payment_service.payment.domain.entity.Payment;
 import com.nhnacademy.Book2OnAndOn_order_payment_service.payment.domain.entity.PaymentCancel;
 import java.util.List;
 
@@ -21,6 +22,7 @@ public interface PaymentService {
 //    PaymentResponse updateRefundAmount(PaymentUpdateRefundAmountRequest req);
 //    PaymentResponse updatePaymentStatus(PaymentUpdatePaymentStatusRequest req);
     String getProvider(String orderNumber);
+    Payment getPaymentEntity(String orderNumber);
 
     // 결제 취소
     List<PaymentCancelResponse> createPaymentCancel(PaymentCancelCreateRequest req);

@@ -68,4 +68,8 @@ public class OrderItem {
 
     @OneToMany(mappedBy = "orderItem", cascade = CascadeType.ALL)
     private List<RefundItem> refundItems = new ArrayList<>();
+
+    public void updateStatus(OrderItemStatus status){
+        this.orderItemStatus = status;
+    }
 }

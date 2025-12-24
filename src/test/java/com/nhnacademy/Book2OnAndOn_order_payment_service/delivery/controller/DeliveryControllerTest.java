@@ -31,7 +31,6 @@ import static org.springframework.test.web.servlet.result.MockMvcResultMatchers.
 
 @WebMvcTest(controllers = DeliveryController.class, properties = {
         "spring.cloud.config.enabled=false",      // Config Server 끄기
-        "book.service.url=http://localhost:8080"  // 구멍난 설정값 메워주기
 })
 @WithMockUser(username = "admin", roles = {"SUPER_ADMIN"})
 class DeliveryControllerTest {

@@ -1,8 +1,10 @@
 package com.nhnacademy.Book2OnAndOn_order_payment_service.payment.service.impl;
 
 import com.nhnacademy.Book2OnAndOn_order_payment_service.exception.PaymentException;
+import com.nhnacademy.Book2OnAndOn_order_payment_service.order.entity.order.Order;
 import com.nhnacademy.Book2OnAndOn_order_payment_service.order.repository.order.OrderRepository;
 import com.nhnacademy.Book2OnAndOn_order_payment_service.order.service.OrderResourceManager;
+import com.nhnacademy.Book2OnAndOn_order_payment_service.order.service.OrderTransactionService;
 import com.nhnacademy.Book2OnAndOn_order_payment_service.payment.domain.dto.CommonConfirmRequest;
 import com.nhnacademy.Book2OnAndOn_order_payment_service.payment.domain.dto.CommonResponse;
 import com.nhnacademy.Book2OnAndOn_order_payment_service.payment.domain.dto.api.Cancel;
@@ -17,11 +19,11 @@ import com.nhnacademy.Book2OnAndOn_order_payment_service.payment.domain.entity.P
 import com.nhnacademy.Book2OnAndOn_order_payment_service.payment.domain.entity.PaymentCancel;
 import com.nhnacademy.Book2OnAndOn_order_payment_service.payment.exception.DuplicatePaymentException;
 import com.nhnacademy.Book2OnAndOn_order_payment_service.payment.exception.NotFoundPaymentException;
+import com.nhnacademy.Book2OnAndOn_order_payment_service.payment.publisher.PaymentEventPublisher;
 import com.nhnacademy.Book2OnAndOn_order_payment_service.payment.repository.PaymentCancelRepository;
 import com.nhnacademy.Book2OnAndOn_order_payment_service.payment.repository.PaymentRepository;
 import com.nhnacademy.Book2OnAndOn_order_payment_service.payment.service.PaymentService;
 import com.nhnacademy.Book2OnAndOn_order_payment_service.payment.service.PaymentSuccessEventHandler;
-import com.nhnacademy.Book2OnAndOn_order_payment_service.payment.service.PaymentTransactionService;
 import com.nhnacademy.Book2OnAndOn_order_payment_service.payment.strategy.PaymentStrategy;
 import com.nhnacademy.Book2OnAndOn_order_payment_service.payment.strategy.PaymentStrategyFactory;
 
@@ -44,12 +46,14 @@ public class PaymentServiceImpl implements PaymentService {
 
     private final PaymentRepository paymentRepository;
     private final PaymentCancelRepository paymentCancelRepository;
-    private final PaymentTransactionService paymentTransactionService;
     private final PaymentStrategyFactory factory;
 
     private final OrderRepository orderRepository;
+    private final OrderTransactionService orderTransactionService;
     private final OrderResourceManager orderResourceManager;
-    private final PaymentSuccessEventHandler successEventHandler;
+
+    private final PaymentEventPublisher paymentEventPublisher;
+//    private final PaymentSuccessEventHandler successEventHandler;
     private final RabbitTemplate rabbitTemplate;
     private static final int MAX_TRY = 5;
 
@@ -67,7 +71,7 @@ public class PaymentServiceImpl implements PaymentService {
     public PaymentResponse confirmAndCreatePayment(String provider, CommonConfirmRequest req) {
         log.info("결제 승인 요청 및 결제 엔티티 생성 (주문번호 : {})", req.orderId());
         // 1. 주문 금액 검증
-        paymentTransactionService.validateOrderAmount(req);
+        Order order = orderTransactionService.validateOrderAmount(req);
 
         // 2. 결제 승인 요청 (5회 재시도 후 오류시 관리자 호출)
         CommonResponse commonResponse = confirmPaymentWithRetry(provider, req);
@@ -75,10 +79,14 @@ public class PaymentServiceImpl implements PaymentService {
         // 3. DB 저장 요청 (2회 재시도 후 오류시 관리자 호출)
         Payment saved = savePayment(provider, commonResponse);
 
-        // 4. 이벤트 핸들러 구현
+        // 4. 주문 및 주문 항목 상태 변경 (동기)
+        orderTransactionService.changeStatusOrder(order, true);
+
+        // 5. 이벤트 핸들러 구현 (비동기)
         // 외부
         orderResourceManager.finalizeBooks(req.orderId());
-        successEventHandler.successHandler(req.orderId());
+        // 내부
+        paymentEventPublisher.publishSuccessPayment(order);
 
         return saved.toResponse();
     }
@@ -162,6 +170,12 @@ public class PaymentServiceImpl implements PaymentService {
     @Override
     public String getProvider(String orderNumber) {
         return paymentRepository.findProviderByOrderNumber(orderNumber)
+                .orElseThrow(() -> new NotFoundPaymentException("Not Found Payment : " + orderNumber));
+    }
+
+    @Override
+    public Payment getPaymentEntity(String orderNumber) {
+        return paymentRepository.findByOrderNumber(orderNumber)
                 .orElseThrow(() -> new NotFoundPaymentException("Not Found Payment : " + orderNumber));
     }
 
