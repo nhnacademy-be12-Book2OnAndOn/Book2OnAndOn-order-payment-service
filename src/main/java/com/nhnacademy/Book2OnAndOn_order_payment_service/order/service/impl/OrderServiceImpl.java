@@ -13,8 +13,6 @@ import com.nhnacademy.Book2OnAndOn_order_payment_service.client.BookServiceClien
 import com.nhnacademy.Book2OnAndOn_order_payment_service.client.CouponServiceClient;
 import com.nhnacademy.Book2OnAndOn_order_payment_service.client.UserServiceClient;
 import com.nhnacademy.Book2OnAndOn_order_payment_service.order.dto.order.DeliveryAddressRequestDto;
-import com.nhnacademy.Book2OnAndOn_order_payment_service.order.dto.order.OrderCancelRequestDto;
-import com.nhnacademy.Book2OnAndOn_order_payment_service.order.dto.order.OrderCancelResponseDto;
 import com.nhnacademy.Book2OnAndOn_order_payment_service.order.dto.order.OrderCreateRequestDto;
 import com.nhnacademy.Book2OnAndOn_order_payment_service.order.dto.order.OrderCreateResponseDto;
 import com.nhnacademy.Book2OnAndOn_order_payment_service.order.dto.order.OrderDetailResponseDto;
@@ -34,6 +32,7 @@ import com.nhnacademy.Book2OnAndOn_order_payment_service.order.entity.wrappingpa
 import com.nhnacademy.Book2OnAndOn_order_payment_service.order.exception.DeliveryPolicyNotFoundException;
 import com.nhnacademy.Book2OnAndOn_order_payment_service.order.exception.ExceedUserPointException;
 import com.nhnacademy.Book2OnAndOn_order_payment_service.order.exception.InvalidDeliveryDateException;
+import com.nhnacademy.Book2OnAndOn_order_payment_service.order.exception.OrderNotCancellableException;
 import com.nhnacademy.Book2OnAndOn_order_payment_service.order.exception.OrderNotFoundException;
 import com.nhnacademy.Book2OnAndOn_order_payment_service.order.provider.OrderNumberProvider;
 import com.nhnacademy.Book2OnAndOn_order_payment_service.order.repository.delivery.DeliveryPolicyRepository;
@@ -42,16 +41,11 @@ import com.nhnacademy.Book2OnAndOn_order_payment_service.order.service.OrderReso
 import com.nhnacademy.Book2OnAndOn_order_payment_service.order.service.OrderService;
 import com.nhnacademy.Book2OnAndOn_order_payment_service.order.service.OrderTransactionService;
 import com.nhnacademy.Book2OnAndOn_order_payment_service.order.service.WrappingPaperService;
-import com.nhnacademy.Book2OnAndOn_order_payment_service.payment.domain.dto.CommonCancelRequest;
-import com.nhnacademy.Book2OnAndOn_order_payment_service.payment.domain.dto.CommonCancelResponse;
-import com.nhnacademy.Book2OnAndOn_order_payment_service.payment.domain.dto.request.PaymentCancelCreateRequest;
+import com.nhnacademy.Book2OnAndOn_order_payment_service.payment.domain.dto.request.PaymentCancelRequest;
 import com.nhnacademy.Book2OnAndOn_order_payment_service.payment.domain.dto.request.PaymentRequest;
-import com.nhnacademy.Book2OnAndOn_order_payment_service.payment.domain.dto.response.PaymentCancelResponse;
 import com.nhnacademy.Book2OnAndOn_order_payment_service.payment.domain.dto.response.PaymentResponse;
-import com.nhnacademy.Book2OnAndOn_order_payment_service.payment.domain.entity.Payment;
-import com.nhnacademy.Book2OnAndOn_order_payment_service.payment.repository.PaymentRepository;
 import com.nhnacademy.Book2OnAndOn_order_payment_service.payment.service.PaymentService;
-import com.nhnacademy.Book2OnAndOn_order_payment_service.payment.strategy.PaymentStrategy;
+import com.nhnacademy.Book2OnAndOn_order_payment_service.payment.service.PaymentTransactionService;
 import com.nhnacademy.Book2OnAndOn_order_payment_service.payment.strategy.PaymentStrategyFactory;
 
 import java.time.LocalDate;
@@ -72,12 +66,12 @@ import org.springframework.transaction.annotation.Transactional;
 @RequiredArgsConstructor
 public class OrderServiceImpl implements OrderService {
     private final OrderRepository orderRepository;
-    private final PaymentRepository paymentRepository;
     private final DeliveryPolicyRepository deliveryPolicyRepository;
 
     private final WrappingPaperService wrappingPaperService;
     private final PaymentService paymentService;
     private final OrderTransactionService orderTransactionService;
+    private final PaymentTransactionService paymentTransactionService;
 
     private final BookServiceClient bookServiceClient;
     private final UserServiceClient userServiceClient;
@@ -496,12 +490,11 @@ public class OrderServiceImpl implements OrderService {
         return orderRepository.findAllByUserId(userId, pageable);
     }
 
-    @Transactional(readOnly = true)
     @Override
     public OrderDetailResponseDto getOrderDetail(Long userId, String orderNumber) {
         log.info("일반 사용자 주문 상세 정보 조회 로직 실행 (유저 아이디 : {}, 주문번호 : {})", userId, orderNumber);
 
-        Order order = validateOrderExistence(userId, orderNumber);
+        Order order = orderTransactionService.validateOrderExistence(userId, orderNumber);
 
         List<Long> bookIds = order.getOrderItems().stream()
                 .map(OrderItem::getBookId)
@@ -520,54 +513,27 @@ public class OrderServiceImpl implements OrderService {
 
     // 일반 사용자 주문 취소
     @Override
-    public OrderCancelResponseDto cancelOrder(Long userId, String orderNumber, OrderCancelRequestDto req) {
+    public void cancelOrder(Long userId, String orderNumber) {
         log.info("일반 사용자 주문 취소 로직 실행 (유저 아이디 : {}, 주문번호 : {})", userId, orderNumber);
 
         // 주문 검증
-        Order order = orderTransactionService.validateOrderExistence(userId, orderNumber);
-
-        // 결제 찾기
-        Payment payment = paymentService.getPaymentEntity(orderNumber);
-
-        // 결제 취소 요청
-        // TODO 멱등키 설정해서 결제 취소 하기
-        CommonCancelResponse cancelResponse = cancelPaymentExternally(payment, req.cancelReason());
-
-        // 결제 취소 DB 저장
-        List<PaymentCancelResponse> paymentCancelResponseList = savePaymentCancel(cancelResponse);
-
-        // 이벤트 핸들러
-        order.setOrderStatus(OrderStatus.CANCELED);
-
-        return new OrderCancelResponseDto(
-                order.getOrderNumber(),
-                order.getOrderStatus().getDescription(),
-                paymentCancelResponseList
-        );
-    }
-
-
-    // 결제 취소에 필요한 로직
-    public Order validateOrderExistence(Long userId, String orderNumber){
-        return orderRepository.findByUserIdAndOrderNumber(userId, orderNumber)
+        Order order = orderRepository.findByUserIdAndOrderNumber(userId, orderNumber)
                 .orElseThrow(() -> new OrderNotFoundException("Not Found Order : " + orderNumber));
+
+        // 주문 상태에 따른 오류 던지기
+        if(!order.getOrderStatus().isCancellable()){
+            log.warn("주문 취소를 할 수 없는 상태입니다 (현재 상태  : {})", order.getOrderStatus().name());
+            throw new OrderNotCancellableException("주문 취소를 할 수 없는 상태입니다 : " + order.getOrderStatus().name());
+        }
+
+        // 결제 취소 호출 (사용자 주문 취소)
+        paymentService.cancelPayment(new PaymentCancelRequest(order.getOrderNumber(), "사용자 주문 취소", null));
+
+        // 상태 변경
+        orderTransactionService.changeStatusOrder(order, false);
     }
 
-    // TODO Retryble사용해서 처리
-    public CommonCancelResponse cancelPaymentExternally(Payment payment, String reason){
-        CommonCancelRequest cancelRequest = new CommonCancelRequest(payment.getPaymentKey(), null, reason);
-        String provider = payment.getPaymentProvider().name();
-        PaymentStrategy paymentStrategy = paymentStrategyFactory.getStrategy(provider);
-        return paymentStrategy.cancelPayment(cancelRequest, payment.getOrderNumber());
-    }
-
-    public List<PaymentCancelResponse> savePaymentCancel(CommonCancelResponse cancelResponse){
-        PaymentCancelCreateRequest createRequest = cancelResponse.toPaymentCancelCreateRequest();
-        return paymentService.createPaymentCancel(createRequest);
-    }
-
-    @Transactional(readOnly = true)
-    public PaymentResponse getPaymentInfo(String orderNumber){
+    private PaymentResponse getPaymentInfo(String orderNumber){
         return paymentService.getPayment(new PaymentRequest(orderNumber));
     }
 

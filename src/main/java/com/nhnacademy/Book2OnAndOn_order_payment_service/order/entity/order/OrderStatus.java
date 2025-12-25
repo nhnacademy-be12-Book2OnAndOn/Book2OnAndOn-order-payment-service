@@ -35,4 +35,8 @@ public enum OrderStatus {
         }
         throw new IllegalArgumentException("Invalid OrderStatus code: " + code);
     }
+
+    public boolean isCancellable(){
+        return this.equals(COMPLETED);
+    }
 }

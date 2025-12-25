@@ -26,6 +26,7 @@ public interface TossPaymentsApiClient {
     @PostMapping(value = "/v1/payments/{paymentKey}/cancel", consumes = "application/json")
     TossCancelResponse cancelPayment(
             @RequestHeader("Authorization") String authorization,
+            @RequestHeader("Idempotency-Key") String idempotencyKey,
             @PathVariable("paymentKey") String paymentKey,
             @RequestBody TossCancelRequest req
     );

@@ -75,14 +75,14 @@ public class OrderUserController {
         return ResponseEntity.ok(orderResponseDto);
     }
 
+    // 결제 후 바로 주문 취소하는 경우
     @PatchMapping("/{orderNumber}/cancel")
     public ResponseEntity<OrderCancelResponseDto> cancelOrder(@RequestHeader(USER_ID_HEADER) Long userId,
-                                                              @PathVariable("orderNumber") String orderNumber,
-                                                              @RequestBody OrderCancelRequestDto req){
+                                                              @PathVariable("orderNumber") String orderNumber){
         log.info("PATCH /order/{}/cancel 호출 : 주문 취소", orderNumber);
 
-        OrderCancelResponseDto orderCancelResponseDto = orderService.cancelOrder(userId, orderNumber, req);
+        orderService.cancelOrder(userId, orderNumber);
         // 리소스 생성 및 취소 완료
-        return ResponseEntity.status(HttpStatus.CREATED).body(orderCancelResponseDto);
+        return ResponseEntity.noContent().build();
     }
 }
