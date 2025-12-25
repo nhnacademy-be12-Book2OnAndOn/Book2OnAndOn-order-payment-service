@@ -204,3 +204,15 @@ Accept: application/json
   "quantity": 0,
   "selected": true
 }
+
+###
+POST http://localhost:10421/cart/user/items
+X-User-Id: 1
+Content-Type: application/json
+Accept: application/json
+
+{
+  "bookId": 1,
+  "quantity": 1,
+  "selected": true
+}

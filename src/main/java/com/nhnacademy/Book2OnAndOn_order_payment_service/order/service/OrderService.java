@@ -19,7 +19,7 @@ public interface OrderService {
     OrderCreateResponseDto createPreOrder(Long userId, OrderCreateRequestDto req);
     Page<OrderSimpleDto> getOrderList(Long userId, Pageable pageable);
     OrderDetailResponseDto getOrderDetail(Long userId, String orderNumber);
-    OrderCancelResponseDto cancelOrder(Long userId, String orderNumber, OrderCancelRequestDto req);
+    void cancelOrder(Long userId, String orderNumber);
 
     // 비회원 전용
     OrderPrepareResponseDto prepareGuestOrder(String guestId, OrderPrepareRequestDto req);

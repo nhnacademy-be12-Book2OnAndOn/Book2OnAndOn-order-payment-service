@@ -43,30 +43,4 @@ public class PaymentController {
 
         return ResponseEntity.status(HttpStatus.CREATED).body(paymentResponse);
     }
-
-    // 결제 취소 ( 사용자 / 관리자 ) 사용자 : 전체 취소, 관리자 : 부분 취소
-    @PostMapping("/cancel")
-    public ResponseEntity<List<PaymentCancelResponse>> cancelPayment(
-            @RequestHeader("X-USER-ID") Long userId,
-            @RequestParam("orderNumber") String orderNumber,
-            @RequestBody CommonCancelRequest req){
-        log.info("GET /payment/cancel 요청 수신 (주문번호 : {}, 사용자 아이디 : {})", orderNumber, userId);
-
-        // 해당 유저가 해당 주문 번호를 가지고있어야함
-        if(!orderService. existsOrderByUserIdAndOrderNumber(userId, orderNumber)){
-            throw new NotFoundOrderException("잘못된 접근입니다 : " + orderNumber);
-        }
-
-        String provider = paymentService.getProvider(orderNumber);
-
-        // 결제 제공사
-        PaymentStrategy paymentStrategy = factory.getStrategy(provider);
-        CommonCancelResponse resp = paymentStrategy.cancelPayment(req, orderNumber);
-
-        PaymentCancelCreateRequest createRequest = resp.toPaymentCancelCreateRequest();
-
-        List<PaymentCancelResponse> cancelResponse = paymentService.createPaymentCancel(createRequest);
-
-        return ResponseEntity.ok(cancelResponse);
-    }
 }
