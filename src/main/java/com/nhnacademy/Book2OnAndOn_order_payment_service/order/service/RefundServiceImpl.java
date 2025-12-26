@@ -777,7 +777,7 @@ public class RefundServiceImpl implements RefundService {
                 .map(ri -> new StockDecreaseRequest(ri.getOrderItem().getBookId(), ri.getRefundQuantity()))
                 .toList();
 
-        bookServiceClient.increaseStock(restoreRequests);
+//        bookServiceClient.increaseStock(restoreRequests);
 
         for (RefundItem ri : refund.getRefundItems()) {
             OrderItem oi = ri.getOrderItem();
