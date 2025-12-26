@@ -97,4 +97,10 @@ public class OrderTransactionService {
         }
 
     }
+
+    @Transactional(readOnly = true)
+    public Order getOrderEntity(String orderNumber){
+        return orderRepository.findByOrderNumber(orderNumber)
+                .orElseThrow(() -> new OrderNotFoundException("Not Found Order : " + orderNumber));
+    }
 }

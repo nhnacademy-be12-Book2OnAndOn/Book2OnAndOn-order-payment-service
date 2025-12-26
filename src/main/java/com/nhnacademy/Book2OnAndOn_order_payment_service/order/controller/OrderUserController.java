@@ -39,10 +39,10 @@ public class OrderUserController {
     @PostMapping("/prepare")
     public ResponseEntity<OrderPrepareResponseDto> getOrderPrepare(@RequestHeader(USER_ID_HEADER) Long userId,
                                                                    @RequestBody OrderPrepareRequestDto req){
-        log.info("GET /orders/prepare 호출 : 주문시 필요한 데이터 반환 (회원 아이디 : {})", userId);
+        log.info("POST /orders/prepare 호출 : 주문시 필요한 데이터 반환 (회원 아이디 : {})", userId);
 
         // 회원 주문 로직
-        OrderPrepareResponseDto orderSheetResponseDto = orderService.prepareOrder(userId, req);
+        OrderPrepareResponseDto orderSheetResponseDto = orderService.prepareOrder(userId, null, req);
 
         return ResponseEntity.ok(orderSheetResponseDto);
     }
@@ -51,7 +51,7 @@ public class OrderUserController {
     public ResponseEntity<OrderCreateResponseDto> createPreOrder(@RequestHeader(USER_ID_HEADER) Long userId,
                                                                  @RequestBody OrderCreateRequestDto req){
         log.info("POST /orders 호출 : 사전 주문 데이터 생성");
-        OrderCreateResponseDto orderCreateResponseDto = orderService.createPreOrder(userId, req);
+        OrderCreateResponseDto orderCreateResponseDto = orderService.createPreOrder(userId, null, req);
 
         return ResponseEntity.status(HttpStatus.CREATED).body(orderCreateResponseDto);
     }

@@ -42,7 +42,7 @@ public class GuestOrder {
     @Convert(converter = PhoneNumberConverter.class)
     @Column(name = "guest_phonenumber", length = 100)
     @NotNull
-    private String guestPhonenumber;
+    private String guestPhoneNumber;
 
     @Column(name = "guest_password", length = 255)
     @Size(max = 255)
