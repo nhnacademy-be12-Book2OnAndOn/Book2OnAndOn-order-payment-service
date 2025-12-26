@@ -50,7 +50,10 @@ public class GuestOrder {
     private String guestPassword;
 
     @OneToOne(fetch = FetchType.LAZY)
-    @JoinColumn(name = "order_number")
+    @JoinColumn(
+            name = "order_number",
+            referencedColumnName = "order_number"
+    )
     private Order order;
 
 }
