@@ -6,7 +6,6 @@ import com.nhnacademy.Book2OnAndOn_order_payment_service.client.dto.BookOrderRes
 import com.nhnacademy.Book2OnAndOn_order_payment_service.client.dto.RefundPointInternalRequestDto;
 import com.nhnacademy.Book2OnAndOn_order_payment_service.client.dto.StockDecreaseRequest;
 import com.nhnacademy.Book2OnAndOn_order_payment_service.order.dto.refund.RefundCompletedEvent;
-import com.nhnacademy.Book2OnAndOn_order_payment_service.order.dto.refund.request.RefundGuestRequestDto;
 import com.nhnacademy.Book2OnAndOn_order_payment_service.order.dto.refund.request.RefundItemRequestDto;
 import com.nhnacademy.Book2OnAndOn_order_payment_service.order.dto.refund.request.RefundRequestDto;
 import com.nhnacademy.Book2OnAndOn_order_payment_service.order.dto.refund.request.RefundSearchCondition;
@@ -15,7 +14,6 @@ import com.nhnacademy.Book2OnAndOn_order_payment_service.order.dto.refund.respon
 import com.nhnacademy.Book2OnAndOn_order_payment_service.order.dto.refund.response.RefundItemResponseDto;
 import com.nhnacademy.Book2OnAndOn_order_payment_service.order.dto.refund.response.RefundResponseDto;
 import com.nhnacademy.Book2OnAndOn_order_payment_service.order.entity.delivery.Delivery;
-import com.nhnacademy.Book2OnAndOn_order_payment_service.order.entity.order.GuestOrder;
 import com.nhnacademy.Book2OnAndOn_order_payment_service.order.entity.order.Order;
 import com.nhnacademy.Book2OnAndOn_order_payment_service.order.entity.order.OrderItem;
 import com.nhnacademy.Book2OnAndOn_order_payment_service.order.entity.order.OrderItemStatus;
@@ -26,6 +24,7 @@ import com.nhnacademy.Book2OnAndOn_order_payment_service.order.entity.refund.Ref
 import com.nhnacademy.Book2OnAndOn_order_payment_service.order.entity.refund.RefundStatus;
 import com.nhnacademy.Book2OnAndOn_order_payment_service.order.exception.OrderNotFoundException;
 import com.nhnacademy.Book2OnAndOn_order_payment_service.order.exception.RefundNotFoundException;
+import com.nhnacademy.Book2OnAndOn_order_payment_service.order.provider.GuestTokenProvider;
 import com.nhnacademy.Book2OnAndOn_order_payment_service.order.repository.delivery.DeliveryRepository;
 import com.nhnacademy.Book2OnAndOn_order_payment_service.order.repository.order.OrderItemRepository;
 import com.nhnacademy.Book2OnAndOn_order_payment_service.order.repository.order.OrderRepository;
@@ -68,6 +67,8 @@ public class RefundServiceImpl implements RefundService {
 
     private final ApplicationEventPublisher applicationEventPublisher;
     private static final int DEFAULT_RETURN_SHIPPING_FEE = 3000;
+
+    private final GuestTokenProvider guestTokenProvider;
 
     /**
      * “진행 중(Active)” 반품 상태 목록
@@ -157,16 +158,33 @@ public class RefundServiceImpl implements RefundService {
 
 
     // =========================
-    // 1. 회원
+    // 1. 회원 전용
     // =========================
     @Override
-    public RefundResponseDto createRefundForMember(Long orderId, Long userId, RefundRequestDto request) {
+    @Transactional(readOnly = true)
+    public Page<RefundResponseDto> getRefundsForMember(Long userId, Pageable pageable) {
+        Page<Refund> page = refundRepository.findByOrderUserId(userId, pageable);
+
+        List<Long> bookIds = page.stream()
+                .flatMap(refund -> refund.getRefundItems().stream())
+                .map(ri -> ri.getOrderItem().getBookId())
+                .filter(Objects::nonNull)
+                .distinct()
+                .toList();
+
+        Map<Long, String> titleMap = fetchBookTitleMap(bookIds);
+
+        return page.map(refund -> RefundResponseDto.from(refund, titleMap));
+    }
+
+
+    // 회원/비회원 공용
+    @Override
+    public RefundResponseDto createRefund(Long orderId, Long userId, RefundRequestDto request, String guestToken) {
         Order order = orderRepository.findById(orderId)
                 .orElseThrow(() -> new OrderNotFoundException(orderId));
 
-        if (!Objects.equals(order.getUserId(), userId)) {
-            throw new AccessDeniedException("본인의 주문만 반품할 수 있습니다.");
-        }
+        validateOrderAuthority(order, userId, guestToken);
 
         RefundReason reason = parseRefundReason(request.getRefundReason());
         validateRefundEligibility(order, reason);
@@ -240,8 +258,9 @@ public class RefundServiceImpl implements RefundService {
         return toRefundResponseDto(refund);
     }
 
+
     @Override
-    public RefundResponseDto cancelRefundForMember(Long orderId, Long refundId, Long userId) {
+    public RefundResponseDto cancelRefund(Long orderId, Long refundId, Long userId, String guestToken) {
         Refund refund = refundRepository.findByIdForUpdate(refundId);
         if (refund == null) {
             throw new RefundNotFoundException("반품 내역을 찾을 수 없습니다. id=" + refundId);
@@ -251,12 +270,8 @@ public class RefundServiceImpl implements RefundService {
         if (order == null || !orderId.equals(order.getOrderId())) {
             throw new IllegalArgumentException("orderId가 반품 내역의 주문과 일치하지 않습니다.");
         }
-        if (order.getUserId() == null) {
-            throw new IllegalStateException("비회원 반품은 회원 취소 API로 취소할 수 없습니다.");
-        }
-        if (!userId.equals(order.getUserId())) {
-            throw new AccessDeniedException("본인의 반품만 취소할 수 있습니다.");
-        }
+
+        validateOrderAuthority(order, userId, guestToken);
 
         RefundStatus status = refund.getRefundStatus();
         if (!CANCELABLE_STATUSES.contains(status)) {
@@ -279,221 +294,31 @@ public class RefundServiceImpl implements RefundService {
 
     @Override
     @Transactional(readOnly = true)
-    public Page<RefundResponseDto> getRefundsForMember(Long userId, Pageable pageable) {
-        Page<Refund> page = refundRepository.findByOrderUserId(userId, pageable);
-
-        List<Long> bookIds = page.stream()
-                .flatMap(refund -> refund.getRefundItems().stream())
-                .map(ri -> ri.getOrderItem().getBookId())
-                .filter(Objects::nonNull)
-                .distinct()
-                .toList();
-
-        Map<Long, String> titleMap = fetchBookTitleMap(bookIds);
-
-        return page.map(refund -> toRefundResponseDtoWithTitleMap(refund, titleMap));
-    }
-
-    @Override
-    @Transactional(readOnly = true)
-    public RefundResponseDto getRefundDetailsForMember(Long orderId, Long refundId, Long userId) {
-        Refund refund = refundRepository.findById(refundId)
-                .orElseThrow(() -> new RefundNotFoundException("반품 내역을 찾을 수 없습니다. id=" + refundId));
-
-        if (!Objects.equals(refund.getOrder().getUserId(), userId)) {
-            throw new AccessDeniedException("해당 반품 내역에 대한 접근 권한이 없습니다.");
-        }
-        if (!Objects.equals(refund.getOrder().getOrderId(), orderId)) {
-            throw new IllegalArgumentException("orderId가 반품 내역의 주문과 일치하지 않습니다.");
-        }
-
-        return toRefundResponseDto(refund);
-    }
-
-    @Override
-    public List<RefundAvailableItemResponseDto> getRefundableItemsForMember(Long orderId, Long userId) {
-        Order order = orderRepository.findById(orderId)
-                .orElseThrow(() -> new OrderNotFoundException(orderId));
-
-        if (!Objects.equals(order.getUserId(), userId)) {
-            throw new AccessDeniedException("본인의 주문만 조회할 수 있습니다.");
-        }
-
-        validateOrderStatusForRefundForm(order);
-        return buildRefundableItems(order);
-    }
-
-
-    // =========================
-    // 2. 비회원
-    // =========================
-    @Override
-    public RefundResponseDto createRefundForGuest(Long orderId, RefundGuestRequestDto request) {
-        Order order = orderRepository.findById(orderId)
-                .orElseThrow(() -> new OrderNotFoundException(orderId));
-
-        GuestOrder guestOrder = order.getGuestOrder();
-        if (guestOrder == null) {
-            throw new IllegalStateException("비회원 주문 정보가 존재하지 않습니다.");
-        }
-        if (request.getGuestPassword() == null || !Objects.equals(guestOrder.getGuestPassword(), request.getGuestPassword())) {
-            throw new IllegalArgumentException("비회원 주문 비밀번호가 일치하지 않습니다.");
-        }
-
-        RefundReason reason = parseRefundReason(request.getRefundReason());
-        validateRefundEligibility(order, reason);
-
-        Map<Long, Integer> requestedQtyMap = aggregateRequestedQuantities(request.getRefundItems());
-        List<Long> itemIds = requestedQtyMap.keySet().stream().toList();
-
-        long days = getDaysAfterShipment(order);
-        RefundStatus initialStatus = determineInitialStatus(reason, days);
-
-        Refund refund = Refund.create(order, reason, request.getRefundReasonDetail());
-        refund.setRefundStatus(initialStatus);
-
-        // 원래 주문상태 저장
-        if (order.getOrderStatus() != null) {
-            refund.setOriginalOrderStatus(order.getOrderStatus().getCode());
-        }
-
-        order.addRefund(refund);
-
-        // 자동 REJECT는 아이템/주문 상태를 바꾸지 않는다.
-        if (initialStatus == RefundStatus.REJECTED) {
-            refundRepository.save(refund);
-            return toRefundResponseDto(refund);
-        }
-
-        // 주문 소속 + 락(한 번에)
-        List<OrderItem> lockedItems = orderItemRepository.findByOrderIdAndItemIdsForUpdate(orderId, itemIds);
-        Map<Long, OrderItem> itemMap = lockedItems.stream()
-                .collect(Collectors.toMap(OrderItem::getOrderItemId, oi -> oi));
-
-        for (Long id : itemIds) {
-            if (!itemMap.containsKey(id)) {
-                throw new IllegalArgumentException("주문에 속하지 않는 orderItemId 입니다. orderItemId=" + id);
-            }
-        }
-
-        ReturnableSnapshot snap = loadReturnableSnapshot(orderId);
-
-        for (Map.Entry<Long, Integer> entry : requestedQtyMap.entrySet()) {
-            Long orderItemId = entry.getKey();
-            int reqQty = entry.getValue();
-
-            OrderItem oi = itemMap.get(orderItemId);
-            int ordered = oi.getOrderItemQuantity() == null ? 0 : oi.getOrderItemQuantity();
-            int completed = snap.completedMap.getOrDefault(orderItemId, 0);
-            int active = snap.activeMap.getOrDefault(orderItemId, 0);
-
-            int remain = ordered - completed - active;
-            if (reqQty > remain) {
-                throw new IllegalArgumentException("반품 가능 수량 초과. 요청=" + reqQty + ", 가능=" + remain + ", orderItemId=" + orderItemId);
-            }
-            if (active > 0) {
-                throw new IllegalStateException("이미 진행 중인 반품 건이 있는 주문 항목입니다. orderItemId=" + orderItemId);
-            }
-
-            RefundItem refundItem = RefundItem.create(refund, oi, reqQty);
-            refund.addRefundItem(refundItem);
-
-            oi.setOrderItemStatus(OrderItemStatus.RETURN_REQUESTED);
-        }
-
-        refundRepository.save(refund);
-        order.updateStatus(OrderStatus.RETURN_REQUESTED);
-
-        return toRefundResponseDto(refund);
-    }
-
-    @Override
-    public RefundResponseDto cancelRefundForGuest(Long orderId, Long refundId, String guestPassword) {
-        Refund refund = refundRepository.findByIdForUpdate(refundId);
-        if (refund == null) {
-            throw new RefundNotFoundException("반품 내역을 찾을 수 없습니다. id=" + refundId);
-        }
-
-        Order order = refund.getOrder();
-        if (order == null || !orderId.equals(order.getOrderId())) {
-            throw new IllegalArgumentException("orderId가 반품 내역의 주문과 일치하지 않습니다.");
-        }
-        if (order.getUserId() != null) {
-            throw new IllegalStateException("회원 주문입니다. 비회원 취소 API를 호출할 수 없습니다.");
-        }
-
-        GuestOrder guestOrder = order.getGuestOrder();
-        if (guestOrder == null) {
-            throw new IllegalStateException("비회원 주문 정보가 존재하지 않습니다.");
-        }
-        if (guestPassword == null || !Objects.equals(guestOrder.getGuestPassword(), guestPassword)) {
-            throw new IllegalArgumentException("비회원 주문 비밀번호가 일치하지 않습니다.");
-        }
-
-        RefundStatus status = refund.getRefundStatus();
-        if (!CANCELABLE_STATUSES.contains(status)) {
-            throw new IllegalStateException("현재 상태에서는 반품 취소가 불가합니다. status=" + status);
-        }
-        refund.setRefundStatus(RefundStatus.REQUEST_CANCELED);
-        rollbackOrderItemStatus(refund);
-
-        boolean hasOtherActiveRefund =
-                refundRepository.existsActiveRefundByOrderIdExcludingRefundId(orderId, refundId, ACTIVE_REFUND_STATUSES);
-        restoreOrderStatusAfterRollback(order, refund, hasOtherActiveRefund);
-
-        return toRefundResponseDto(refund);
-    }
-
-    @Override
-    @Transactional(readOnly = true)
-    public RefundResponseDto getRefundDetailsForGuest(Long orderId, Long refundId) {
+    public RefundResponseDto getRefundDetails(Long orderId, Long refundId, Long userId, String guestToken) {
         Refund refund = refundRepository.findById(refundId)
                 .orElseThrow(() -> new RefundNotFoundException("반품 내역을 찾을 수 없습니다. id=" + refundId));
 
         Order order = refund.getOrder();
-        if (order == null || order.getUserId() != null) {
-            throw new IllegalStateException("회원 주문의 반품입니다. 비회원 조회 API를 잘못 호출했습니다.");
-        }
-        if (!orderId.equals(order.getOrderId())) {
-            throw new IllegalArgumentException("orderId가 반품 내역의 주문과 일치하지 않습니다.");
+
+        if(order == null || !orderId.equals(order.getOrderId())) {
+            throw new IllegalArgumentException("주문 정보가 일치하지 않습니다.");
         }
 
-        GuestOrder guestOrder = order.getGuestOrder();
-        if (guestOrder == null) {
-            throw new IllegalStateException("비회원 주문 정보가 존재하지 않습니다.");
-        }
-//        if (guestPassword == null || !Objects.equals(guestOrder.getGuestPassword(), guestPassword)) {
-//            throw new IllegalArgumentException("비회원 주문 비밀번호가 일치하지 않습니다.");
-//        }
+        validateOrderAuthority(order, userId, guestToken);
 
         return toRefundResponseDto(refund);
     }
 
-    /**
-     * 비회원 반품 가능 품목 목록
-     * - 추가반품(2차 폼 진입) 막힘 해결: 주문상태 허용 집합 확장
-     * - 비회원 인증 파라미터 부족 해결: guestPassword 검증 추가(컨트롤러/인터페이스도 전달 필요)
-     */
     @Override
-    public List<RefundAvailableItemResponseDto> getRefundableItemsForGuest(Long orderId) {
+    public List<RefundAvailableItemResponseDto> getRefundableItems(Long orderId, Long userId, String guestToken) {
         Order order = orderRepository.findById(orderId)
                 .orElseThrow(() -> new OrderNotFoundException(orderId));
-        if (order.getUserId() != null) {
-            throw new IllegalStateException("회원 주문입니다. 비회원 조회 API를 잘못 호출했습니다.");
-        }
 
-        GuestOrder guestOrder = order.getGuestOrder();
-        if (guestOrder == null) {
-            throw new IllegalStateException("비회원 주문 정보가 존재하지 않습니다.");
-        }
-//        if (guestPassword == null || !Objects.equals(guestOrder.getGuestPassword(), guestPassword)) {
-//            throw new IllegalArgumentException("비회원 주문 비밀번호가 일치하지 않습니다.");
-//        }
-
+        validateOrderAuthority(order, userId, guestToken);
         validateOrderStatusForRefundForm(order);
+
         return buildRefundableItems(order);
     }
-
 
     // =========================
     // 3. 관리자
@@ -582,7 +407,16 @@ public class RefundServiceImpl implements RefundService {
                 pageable
         );
 
-        return refundPage.map(this::toRefundResponseDto);
+        List<Long> bookIds = refundPage.stream()
+                .flatMap(refund -> refund.getRefundItems().stream())
+                .map(ri -> ri.getOrderItem().getBookId())
+                .filter(Objects::nonNull)
+                .distinct()
+                .toList();
+
+        Map<Long, String> titleMap = fetchBookTitleMap(bookIds);
+
+        return refundPage.map(refund -> RefundResponseDto.from(refund, titleMap));
     }
 
     @Override
@@ -885,54 +719,9 @@ public class RefundServiceImpl implements RefundService {
 
         Map<Long, String> titleMap = fetchBookTitleMap(bookIds);
 
-        List<RefundItemResponseDto> itemDetails = refund.getRefundItems().stream()
-                .map(ri -> {
-                    Long bookId = ri.getOrderItem().getBookId();
-                    String title = (bookId != null) ? titleMap.getOrDefault(bookId, "") : "";
-                    return new RefundItemResponseDto(
-                            ri.getRefundItemId(),
-                            ri.getOrderItem().getOrderItemId(),
-                            title,
-                            ri.getRefundQuantity()
-                    );
-                })
-                .toList();
-
-        return new RefundResponseDto(
-                refund.getRefundId(),
-                refund.getOrder() != null ? refund.getOrder().getOrderId() : null,
-                refund.getRefundReason() != null ? refund.getRefundReason().name() : null,
-                refund.getRefundReasonDetail(),
-                refund.getRefundStatus() != null ? refund.getRefundStatus().getDescription() : null,
-                refund.getRefundCreatedAt(),
-                itemDetails
-        );
+        // 2. 변환은 DTO에게 위임 (서비스 코드 깔끔해짐)
+        return RefundResponseDto.from(refund, titleMap);
     }
-
-    private RefundResponseDto toRefundResponseDtoWithTitleMap(Refund refund, Map<Long, String> titleMap) {
-        List<RefundItemResponseDto> items = refund.getRefundItems().stream()
-                .map(ri -> {
-                    Long bookId = ri.getOrderItem().getBookId();
-                    return new RefundItemResponseDto(
-                            ri.getRefundItemId(),
-                            ri.getOrderItem().getOrderItemId(),
-                            titleMap.getOrDefault(bookId, ""),
-                            ri.getRefundQuantity()
-                    );
-                })
-                .toList();
-
-        return new RefundResponseDto(
-                refund.getRefundId(),
-                refund.getOrder().getOrderId(),
-                refund.getRefundReason().name(),
-                refund.getRefundReasonDetail(),
-                refund.getRefundStatus().getDescription(),
-                refund.getRefundCreatedAt(),
-                items
-        );
-    }
-
 
     // =========================
     // 내부 DTO / 집계
@@ -1041,5 +830,38 @@ public class RefundServiceImpl implements RefundService {
         }
 
         return 0;
+    }
+    /**
+     * 회원(userId) 또는 비회원(guestToken) 권한을 검증하는 공통 메서드
+     */
+    private void validateOrderAuthority(Order order, Long userId, String guestToken) {
+        Long targetOrderId = order.getOrderId();
+
+        // 회원 검증
+        if (userId != null) {
+            if (!userId.equals(order.getUserId())) {
+                log.debug("회원 검증 실패");
+                throw new AccessDeniedException("본인의 주문만 반품할 수 있습니다.");
+            }
+            return;
+        }
+
+        // 비회원 검증
+        if (guestToken != null) {
+
+            if (order.getUserId() != null) {
+                log.debug("비회원 검증 실패");
+                throw new AccessDeniedException("회원 주문은 비회원 토큰으로 접근할 수 없습니다.");
+            }
+
+            Long tokenOrderId = guestTokenProvider.validateTokenAndGetOrderId(guestToken);
+
+            if (!tokenOrderId.equals(targetOrderId)) {
+                throw new AccessDeniedException("접근 권한이 없는 주문입니다. (토큰 불일치)");
+            }
+            return;
+        }
+
+        throw new AccessDeniedException("로그인이 필요하거나 잘못된 접근입니다.");
     }
 }
