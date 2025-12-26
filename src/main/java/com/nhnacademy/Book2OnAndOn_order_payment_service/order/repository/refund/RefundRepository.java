@@ -41,7 +41,7 @@ public interface RefundRepository extends JpaRepository<Refund, Long> {
     where (:refundStatus is null or r.refundStatus = :refundStatus)
       and (:from is null or r.refundCreatedAt >= :from)
       and (:to is null or r.refundCreatedAt < :to)
-      and (:userId is null or o.userId = :userId)
+      and (:userId is null or o.userId in :userIds)
       and (:orderNumber is null or o.orderNumber like concat('%', :orderNumber, '%'))
       and (
             :includeGuest = true
@@ -52,7 +52,7 @@ public interface RefundRepository extends JpaRepository<Refund, Long> {
             @Param("refundStatus") RefundStatus refundStatus,
             @Param("from") LocalDateTime from,
             @Param("to") LocalDateTime to,
-            @Param("userId") Long userId,
+            @Param("userIds") List<Long> userIds,
             @Param("orderNumber") String orderNumber,
             @Param("includeGuest") boolean includeGuest,
             Pageable pageable
