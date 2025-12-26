@@ -37,5 +37,6 @@ build/
 http/req.http
 src/main/resources/test.sql
 src/main/resources/application-local.properties
+.DS_Store
 
 

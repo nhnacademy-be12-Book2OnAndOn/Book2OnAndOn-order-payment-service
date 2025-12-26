@@ -1,6 +1,7 @@
 package com.nhnacademy.Book2OnAndOn_order_payment_service.order.service;
 
 import com.nhnacademy.Book2OnAndOn_order_payment_service.order.dto.refund.request.RefundGuestRequestDto;
+import com.nhnacademy.Book2OnAndOn_order_payment_service.order.dto.refund.request.RefundSearchCondition;
 import com.nhnacademy.Book2OnAndOn_order_payment_service.order.dto.refund.response.RefundAvailableItemResponseDto;
 import com.nhnacademy.Book2OnAndOn_order_payment_service.order.dto.refund.request.RefundRequestDto;
 import com.nhnacademy.Book2OnAndOn_order_payment_service.order.dto.refund.response.RefundResponseDto;
@@ -45,13 +46,7 @@ public interface RefundService {
 
 
     // 8) 관리자 반품 목록 조회
-    Page<RefundResponseDto> getRefundListForAdmin(RefundStatus refundStatus,
-                                                  LocalDate startDate,
-                                                  LocalDate endDate,
-                                                  Long userId,
-                                                  String userKeyword,
-                                                  String orderNumber,
-                                                  boolean includeGuest,
+    Page<RefundResponseDto> getRefundListForAdmin(RefundSearchCondition condition,
                                                   Pageable pageable
     );
 
