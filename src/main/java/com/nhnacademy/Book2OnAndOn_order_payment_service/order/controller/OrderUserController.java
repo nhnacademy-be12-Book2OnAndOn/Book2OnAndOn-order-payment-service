@@ -67,10 +67,11 @@ public class OrderUserController {
     }
 
     @GetMapping("/{orderNumber}")
-    public ResponseEntity<OrderDetailResponseDto> getOrderDetail(@RequestHeader(USER_ID_HEADER) Long userId,
+    public ResponseEntity<OrderDetailResponseDto> getOrderDetail(@RequestHeader(value = USER_ID_HEADER, required = false) Long userId,
+                                                                 @RequestHeader(value = "X-Guest-Order-Token", required = false) String guestToken,
                                                                  @PathVariable("orderNumber") String orderNumber){
         log.info("GET /order/{} 호출 : 주문 상세 데이터 반환" , orderNumber);
-        OrderDetailResponseDto orderResponseDto = orderService.getOrderDetail(userId, orderNumber);
+        OrderDetailResponseDto orderResponseDto = orderService.getOrderDetail(userId, orderNumber, guestToken);
 
         return ResponseEntity.ok(orderResponseDto);
     }

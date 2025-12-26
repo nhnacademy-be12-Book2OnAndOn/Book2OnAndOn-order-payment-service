@@ -36,6 +36,7 @@ import com.nhnacademy.Book2OnAndOn_order_payment_service.order.exception.ExceedU
 import com.nhnacademy.Book2OnAndOn_order_payment_service.order.exception.InvalidDeliveryDateException;
 import com.nhnacademy.Book2OnAndOn_order_payment_service.order.exception.OrderNotCancellableException;
 import com.nhnacademy.Book2OnAndOn_order_payment_service.order.exception.OrderNotFoundException;
+import com.nhnacademy.Book2OnAndOn_order_payment_service.order.provider.GuestTokenProvider;
 import com.nhnacademy.Book2OnAndOn_order_payment_service.order.provider.OrderNumberProvider;
 import com.nhnacademy.Book2OnAndOn_order_payment_service.order.repository.delivery.DeliveryPolicyRepository;
 import com.nhnacademy.Book2OnAndOn_order_payment_service.order.repository.order.GuestOrderRepository;
@@ -498,10 +499,17 @@ public class OrderServiceImpl implements OrderService {
     }
 
     @Override
-    public OrderDetailResponseDto getOrderDetail(Long userId, String orderNumber) {
-        log.info("일반 사용자 주문 상세 정보 조회 로직 실행 (유저 아이디 : {}, 주문번호 : {})", userId, orderNumber);
+    public OrderDetailResponseDto getOrderDetail(Long userId, String orderNumber, String guestToken) {
+        if (userId != null) {
+            log.info("회원 주문 상세 조회 요청 - UserID: {}, OrderNum: {}", userId, orderNumber);
+        } else {
+            log.info("비회원 주문 상세 조회 요청 - GuestToken(exist), OrderNum: {}", orderNumber);
+        }
 
-        Order order = orderTransactionService.validateOrderExistence(userId, orderNumber);
+        Order order = orderRepository.findByOrderNumber(orderNumber)
+                .orElseThrow(() -> new OrderNotFoundException("주문 정보를 찾을 수 없습니다. Order: " + orderNumber));
+
+        orderTransactionService.validateOrderExistence(order, userId, guestToken);
 
         List<Long> bookIds = order.getOrderItems().stream()
                 .map(OrderItem::getBookId)
