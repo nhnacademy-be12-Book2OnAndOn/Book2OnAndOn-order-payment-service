@@ -21,7 +21,7 @@ public class DeliveryController {
     public ResponseEntity<DeliveryResponseDto> getDeliveryByOrder(
             @RequestParam Long orderId,
             @RequestHeader(value = "X-User-Id", required = false) Long userId,
-            @RequestHeader(value = "X-Guest-Token", required = false) String guestToken) {
+            @RequestHeader(value = "X-Guest-Order-Token", required = false) String guestToken) {
 
         // 서비스에 userId도 같이 전달
         DeliveryResponseDto response = deliveryService.getDelivery(orderId, userId, guestToken);
