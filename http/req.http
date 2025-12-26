@@ -59,3 +59,30 @@ Content-Type: application/json
   "freeDeliveryThreshold": 15000
 }
 
+### 비회원 주문 생성
+POST http://localhost:10421/guest/orders
+X-Guest-ID: test
+Content-Type: application/json
+
+{
+  "guestName": "guestTest",
+  "guestPhoneNumber": "01012345678",
+  "guestPassword": "test1234!",
+  "orderItems": [
+    {
+      "bookId": 2,
+      "quantity": 2,
+      "isWrapped": false,
+      "wrappingPaperId": null
+    }
+  ],
+  "deliveryAddress": {
+    "deliveryAddress": "test",
+    "deliveryAddressDetail": "detailTest",
+    "deliveryMessage": "아무대나",
+    "recipient": "guestTest",
+    "recipientPhoneNumber": "01012345678"
+  },
+  "deliveryPolicyId": 1,
+  "wantDeliveryDate": "2025-12-28"
+}

@@ -20,11 +20,13 @@ import com.nhnacademy.Book2OnAndOn_order_payment_service.order.dto.order.OrderPr
 import com.nhnacademy.Book2OnAndOn_order_payment_service.order.dto.order.OrderPrepareResponseDto;
 import com.nhnacademy.Book2OnAndOn_order_payment_service.order.dto.order.OrderSimpleDto;
 import com.nhnacademy.Book2OnAndOn_order_payment_service.order.dto.order.OrderVerificationResult;
+import com.nhnacademy.Book2OnAndOn_order_payment_service.order.dto.order.guest.GuestOrderCreateRequestDto;
 import com.nhnacademy.Book2OnAndOn_order_payment_service.order.dto.order.orderitem.BookInfoDto;
 import com.nhnacademy.Book2OnAndOn_order_payment_service.order.dto.order.orderitem.OrderItemCalcContext;
 import com.nhnacademy.Book2OnAndOn_order_payment_service.order.dto.order.orderitem.OrderItemRequestDto;
 import com.nhnacademy.Book2OnAndOn_order_payment_service.order.entity.delivery.DeliveryAddress;
 import com.nhnacademy.Book2OnAndOn_order_payment_service.order.entity.delivery.DeliveryPolicy;
+import com.nhnacademy.Book2OnAndOn_order_payment_service.order.entity.order.GuestOrder;
 import com.nhnacademy.Book2OnAndOn_order_payment_service.order.entity.order.Order;
 import com.nhnacademy.Book2OnAndOn_order_payment_service.order.entity.order.OrderItem;
 import com.nhnacademy.Book2OnAndOn_order_payment_service.order.entity.order.OrderStatus;
@@ -36,6 +38,7 @@ import com.nhnacademy.Book2OnAndOn_order_payment_service.order.exception.OrderNo
 import com.nhnacademy.Book2OnAndOn_order_payment_service.order.exception.OrderNotFoundException;
 import com.nhnacademy.Book2OnAndOn_order_payment_service.order.provider.OrderNumberProvider;
 import com.nhnacademy.Book2OnAndOn_order_payment_service.order.repository.delivery.DeliveryPolicyRepository;
+import com.nhnacademy.Book2OnAndOn_order_payment_service.order.repository.order.GuestOrderRepository;
 import com.nhnacademy.Book2OnAndOn_order_payment_service.order.repository.order.OrderRepository;
 import com.nhnacademy.Book2OnAndOn_order_payment_service.order.service.OrderResourceManager;
 import com.nhnacademy.Book2OnAndOn_order_payment_service.order.service.OrderService;
@@ -45,8 +48,6 @@ import com.nhnacademy.Book2OnAndOn_order_payment_service.payment.domain.dto.requ
 import com.nhnacademy.Book2OnAndOn_order_payment_service.payment.domain.dto.request.PaymentRequest;
 import com.nhnacademy.Book2OnAndOn_order_payment_service.payment.domain.dto.response.PaymentResponse;
 import com.nhnacademy.Book2OnAndOn_order_payment_service.payment.service.PaymentService;
-import com.nhnacademy.Book2OnAndOn_order_payment_service.payment.service.PaymentTransactionService;
-import com.nhnacademy.Book2OnAndOn_order_payment_service.payment.strategy.PaymentStrategyFactory;
 
 import java.time.LocalDate;
 import java.time.LocalDateTime;
@@ -58,6 +59,7 @@ import lombok.RequiredArgsConstructor;
 import lombok.extern.slf4j.Slf4j;
 import org.springframework.data.domain.Page;
 import org.springframework.data.domain.Pageable;
+import org.springframework.security.crypto.password.PasswordEncoder;
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
 
@@ -67,18 +69,18 @@ import org.springframework.transaction.annotation.Transactional;
 public class OrderServiceImpl implements OrderService {
     private final OrderRepository orderRepository;
     private final DeliveryPolicyRepository deliveryPolicyRepository;
+    private final GuestOrderRepository guestOrderRepository;
 
     private final WrappingPaperService wrappingPaperService;
     private final PaymentService paymentService;
     private final OrderTransactionService orderTransactionService;
-    private final PaymentTransactionService paymentTransactionService;
 
     private final BookServiceClient bookServiceClient;
     private final UserServiceClient userServiceClient;
     private final CouponServiceClient couponServiceClient;
-    private final PaymentStrategyFactory paymentStrategyFactory;
 
     private final OrderNumberProvider orderNumberProvider;
+    private final PasswordEncoder passwordEncoder;
 
     private final OrderViewAssembler orderViewAssembler;
     private final OrderResourceManager resourceManager;
@@ -138,8 +140,8 @@ public class OrderServiceImpl implements OrderService {
      */
     // TODO 캐시 설정?
     @Override
-    public OrderPrepareResponseDto prepareOrder(Long userId, OrderPrepareRequestDto req) {
-        log.info("주문 전 데이터 정보 가져오기 로직 실행 (회원 아이디 : {})", userId);
+    public OrderPrepareResponseDto prepareOrder(Long userId, String guestId, OrderPrepareRequestDto req) {
+        log.info("주문 전 데이터 정보 가져오기 로직 실행 (회원 아이디 : {}, 비회원 아이디 : {})", userId, guestId);
 
         // 책 id
         List<Long> bookIds = req.bookItems().stream()
@@ -148,6 +150,11 @@ public class OrderServiceImpl implements OrderService {
 
 
         List<BookOrderResponse> bookOrderResponseList = fetchBookInfo(bookIds);
+
+        if(userId == null){
+            return OrderPrepareResponseDto.forGuest(bookOrderResponseList);
+        }
+
         List<UserAddressResponseDto> userAddressResponseDtoList = fetchUserAddressInfo(userId);
 
         // 사용 가능한 쿠폰을 받기 위한 RequestDto 생성
@@ -157,7 +164,7 @@ public class OrderServiceImpl implements OrderService {
         CurrentPointResponseDto userCurrentPoint = fetchPointInfo(userId);
 
         // 회원 주문은 배송지, 쿠폰 및 포인트 여부도 가져옴
-        return new OrderPrepareResponseDto(
+        return OrderPrepareResponseDto.forMember(
                 bookOrderResponseList,
                 userAddressResponseDtoList,
                 userCouponResponseDtoList,
@@ -166,10 +173,10 @@ public class OrderServiceImpl implements OrderService {
     }
 
     @Override
-    public OrderCreateResponseDto createPreOrder(Long userId, OrderCreateRequestDto req) {
-        log.info("임시 주문 데이터 생성 및 검증 로직 실행 (회원 아이디 : {})", userId);
+    public OrderCreateResponseDto createPreOrder(Long userId, String guestId, OrderCreateRequestDto req) {
+        log.info("임시 주문 데이터 생성 및 검증 로직 실행 (회원 아이디 : {}, 비회원 아이디 : {})", userId, guestId);
 
-        OrderVerificationResult result = verifyOrder(userId, req);
+        OrderVerificationResult result = verifyOrder(userId, guestId, req);
         OrderCreateResponseDto orderCreateResponseDto = null;
         try{
             orderCreateResponseDto = orderTransactionService.createPendingOrder(userId, result);
@@ -191,8 +198,8 @@ public class OrderServiceImpl implements OrderService {
     }
 
     // 임시 주문 생성을 위한 헬퍼 메서드
-    private OrderVerificationResult verifyOrder(Long userId, OrderCreateRequestDto req) {
-        log.info("주문 데이터 생성 및 검증 로직 실행 (회원 아이디 : {})", userId);
+    private OrderVerificationResult verifyOrder(Long userId, String guestId, OrderCreateRequestDto req) {
+        log.info("주문 데이터 생성 및 검증 로직 실행 (회원 아이디 : {}, 비회원 아이디 : {})", userId, guestId);
 
         List<OrderItemRequestDto> orderItemResponseDtoList = req.getOrderItems();
 
@@ -443,7 +450,7 @@ public class OrderServiceImpl implements OrderService {
      * @return 포인트로 할인된 금액
      */
     private int createPointDiscount(Long userId, Integer currentAmount, Integer point){
-        if(point == null){
+        if(point == null || userId == null){
             return 0;
         }
         CurrentPointResponseDto currentPointResponseDto = userServiceClient.getUserPoint(userId);
@@ -537,6 +544,10 @@ public class OrderServiceImpl implements OrderService {
         return paymentService.getPayment(new PaymentRequest(orderNumber));
     }
 
+
+    /*
+        =================== [비회원 전용 서비스 로직] ====================
+     */
     @Override
     public OrderPrepareResponseDto prepareGuestOrder(String guestId, OrderPrepareRequestDto req) {
         log.info("주문 전 데이터 정보 가져오기 로직 실행 (비회원 유저 : {})", guestId);
@@ -547,14 +558,46 @@ public class OrderServiceImpl implements OrderService {
 
         List<BookOrderResponse> bookOrderResponseList = fetchBookInfo(bookIds);
 
-        String orderNumber = orderNumberProvider.provideOrderNumber();
-
         return new OrderPrepareResponseDto(
                 bookOrderResponseList,
                 null,
                 null,
                 null
         );
+    }
+
+    @Override
+    public OrderCreateResponseDto createGuestPreOrder(String guestId, GuestOrderCreateRequestDto req) {
+        log.info("비회원 임시 주문 데이터 생성 및 검증 로직 실행 (비회원 아이디 : {})", guestId);
+
+        OrderCreateRequestDto orderCreateRequestDto = new OrderCreateRequestDto(
+                req.getOrderItems(),
+                req.getDeliveryAddress(),
+                req.getDeliveryPolicyId(),
+                req.getWantDeliveryDate(),
+                null,
+                null
+        );
+
+        OrderCreateResponseDto orderCreateResponseDto = createPreOrder(null, guestId, orderCreateRequestDto);
+
+        Order order = orderTransactionService.getOrderEntity(orderCreateResponseDto.getOrderNumber());
+
+        GuestOrder guestOrder = GuestOrder.builder()
+                .order(order)
+                .guestName(req.getGuestName())
+                .guestPhoneNumber(req.getGuestPhoneNumber())
+                .guestPassword(passwordEncoder.encode(req.getGuestPassword()))
+                .build();
+
+        try{
+            guestOrderRepository.save(guestOrder);
+        } catch (Exception e) {
+            log.error("비회원 주문 DB 생성 중 오류 : {}", e.getMessage());
+            throw new OrderVerificationException("비회원 주문 DB 생성 중 오류 " + e.getMessage());
+        }
+
+        return orderCreateResponseDto;
     }
 
     /*
@@ -571,18 +614,4 @@ public class OrderServiceImpl implements OrderService {
     public int deleteJunkOrder(List<Long> ids) {
         return orderRepository.deleteByIds(ids);
     }
-
-    @Transactional(readOnly = true)
-    @Override
-    public Boolean existsOrderByUserIdAndOrderNumber(Long userId, String orderNumber) {
-        return orderRepository.existsByOrderNumberAndUserId(orderNumber, userId);
-    }
-
-    @Override
-    public Integer findTotalAmoundByOrderNumber(String orderNumber) {
-        return orderRepository.findTotalAmount(orderNumber).orElseThrow(
-                () -> new OrderNotFoundException("주문을 찾을 수 없습니다 : " + orderNumber));
-    }
-
-
 }
