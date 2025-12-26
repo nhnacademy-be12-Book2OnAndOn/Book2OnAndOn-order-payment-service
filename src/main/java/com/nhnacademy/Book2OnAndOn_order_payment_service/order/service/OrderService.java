@@ -8,6 +8,7 @@ import com.nhnacademy.Book2OnAndOn_order_payment_service.order.dto.order.OrderDe
 import com.nhnacademy.Book2OnAndOn_order_payment_service.order.dto.order.OrderPrepareRequestDto;
 import com.nhnacademy.Book2OnAndOn_order_payment_service.order.dto.order.OrderPrepareResponseDto;
 import com.nhnacademy.Book2OnAndOn_order_payment_service.order.dto.order.OrderSimpleDto;
+import com.nhnacademy.Book2OnAndOn_order_payment_service.order.dto.order.guest.GuestOrderCreateRequestDto;
 import java.time.LocalDateTime;
 import java.util.List;
 import org.springframework.data.domain.Page;
@@ -15,22 +16,17 @@ import org.springframework.data.domain.Pageable;
 
 public interface OrderService {
     // 회원 전용
-    OrderPrepareResponseDto prepareOrder(Long userId, OrderPrepareRequestDto req);
-    OrderCreateResponseDto createPreOrder(Long userId, OrderCreateRequestDto req);
+    OrderPrepareResponseDto prepareOrder(Long userId, String guestId, OrderPrepareRequestDto req);
+    OrderCreateResponseDto createPreOrder(Long userId, String guestId, OrderCreateRequestDto req);
     Page<OrderSimpleDto> getOrderList(Long userId, Pageable pageable);
     OrderDetailResponseDto getOrderDetail(Long userId, String orderNumber);
     void cancelOrder(Long userId, String orderNumber);
 
     // 비회원 전용
     OrderPrepareResponseDto prepareGuestOrder(String guestId, OrderPrepareRequestDto req);
+    OrderCreateResponseDto createGuestPreOrder(String guestId, GuestOrderCreateRequestDto req);
 
     // 스케줄러 전용
     List<Long> findNextBatch(LocalDateTime thresholdTime, Long lastId, int batchSize);
     int deleteJunkOrder(List<Long> ids);
-
-    // -- 결제 --
-
-
-    Boolean existsOrderByUserIdAndOrderNumber(Long userId, String orderNumber);
-    Integer findTotalAmoundByOrderNumber(String orderNumber);
 }

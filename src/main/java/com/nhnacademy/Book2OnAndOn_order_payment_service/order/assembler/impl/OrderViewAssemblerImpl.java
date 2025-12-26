@@ -37,6 +37,7 @@ public class OrderViewAssemblerImpl implements OrderViewAssembler {
                 order.getOrderId(),
                 order.getOrderNumber(),
                 order.getOrderTitle(),
+                order.getOrderDateTime(),
                 order.getTotalItemAmount(),
                 order.getDeliveryFee(),
                 order.getWrappingFee(),

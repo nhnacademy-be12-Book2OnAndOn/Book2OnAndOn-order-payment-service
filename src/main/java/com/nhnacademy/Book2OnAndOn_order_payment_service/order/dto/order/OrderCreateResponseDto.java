@@ -2,6 +2,7 @@ package com.nhnacademy.Book2OnAndOn_order_payment_service.order.dto.order;
 
 import com.nhnacademy.Book2OnAndOn_order_payment_service.order.dto.order.orderitem.OrderItemCreateResponseDto;
 import java.time.LocalDate;
+import java.time.LocalDateTime;
 import java.util.List;
 import lombok.AllArgsConstructor;
 import lombok.Getter;
@@ -16,6 +17,7 @@ public class OrderCreateResponseDto {
     private Long orderId;
     private String orderNumber;
     private String orderTitle;
+    private LocalDateTime orderDateTime;
     private int totalItemAmount;
     private int deliveryFee;
     private int wrappingFee;

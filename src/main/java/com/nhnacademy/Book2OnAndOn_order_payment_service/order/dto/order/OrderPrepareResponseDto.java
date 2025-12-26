@@ -16,4 +16,24 @@ public record OrderPrepareResponseDto(
         // 유저 포인트 조회
         CurrentPointResponseDto currentPoint
 ) {
+    public static OrderPrepareResponseDto forMember(List<BookOrderResponse> orderItems,
+                                             List<UserAddressResponseDto> addresses,
+                                             List<MemberCouponResponseDto> coupons,
+                                             CurrentPointResponseDto currentPoint){
+        return new OrderPrepareResponseDto(
+                orderItems,
+                addresses,
+                coupons,
+                currentPoint
+        );
+    }
+
+    public static OrderPrepareResponseDto forGuest(List<BookOrderResponse> orderItems){
+        return new OrderPrepareResponseDto(
+                orderItems,
+                null,
+                null,
+                null
+        );
+    }
 }
