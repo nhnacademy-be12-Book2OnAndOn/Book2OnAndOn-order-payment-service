@@ -22,7 +22,7 @@ public interface BookServiceClient {
     List<BookOrderResponse> getBooksForOrder(@RequestParam("bookIds") List<Long> bookIds);
 
     // 재고 선점 요청 (임시 주문 생성 전 호출)
-    @PostMapping("/internal/books/stock/temp")
+    @PostMapping("/internal/books/stock/reserve")
     void reserveStock(@RequestBody ReserveBookRequestDto request);
 
     // <장바구니>
