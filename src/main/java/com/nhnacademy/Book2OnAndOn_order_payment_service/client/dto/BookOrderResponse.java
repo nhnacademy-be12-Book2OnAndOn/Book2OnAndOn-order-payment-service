@@ -1,5 +1,6 @@
 package com.nhnacademy.Book2OnAndOn_order_payment_service.client.dto;
 
+import com.fasterxml.jackson.annotation.JsonProperty;
 import lombok.AllArgsConstructor;
 import lombok.Getter;
 import lombok.NoArgsConstructor;
@@ -14,6 +15,7 @@ public class BookOrderResponse {
     private Long priceStandard;
     private Long priceSales;
     private String imageUrl;
+    @JsonProperty("packable")
     private boolean isPackable;
     private Integer stockCount;
     private String stockStatus;
