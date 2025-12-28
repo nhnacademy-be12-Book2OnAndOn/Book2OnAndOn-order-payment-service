@@ -49,6 +49,7 @@ import com.nhnacademy.Book2OnAndOn_order_payment_service.payment.domain.dto.requ
 import com.nhnacademy.Book2OnAndOn_order_payment_service.payment.domain.dto.response.PaymentResponse;
 import com.nhnacademy.Book2OnAndOn_order_payment_service.payment.service.PaymentService;
 
+import feign.FeignException;
 import java.time.LocalDate;
 import java.time.LocalDateTime;
 import java.util.List;
@@ -148,8 +149,21 @@ public class OrderServiceImpl implements OrderService {
                 .map(BookInfoDto::bookId)
                 .toList();
 
-
         List<BookOrderResponse> bookOrderResponseList = fetchBookInfo(bookIds);
+
+        Map<Long, Integer> quantities = req.bookItems().stream()
+                .collect(Collectors.toMap(
+                        BookInfoDto::bookId,
+                        BookInfoDto::quantity
+                ));
+
+        for (BookOrderResponse bookOrderResponse : bookOrderResponseList) {
+            Integer quantity = quantities.get(bookOrderResponse.getBookId());
+            if(quantity != null){
+                bookOrderResponse.setQuantity(quantity);`
+            }
+
+        }
 
         if(userId == null){
             return OrderPrepareResponseDto.forGuest(bookOrderResponseList);

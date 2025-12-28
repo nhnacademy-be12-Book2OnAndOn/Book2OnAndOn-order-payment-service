@@ -1,7 +1,5 @@
 package com.nhnacademy.Book2OnAndOn_order_payment_service.order.controller;
 
-import com.nhnacademy.Book2OnAndOn_order_payment_service.order.dto.order.OrderCancelRequestDto;
-import com.nhnacademy.Book2OnAndOn_order_payment_service.order.dto.order.OrderCancelResponseDto;
 import com.nhnacademy.Book2OnAndOn_order_payment_service.order.dto.order.OrderCreateRequestDto;
 import com.nhnacademy.Book2OnAndOn_order_payment_service.order.dto.order.OrderCreateResponseDto;
 import com.nhnacademy.Book2OnAndOn_order_payment_service.order.dto.order.OrderDetailResponseDto;
@@ -77,9 +75,9 @@ public class OrderUserController {
 
     // 결제 후 바로 주문 취소하는 경우
     @PatchMapping("/{orderNumber}/cancel")
-    public ResponseEntity<OrderCancelResponseDto> cancelOrder(@RequestHeader(USER_ID_HEADER) Long userId,
-                                                              @PathVariable("orderNumber") String orderNumber){
-        log.info("PATCH /order/{}/cancel 호출 : 주문 취소", orderNumber);
+    public ResponseEntity<Void> cancelOrder(@RequestHeader(USER_ID_HEADER) Long userId,
+                                            @PathVariable("orderNumber") String orderNumber){
+        log.info("PATCH /orders/{}/cancel 호출 : 주문 취소", orderNumber);
 
         orderService.cancelOrder(userId, orderNumber);
         // 리소스 생성 및 취소 완료
