@@ -458,7 +458,7 @@ public class OrderServiceImpl implements OrderService {
     /**
      * 포인트 할인 검증 및 생성 메서드
      * @param userId 유저 아이디
-     * @param currentAmount 현재 가지고있는 포인트
+     * @param currentAmount 결제 금액
      * @param point 요청 포인트
      * @return 포인트로 할인된 금액
      */
@@ -476,8 +476,8 @@ public class OrderServiceImpl implements OrderService {
             ));
         }
 
-        if (currentAmount - point < 0) {
-            throw new ExceedUserPointException("사용 포인트가 결제 금액보다 더 많습니다 (결제 금액 : %d, 요청 포인트 : %d)".formatted(
+        if (currentAmount - point < 100) {
+            throw new ExceedUserPointException("최소 결제 금액 100원 이상 결제해야합니다 (결제 금액 : %d, 요청 포인트 : %d)".formatted(
                     currentAmount,
                     point
             ));
