@@ -160,7 +160,7 @@ public class OrderServiceImpl implements OrderService {
         for (BookOrderResponse bookOrderResponse : bookOrderResponseList) {
             Integer quantity = quantities.get(bookOrderResponse.getBookId());
             if(quantity != null){
-                bookOrderResponse.setQuantity(quantity);`
+                bookOrderResponse.setQuantity(quantity);
             }
 
         }
