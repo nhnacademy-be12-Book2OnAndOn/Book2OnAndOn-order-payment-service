@@ -12,7 +12,7 @@ import java.time.LocalDateTime;
 public class DeliveryResponseDto {
 
     private Long deliveryId;
-    private Long orderId;
+    private String orderNumber;
     private String orderStatus;
     private String deliveryCompany;
     private String waybill;
@@ -22,7 +22,7 @@ public class DeliveryResponseDto {
 
     public DeliveryResponseDto(Delivery delivery, String sweetTrackerApiKey) {
         this.deliveryId = delivery.getDeliveryId();
-        this.orderId = delivery.getOrder().getOrderId();
+        this.orderNumber = delivery.getOrder().getOrderNumber();
 
         if (delivery.getOrder().getOrderStatus() != null) {
             this.orderStatus = delivery.getOrder().getOrderStatus().name();

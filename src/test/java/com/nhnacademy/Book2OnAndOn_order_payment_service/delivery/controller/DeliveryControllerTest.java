@@ -30,7 +30,7 @@ import static org.springframework.test.web.servlet.result.MockMvcResultHandlers.
 import static org.springframework.test.web.servlet.result.MockMvcResultMatchers.*;
 
 @WebMvcTest(controllers = DeliveryController.class, properties = {
-        "spring.cloud.config.enabled=false",      // Config Server 끄기
+        "spring.cloud.config.enabled=false"
 })
 @WithMockUser(username = "admin", roles = {"SUPER_ADMIN"})
 class DeliveryControllerTest {
@@ -48,11 +48,12 @@ class DeliveryControllerTest {
     @DisplayName("사용자 주문 배송 정보 조회 성공")
     void getDeliveryByOrder_success() throws Exception {
         // Given
-        Long orderId = 1L;
+        Long orderId = 12345L;    // Request uses ID
+        String orderNumber = "ORDER-12345-AB"; // Response DTO uses Number
         Long userId = 100L;
 
         DeliveryResponseDto responseDto = new DeliveryResponseDto(
-                1L, orderId, "SHIPPING", "우체국택배", "123456789", LocalDateTime.now(), "http://tracking-url.com"
+                1L, orderNumber, "SHIPPING", "우체국택배", "123456789", LocalDateTime.now(), "http://tracking-url.com"
         );
 
         given(deliveryService.getDelivery(eq(orderId), eq(userId), isNull()))
@@ -66,14 +67,15 @@ class DeliveryControllerTest {
                 .andDo(print())
                 .andExpect(status().isOk())
                 .andExpect(jsonPath("$.deliveryId").value(1L))
-                .andExpect(jsonPath("$.orderId").value(orderId));
+                .andExpect(jsonPath("$.orderNumber").value(orderNumber));
     }
 
     @Test
     @DisplayName("관리자 배송 목록 조회 성공 (페이징)")
     void getDeliveries_success() throws Exception {
         // Given
-        DeliveryResponseDto dto1 = new DeliveryResponseDto(1L, 10L, "PAYMENT_COMPLETED", null, null, null, null);
+        String orderNumber = "ORDER-20240101-001";
+        DeliveryResponseDto dto1 = new DeliveryResponseDto(1L, orderNumber, "PAYMENT_COMPLETED", null, null, null, null);
         Page<DeliveryResponseDto> responsePage = new PageImpl<>(List.of(dto1));
 
         given(deliveryService.getDeliveries(any(Pageable.class), any()))
@@ -86,7 +88,7 @@ class DeliveryControllerTest {
                         .accept(MediaType.APPLICATION_JSON))
                 .andDo(print())
                 .andExpect(status().isOk())
-                .andExpect(jsonPath("$.content[0].orderId").value(10L));
+                .andExpect(jsonPath("$.content[0].orderNumber").value(orderNumber));
     }
 
     @Test
@@ -98,7 +100,7 @@ class DeliveryControllerTest {
 
         // When & Then
         mockMvc.perform(put("/admin/deliveries/{deliveryId}/waybill", deliveryId)
-                        .with(csrf()) // PUT 요청 필수
+                        .with(csrf()) // Security enabled environment requires CSRF for mutating requests
                         .contentType(MediaType.APPLICATION_JSON)
                         .content(objectMapper.writeValueAsString(requestDto)))
                 .andDo(print())
@@ -130,7 +132,7 @@ class DeliveryControllerTest {
     void registerWaybill_validation_fail() throws Exception {
         // Given
         Long deliveryId = 1L;
-
+        // invalid DTO (assuming waybill cannot be null based on @Valid)
         DeliveryWaybillUpdateDto invalidRequest = new DeliveryWaybillUpdateDto("CJ대한통운", null);
 
         // When & Then
@@ -139,6 +141,6 @@ class DeliveryControllerTest {
                         .contentType(MediaType.APPLICATION_JSON)
                         .content(objectMapper.writeValueAsString(invalidRequest)))
                 .andDo(print())
-                .andExpect(status().isBadRequest()); // 400 Bad Request 기대
+                .andExpect(status().isBadRequest()); // Expecting 400 Bad Request
     }
 }
