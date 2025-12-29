@@ -84,7 +84,7 @@ public class OrderResourceManager {
 
     }
     private void confirmCoupon(String orderNumber, Long userId, Long memberCouponId){
-        if(memberCouponId == null) return;
+        if(memberCouponId == null || userId == null) return;
         couponServiceClient.useCoupon(memberCouponId, userId, new UseCouponRequestDto(orderNumber));
     }
 
@@ -99,7 +99,7 @@ public class OrderResourceManager {
         );
     }
     private void confirmPoint(Long orderId, Long userId, Integer point){
-        if(point == null || point <= 0) return;
+        if(point == null || point <= 0 || userId == null) return;
         userServiceClient.usePoint(userId, new UsePointInternalRequestDto(orderId, point));
 
     }

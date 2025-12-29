@@ -7,9 +7,11 @@ import jakarta.persistence.Entity;
 import jakarta.persistence.GeneratedValue;
 import jakarta.persistence.GenerationType;
 import jakarta.persistence.Id;
+import jakarta.persistence.OneToMany;
 import jakarta.persistence.OneToOne;
 import jakarta.persistence.Table;
 import jakarta.validation.constraints.NotNull;
+import java.util.List;
 import lombok.AccessLevel;
 import lombok.AllArgsConstructor;
 import lombok.Builder;
@@ -41,9 +43,6 @@ public class WrappingPaper {
     @Column(name = "wrapping_paper_path", length = 200)
     @NotNull
     private String wrappingPaperPath;
-
-    @OneToOne(mappedBy = "wrappingPaper")
-    private OrderItem orderItem;
 
     // 생성자
     private WrappingPaper(String wrappingPaperName, int wrappingPaperPrice, String wrappingPaperPath) {

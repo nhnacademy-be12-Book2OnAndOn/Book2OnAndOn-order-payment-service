@@ -6,6 +6,7 @@ import com.nhnacademy.Book2OnAndOn_order_payment_service.order.dto.order.guest.G
 import com.nhnacademy.Book2OnAndOn_order_payment_service.order.service.GuestOrderService;
 import lombok.RequiredArgsConstructor;
 import org.springframework.http.ResponseEntity;
+import org.springframework.web.bind.annotation.PostMapping;
 import org.springframework.web.bind.annotation.RequestBody;
 import org.springframework.web.bind.annotation.RequestMapping;
 import org.springframework.web.bind.annotation.RestController;
@@ -17,6 +18,7 @@ public class GuestOrderController {
 
     private final GuestOrderService guestOrderService;
 
+    @PostMapping("/login")
     public ResponseEntity<GuestLoginResponseDto> loginGuest(@RequestBody GuestLoginRequestDto requestDto) {
 
         GuestLoginResponseDto responseDto = guestOrderService.loginGuest(requestDto);

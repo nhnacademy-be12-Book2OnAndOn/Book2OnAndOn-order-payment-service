@@ -9,6 +9,7 @@ import com.nhnacademy.Book2OnAndOn_order_payment_service.order.dto.refund.Refund
 import com.nhnacademy.Book2OnAndOn_order_payment_service.order.dto.refund.request.RefundGuestRequestDto;
 import com.nhnacademy.Book2OnAndOn_order_payment_service.order.dto.refund.request.RefundItemRequestDto;
 import com.nhnacademy.Book2OnAndOn_order_payment_service.order.dto.refund.request.RefundRequestDto;
+import com.nhnacademy.Book2OnAndOn_order_payment_service.order.dto.refund.request.RefundSearchCondition;
 import com.nhnacademy.Book2OnAndOn_order_payment_service.order.dto.refund.request.RefundStatusUpdateRequestDto;
 import com.nhnacademy.Book2OnAndOn_order_payment_service.order.dto.refund.response.RefundAvailableItemResponseDto;
 import com.nhnacademy.Book2OnAndOn_order_payment_service.order.dto.refund.response.RefundItemResponseDto;
@@ -48,6 +49,7 @@ import org.springframework.data.domain.Pageable;
 import org.springframework.security.access.AccessDeniedException;
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
+import org.springframework.util.StringUtils;
 
 @Slf4j
 @Service
@@ -549,38 +551,34 @@ public class RefundServiceImpl implements RefundService {
     }
 
     @Override
-    public Page<RefundResponseDto> getRefundListForAdmin(
-            RefundStatus refundStatus,
-            LocalDate startDate,
-            LocalDate endDate,
-            Long userId,
-            String userKeyword,
-            String orderNumber,
-            boolean includeGuest,
-            Pageable pageable
-    ) {
-        LocalDateTime from = (startDate != null) ? startDate.atStartOfDay() : null;
-        LocalDateTime to = (endDate != null) ? endDate.plusDays(1).atStartOfDay() : null;
+    @Transactional(readOnly = true) //읽기전용으로 전환 (이렇게 하면 DB 변경감지(dirty checking)을 안하기 때문에 성능이 빨라짐 굿굿!
+    public Page<RefundResponseDto> getRefundListForAdmin(RefundSearchCondition condition, Pageable pageable) {
+        //검색 조건 준비
+        //1. 날짜 조건 변환
+        LocalDateTime from = (condition.getStartDate() != null) ? condition.getStartDate().atStartOfDay() : null;
+        LocalDateTime to = (condition.getEndDate() != null) ? condition.getEndDate().plusDays(1).atStartOfDay() : null;
 
-        Long effectiveUserId = userId;
-        if (effectiveUserId == null && userKeyword != null && !userKeyword.isBlank()) {
-            List<Long> ids = userServiceClient.searchUserIdsByKeyword(userKeyword.trim());
-            if (ids.size() == 1) {
-                effectiveUserId = ids.get(0);
+        //2. 유저 검색 조건 처리
+        List<Long> userIds = null;
+
+        //2.1 userId 하나가 직접 들어온 경우는 우선순위 높음 처리해야함
+        if(condition.getUserId() != null){
+            userIds = List.of(condition.getUserId());
+        }else if(StringUtils.hasText(condition.getUserKeyword())){ //2.2 userKeyword(이름/이메일 등)이 들어온 경우 Feign Client호출
+            userIds = userServiceClient.searchUserIdsByKeyword(condition.getUserKeyword());
+            if(userIds == null || userIds.isEmpty()){ //키워드로 검색했는데 유저가 한 명도 없으면 -> 결과도 없어야함 (DB 조회 불필요)
+                return Page.empty(pageable);
             }
         }
-
-        String normalizedOrderNumber = (orderNumber != null && !orderNumber.isBlank())
-                ? orderNumber.trim() : null;
-
         // 주의: orderNumber 부분일치(like)는 repository query에서 구현되어야 함
+        // 3. Repository 호출
         Page<Refund> refundPage = refundRepository.searchRefunds(
-                refundStatus,
+                condition.getRefundStatusEnum(),
                 from,
                 to,
-                effectiveUserId,
-                normalizedOrderNumber,
-                includeGuest,
+                userIds,  //List<Long> 으로 변경
+                condition.getOrderNumber(),
+                condition.isIncludeGuest(),
                 pageable
         );
 
@@ -779,7 +777,7 @@ public class RefundServiceImpl implements RefundService {
                 .map(ri -> new StockDecreaseRequest(ri.getOrderItem().getBookId(), ri.getRefundQuantity()))
                 .toList();
 
-        bookServiceClient.increaseStock(restoreRequests);
+//        bookServiceClient.increaseStock(restoreRequests);
 
         for (RefundItem ri : refund.getRefundItems()) {
             OrderItem oi = ri.getOrderItem();

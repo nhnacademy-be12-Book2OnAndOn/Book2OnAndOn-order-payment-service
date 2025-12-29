@@ -22,24 +22,8 @@ public interface BookServiceClient {
     List<BookOrderResponse> getBooksForOrder(@RequestParam("bookIds") List<Long> bookIds);
 
     // 재고 선점 요청 (임시 주문 생성 전 호출)
-    @PatchMapping("/internal/books/stock/reserve")
+    @PostMapping("/internal/books/stock/reserve")
     void reserveStock(@RequestBody ReserveBookRequestDto request);
-
-    // 재고 복구 요청
-    @PatchMapping("/internal/books/stock/release")
-    void releaseStock(@RequestParam("orderNumber") String orderNumber);
-
-    // 재고 차감 확정 요청
-    @PatchMapping("/internal/books/stock/confirm")
-    void confirmStock(@RequestParam("orderNumber") String orderNumber);
-
-    // 재고 차감 요청 (주문 성공 시 호출)
-    @PatchMapping("/internal/books/stock/decrease")
-    void decreaseStock(@RequestBody List<StockDecreaseRequest> request);
-
-    //재고 증감 요청
-    @PatchMapping("/internal/books/stock/increase")
-    void increaseStock(@RequestBody List<StockDecreaseRequest> request);
 
     // <장바구니>
     // bookId 리스트를 받아서, 각 bookId에 대한 스냅샷 정보(가격/제목/재고 등)를 반환

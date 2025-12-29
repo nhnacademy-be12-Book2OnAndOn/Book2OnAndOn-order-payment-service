@@ -13,8 +13,6 @@ import com.nhnacademy.Book2OnAndOn_order_payment_service.client.BookServiceClien
 import com.nhnacademy.Book2OnAndOn_order_payment_service.client.CouponServiceClient;
 import com.nhnacademy.Book2OnAndOn_order_payment_service.client.UserServiceClient;
 import com.nhnacademy.Book2OnAndOn_order_payment_service.order.dto.order.DeliveryAddressRequestDto;
-import com.nhnacademy.Book2OnAndOn_order_payment_service.order.dto.order.OrderCancelRequestDto;
-import com.nhnacademy.Book2OnAndOn_order_payment_service.order.dto.order.OrderCancelResponseDto;
 import com.nhnacademy.Book2OnAndOn_order_payment_service.order.dto.order.OrderCreateRequestDto;
 import com.nhnacademy.Book2OnAndOn_order_payment_service.order.dto.order.OrderCreateResponseDto;
 import com.nhnacademy.Book2OnAndOn_order_payment_service.order.dto.order.OrderDetailResponseDto;
@@ -22,11 +20,13 @@ import com.nhnacademy.Book2OnAndOn_order_payment_service.order.dto.order.OrderPr
 import com.nhnacademy.Book2OnAndOn_order_payment_service.order.dto.order.OrderPrepareResponseDto;
 import com.nhnacademy.Book2OnAndOn_order_payment_service.order.dto.order.OrderSimpleDto;
 import com.nhnacademy.Book2OnAndOn_order_payment_service.order.dto.order.OrderVerificationResult;
+import com.nhnacademy.Book2OnAndOn_order_payment_service.order.dto.order.guest.GuestOrderCreateRequestDto;
 import com.nhnacademy.Book2OnAndOn_order_payment_service.order.dto.order.orderitem.BookInfoDto;
 import com.nhnacademy.Book2OnAndOn_order_payment_service.order.dto.order.orderitem.OrderItemCalcContext;
 import com.nhnacademy.Book2OnAndOn_order_payment_service.order.dto.order.orderitem.OrderItemRequestDto;
 import com.nhnacademy.Book2OnAndOn_order_payment_service.order.entity.delivery.DeliveryAddress;
 import com.nhnacademy.Book2OnAndOn_order_payment_service.order.entity.delivery.DeliveryPolicy;
+import com.nhnacademy.Book2OnAndOn_order_payment_service.order.entity.order.GuestOrder;
 import com.nhnacademy.Book2OnAndOn_order_payment_service.order.entity.order.Order;
 import com.nhnacademy.Book2OnAndOn_order_payment_service.order.entity.order.OrderItem;
 import com.nhnacademy.Book2OnAndOn_order_payment_service.order.entity.order.OrderStatus;
@@ -34,25 +34,20 @@ import com.nhnacademy.Book2OnAndOn_order_payment_service.order.entity.wrappingpa
 import com.nhnacademy.Book2OnAndOn_order_payment_service.order.exception.DeliveryPolicyNotFoundException;
 import com.nhnacademy.Book2OnAndOn_order_payment_service.order.exception.ExceedUserPointException;
 import com.nhnacademy.Book2OnAndOn_order_payment_service.order.exception.InvalidDeliveryDateException;
+import com.nhnacademy.Book2OnAndOn_order_payment_service.order.exception.OrderNotCancellableException;
 import com.nhnacademy.Book2OnAndOn_order_payment_service.order.exception.OrderNotFoundException;
 import com.nhnacademy.Book2OnAndOn_order_payment_service.order.provider.OrderNumberProvider;
 import com.nhnacademy.Book2OnAndOn_order_payment_service.order.repository.delivery.DeliveryPolicyRepository;
+import com.nhnacademy.Book2OnAndOn_order_payment_service.order.repository.order.GuestOrderRepository;
 import com.nhnacademy.Book2OnAndOn_order_payment_service.order.repository.order.OrderRepository;
 import com.nhnacademy.Book2OnAndOn_order_payment_service.order.service.OrderResourceManager;
 import com.nhnacademy.Book2OnAndOn_order_payment_service.order.service.OrderService;
 import com.nhnacademy.Book2OnAndOn_order_payment_service.order.service.OrderTransactionService;
 import com.nhnacademy.Book2OnAndOn_order_payment_service.order.service.WrappingPaperService;
-import com.nhnacademy.Book2OnAndOn_order_payment_service.payment.domain.dto.CommonCancelRequest;
-import com.nhnacademy.Book2OnAndOn_order_payment_service.payment.domain.dto.CommonCancelResponse;
-import com.nhnacademy.Book2OnAndOn_order_payment_service.payment.domain.dto.request.PaymentCancelCreateRequest;
+import com.nhnacademy.Book2OnAndOn_order_payment_service.payment.domain.dto.request.PaymentCancelRequest;
 import com.nhnacademy.Book2OnAndOn_order_payment_service.payment.domain.dto.request.PaymentRequest;
-import com.nhnacademy.Book2OnAndOn_order_payment_service.payment.domain.dto.response.PaymentCancelResponse;
 import com.nhnacademy.Book2OnAndOn_order_payment_service.payment.domain.dto.response.PaymentResponse;
-import com.nhnacademy.Book2OnAndOn_order_payment_service.payment.domain.entity.Payment;
-import com.nhnacademy.Book2OnAndOn_order_payment_service.payment.repository.PaymentRepository;
 import com.nhnacademy.Book2OnAndOn_order_payment_service.payment.service.PaymentService;
-import com.nhnacademy.Book2OnAndOn_order_payment_service.payment.strategy.PaymentStrategy;
-import com.nhnacademy.Book2OnAndOn_order_payment_service.payment.strategy.PaymentStrategyFactory;
 
 import java.time.LocalDate;
 import java.time.LocalDateTime;
@@ -64,6 +59,7 @@ import lombok.RequiredArgsConstructor;
 import lombok.extern.slf4j.Slf4j;
 import org.springframework.data.domain.Page;
 import org.springframework.data.domain.Pageable;
+import org.springframework.security.crypto.password.PasswordEncoder;
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
 
@@ -72,8 +68,8 @@ import org.springframework.transaction.annotation.Transactional;
 @RequiredArgsConstructor
 public class OrderServiceImpl implements OrderService {
     private final OrderRepository orderRepository;
-    private final PaymentRepository paymentRepository;
     private final DeliveryPolicyRepository deliveryPolicyRepository;
+    private final GuestOrderRepository guestOrderRepository;
 
     private final WrappingPaperService wrappingPaperService;
     private final PaymentService paymentService;
@@ -82,16 +78,16 @@ public class OrderServiceImpl implements OrderService {
     private final BookServiceClient bookServiceClient;
     private final UserServiceClient userServiceClient;
     private final CouponServiceClient couponServiceClient;
-    private final PaymentStrategyFactory paymentStrategyFactory;
 
     private final OrderNumberProvider orderNumberProvider;
+    private final PasswordEncoder passwordEncoder;
 
     private final OrderViewAssembler orderViewAssembler;
     private final OrderResourceManager resourceManager;
 
     /**
      * 책 클라이언트를 통해 책 정보를 가져오는 공용 메서드입니다.
-     * @param bookIds
+     * @param bookIds 도서 아이디 List
      * @return 책 정보 반환 List
      */
     private List<BookOrderResponse> fetchBookInfo(List<Long> bookIds){
@@ -103,7 +99,7 @@ public class OrderServiceImpl implements OrderService {
 
     /**
      * 책 클라이언트를 통해 책 정보를 가져오는 공용 메서드입니다.
-     * @param userId
+     * @param userId 유저 아이디
      * @return 유저 배송지 정보 반환 List
      */
     private List<UserAddressResponseDto> fetchUserAddressInfo(Long userId){
@@ -127,7 +123,7 @@ public class OrderServiceImpl implements OrderService {
 
     /**
      * 책 클라이언트를 통해 책 정보를 가져오는 공용 메서드입니다.
-     * @param userId
+     * @param userId 유저 아이디
      * @return 사용 가능한 포인트 정보 반환
      */
     private CurrentPointResponseDto fetchPointInfo(Long userId){
@@ -144,16 +140,33 @@ public class OrderServiceImpl implements OrderService {
      */
     // TODO 캐시 설정?
     @Override
-    public OrderPrepareResponseDto prepareOrder(Long userId, OrderPrepareRequestDto req) {
-        log.info("주문 전 데이터 정보 가져오기 로직 실행 (회원 아이디 : {})", userId);
+    public OrderPrepareResponseDto prepareOrder(Long userId, String guestId, OrderPrepareRequestDto req) {
+        log.info("주문 전 데이터 정보 가져오기 로직 실행 (회원 아이디 : {}, 비회원 아이디 : {})", userId, guestId);
 
         // 책 id
         List<Long> bookIds = req.bookItems().stream()
                 .map(BookInfoDto::bookId)
                 .toList();
 
-
         List<BookOrderResponse> bookOrderResponseList = fetchBookInfo(bookIds);
+
+        Map<Long, Integer> quantities = req.bookItems().stream()
+                .collect(Collectors.toMap(
+                        BookInfoDto::bookId,
+                        BookInfoDto::quantity
+                ));
+
+        for (BookOrderResponse bookOrderResponse : bookOrderResponseList) {
+            Integer quantity = quantities.get(bookOrderResponse.getBookId());
+            if(quantity != null){
+                bookOrderResponse.setQuantity(quantity);
+            }
+        }
+
+        if(userId == null){
+            return OrderPrepareResponseDto.forGuest(bookOrderResponseList);
+        }
+
         List<UserAddressResponseDto> userAddressResponseDtoList = fetchUserAddressInfo(userId);
 
         // 사용 가능한 쿠폰을 받기 위한 RequestDto 생성
@@ -163,7 +176,7 @@ public class OrderServiceImpl implements OrderService {
         CurrentPointResponseDto userCurrentPoint = fetchPointInfo(userId);
 
         // 회원 주문은 배송지, 쿠폰 및 포인트 여부도 가져옴
-        return new OrderPrepareResponseDto(
+        return OrderPrepareResponseDto.forMember(
                 bookOrderResponseList,
                 userAddressResponseDtoList,
                 userCouponResponseDtoList,
@@ -172,10 +185,10 @@ public class OrderServiceImpl implements OrderService {
     }
 
     @Override
-    public OrderCreateResponseDto createPreOrder(Long userId, OrderCreateRequestDto req) {
-        log.info("임시 주문 데이터 생성 및 검증 로직 실행 (회원 아이디 : {})", userId);
+    public OrderCreateResponseDto createPreOrder(Long userId, String guestId, OrderCreateRequestDto req) {
+        log.info("임시 주문 데이터 생성 및 검증 로직 실행 (회원 아이디 : {}, 비회원 아이디 : {})", userId, guestId);
 
-        OrderVerificationResult result = verifyOrder(userId, req);
+        OrderVerificationResult result = verifyOrder(userId, guestId, req);
         OrderCreateResponseDto orderCreateResponseDto = null;
         try{
             orderCreateResponseDto = orderTransactionService.createPendingOrder(userId, result);
@@ -197,8 +210,8 @@ public class OrderServiceImpl implements OrderService {
     }
 
     // 임시 주문 생성을 위한 헬퍼 메서드
-    private OrderVerificationResult verifyOrder(Long userId, OrderCreateRequestDto req) {
-        log.info("주문 데이터 생성 및 검증 로직 실행 (회원 아이디 : {})", userId);
+    private OrderVerificationResult verifyOrder(Long userId, String guestId, OrderCreateRequestDto req) {
+        log.info("주문 데이터 생성 및 검증 로직 실행 (회원 아이디 : {}, 비회원 아이디 : {})", userId, guestId);
 
         List<OrderItemRequestDto> orderItemResponseDtoList = req.getOrderItems();
 
@@ -251,7 +264,7 @@ public class OrderServiceImpl implements OrderService {
 
     /**
      * 사용 가능한 쿠폰을 받기위해 쿠폰 서비스에 요청하는 Dto 생성 로직
-     * @param resp
+     * @param resp 도서 정보 리스트
      * @return 책 ID 리스트, 카테고리 ID 리스트가 들어있는 Dto
      */
     private OrderCouponCheckRequestDto createOrderCouponCheckRequest(List<BookOrderResponse> resp){
@@ -271,9 +284,9 @@ public class OrderServiceImpl implements OrderService {
     }
 
     /**
-     *
-     * @param bookOrderResponseList
-     * @param orderItemRequestDtoList
+     * 임시 주문 생성을 위한 OrderItem 엔티티 리스트 만드는 로직
+     * @param bookOrderResponseList 도서 정보 리스트
+     * @param orderItemRequestDtoList 도서 항목 요청 리스트
      * @return 주문 엔티티 생성용 주문 항목 리스트 생성 로직
      */
     private List<OrderItem> createOrderItemList(List<BookOrderResponse> bookOrderResponseList,
@@ -301,7 +314,7 @@ public class OrderServiceImpl implements OrderService {
 
     /**
      * 배송지 입력
-     * @param deliveryAddressRequestDto
+     * @param deliveryAddressRequestDto 배송지 요청
      * @return 배송지 엔티티
      */
     private DeliveryAddress createDeliveryAddress(DeliveryAddressRequestDto deliveryAddressRequestDto){
@@ -316,7 +329,7 @@ public class OrderServiceImpl implements OrderService {
 
     /**
      * 주문명 생성 메서드
-     * @param bookOrderResponseList
+     * @param bookOrderResponseList 도서 정보 리스트
      * @return 주문명
      */
     private String createOrderTitle(List<BookOrderResponse> bookOrderResponseList){
@@ -343,7 +356,7 @@ public class OrderServiceImpl implements OrderService {
 
     /**
      * 포장비 검증 및 생성 메서드
-     * @param orderItemList
+     * @param orderItemList 주문 항목 리스트
      * @return 포장비
      */
     private int createWrappingFee(List<OrderItem> orderItemList){
@@ -357,10 +370,10 @@ public class OrderServiceImpl implements OrderService {
 
     /**
      * 쿠폰 할인 검증 및 생성 메서드
-     * @param couponId
-     * @param orderItemList
-     * @param bookOrderResponseList
-     * @param totalItemAmount
+     * @param couponId 쿠폰 아이디
+     * @param orderItemList 주문 항목 리스트
+     * @param bookOrderResponseList 도서 정보 리스트
+     * @param totalItemAmount 총 항목 금액
      * @return 쿠폰으로 할인된 금액
      */
     private int createCouponDiscount(Long couponId, List<OrderItem> orderItemList, List<BookOrderResponse> bookOrderResponseList, int totalItemAmount){
@@ -444,12 +457,13 @@ public class OrderServiceImpl implements OrderService {
 
     /**
      * 포인트 할인 검증 및 생성 메서드
-     * @param userId
-     * @param point
+     * @param userId 유저 아이디
+     * @param currentAmount 결제 금액
+     * @param point 요청 포인트
      * @return 포인트로 할인된 금액
      */
     private int createPointDiscount(Long userId, Integer currentAmount, Integer point){
-        if(point == null){
+        if(point == null || userId == null){
             return 0;
         }
         CurrentPointResponseDto currentPointResponseDto = userServiceClient.getUserPoint(userId);
@@ -462,8 +476,8 @@ public class OrderServiceImpl implements OrderService {
             ));
         }
 
-        if (currentAmount - point < 0) {
-            throw new ExceedUserPointException("사용 포인트가 결제 금액보다 더 많습니다 (결제 금액 : %d, 요청 포인트 : %d)".formatted(
+        if (currentAmount - point < 100) {
+            throw new ExceedUserPointException("최소 결제 금액 100원 이상 결제해야합니다 (결제 금액 : %d, 요청 포인트 : %d)".formatted(
                     currentAmount,
                     point
             ));
@@ -473,7 +487,7 @@ public class OrderServiceImpl implements OrderService {
 
     /**
      * 요청받은 원하는 배송일 검증 및 생성 메서드
-     * @param wantDeliveryDate
+     * @param wantDeliveryDate 원하는 배송일
      * @return 원하는 배송일
      */
     private LocalDate createWantDeliveryDate(LocalDate wantDeliveryDate){
@@ -496,12 +510,11 @@ public class OrderServiceImpl implements OrderService {
         return orderRepository.findAllByUserId(userId, pageable);
     }
 
-    @Transactional(readOnly = true)
     @Override
     public OrderDetailResponseDto getOrderDetail(Long userId, String orderNumber) {
         log.info("일반 사용자 주문 상세 정보 조회 로직 실행 (유저 아이디 : {}, 주문번호 : {})", userId, orderNumber);
 
-        Order order = validateOrderExistence(userId, orderNumber);
+        Order order = orderTransactionService.validateOrderExistence(userId, orderNumber);
 
         List<Long> bookIds = order.getOrderItems().stream()
                 .map(OrderItem::getBookId)
@@ -520,57 +533,34 @@ public class OrderServiceImpl implements OrderService {
 
     // 일반 사용자 주문 취소
     @Override
-    public OrderCancelResponseDto cancelOrder(Long userId, String orderNumber, OrderCancelRequestDto req) {
+    public void cancelOrder(Long userId, String orderNumber) {
         log.info("일반 사용자 주문 취소 로직 실행 (유저 아이디 : {}, 주문번호 : {})", userId, orderNumber);
 
         // 주문 검증
-        Order order = orderTransactionService.validateOrderExistence(userId, orderNumber);
-
-        // 결제 찾기
-        Payment payment = paymentService.getPaymentEntity(orderNumber);
-
-        // 결제 취소 요청
-        // TODO 멱등키 설정해서 결제 취소 하기
-        CommonCancelResponse cancelResponse = cancelPaymentExternally(payment, req.cancelReason());
-
-        // 결제 취소 DB 저장
-        List<PaymentCancelResponse> paymentCancelResponseList = savePaymentCancel(cancelResponse);
-
-        // 이벤트 핸들러
-        order.setOrderStatus(OrderStatus.CANCELED);
-
-        return new OrderCancelResponseDto(
-                order.getOrderNumber(),
-                order.getOrderStatus().getDescription(),
-                paymentCancelResponseList
-        );
-    }
-
-
-    // 결제 취소에 필요한 로직
-    public Order validateOrderExistence(Long userId, String orderNumber){
-        return orderRepository.findByUserIdAndOrderNumber(userId, orderNumber)
+        Order order = orderRepository.findByUserIdAndOrderNumber(userId, orderNumber)
                 .orElseThrow(() -> new OrderNotFoundException("Not Found Order : " + orderNumber));
+
+        // 주문 상태에 따른 오류 던지기
+        if(!order.getOrderStatus().isCancellable()){
+            log.warn("주문 취소를 할 수 없는 상태입니다 (현재 상태  : {})", order.getOrderStatus().name());
+            throw new OrderNotCancellableException("주문 취소를 할 수 없는 상태입니다 : " + order.getOrderStatus().name());
+        }
+
+        // 결제 취소 호출 (사용자 주문 취소)
+        paymentService.cancelPayment(new PaymentCancelRequest(order.getOrderNumber(), "사용자 주문 취소", null));
+
+        // 상태 변경
+        orderTransactionService.changeStatusOrder(order, false);
     }
 
-    // TODO Retryble사용해서 처리
-    public CommonCancelResponse cancelPaymentExternally(Payment payment, String reason){
-        CommonCancelRequest cancelRequest = new CommonCancelRequest(payment.getPaymentKey(), null, reason);
-        String provider = payment.getPaymentProvider().name();
-        PaymentStrategy paymentStrategy = paymentStrategyFactory.getStrategy(provider);
-        return paymentStrategy.cancelPayment(cancelRequest, payment.getOrderNumber());
-    }
-
-    public List<PaymentCancelResponse> savePaymentCancel(CommonCancelResponse cancelResponse){
-        PaymentCancelCreateRequest createRequest = cancelResponse.toPaymentCancelCreateRequest();
-        return paymentService.createPaymentCancel(createRequest);
-    }
-
-    @Transactional(readOnly = true)
-    public PaymentResponse getPaymentInfo(String orderNumber){
+    private PaymentResponse getPaymentInfo(String orderNumber){
         return paymentService.getPayment(new PaymentRequest(orderNumber));
     }
 
+
+    /*
+        =================== [비회원 전용 서비스 로직] ====================
+     */
     @Override
     public OrderPrepareResponseDto prepareGuestOrder(String guestId, OrderPrepareRequestDto req) {
         log.info("주문 전 데이터 정보 가져오기 로직 실행 (비회원 유저 : {})", guestId);
@@ -581,14 +571,46 @@ public class OrderServiceImpl implements OrderService {
 
         List<BookOrderResponse> bookOrderResponseList = fetchBookInfo(bookIds);
 
-        String orderNumber = orderNumberProvider.provideOrderNumber();
-
         return new OrderPrepareResponseDto(
                 bookOrderResponseList,
                 null,
                 null,
                 null
         );
+    }
+
+    @Override
+    public OrderCreateResponseDto createGuestPreOrder(String guestId, GuestOrderCreateRequestDto req) {
+        log.info("비회원 임시 주문 데이터 생성 및 검증 로직 실행 (비회원 아이디 : {})", guestId);
+
+        OrderCreateRequestDto orderCreateRequestDto = new OrderCreateRequestDto(
+                req.getOrderItems(),
+                req.getDeliveryAddress(),
+                req.getDeliveryPolicyId(),
+                req.getWantDeliveryDate(),
+                null,
+                null
+        );
+
+        OrderCreateResponseDto orderCreateResponseDto = createPreOrder(null, guestId, orderCreateRequestDto);
+
+        Order order = orderTransactionService.getOrderEntity(orderCreateResponseDto.getOrderNumber());
+
+        GuestOrder guestOrder = GuestOrder.builder()
+                .order(order)
+                .guestName(req.getGuestName())
+                .guestPhoneNumber(req.getGuestPhoneNumber())
+                .guestPassword(passwordEncoder.encode(req.getGuestPassword()))
+                .build();
+
+        try{
+            guestOrderRepository.save(guestOrder);
+        } catch (Exception e) {
+            log.error("비회원 주문 DB 생성 중 오류 : {}", e.getMessage());
+            throw new OrderVerificationException("비회원 주문 DB 생성 중 오류 " + e.getMessage());
+        }
+
+        return orderCreateResponseDto;
     }
 
     /*
@@ -605,18 +627,4 @@ public class OrderServiceImpl implements OrderService {
     public int deleteJunkOrder(List<Long> ids) {
         return orderRepository.deleteByIds(ids);
     }
-
-    @Transactional(readOnly = true)
-    @Override
-    public Boolean existsOrderByUserIdAndOrderNumber(Long userId, String orderNumber) {
-        return orderRepository.existsByOrderNumberAndUserId(orderNumber, userId);
-    }
-
-    @Override
-    public Integer findTotalAmoundByOrderNumber(String orderNumber) {
-        return orderRepository.findTotalAmount(orderNumber).orElseThrow(
-                () -> new OrderNotFoundException("주문을 찾을 수 없습니다 : " + orderNumber));
-    }
-
-
 }

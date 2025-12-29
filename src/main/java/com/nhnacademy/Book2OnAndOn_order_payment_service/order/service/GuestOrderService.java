@@ -23,6 +23,7 @@ public class GuestOrderService {
 
     @Transactional(readOnly = true)
     public GuestLoginResponseDto loginGuest(GuestLoginRequestDto requestDto) {
+        log.debug("orderNumber {} ", requestDto.getOrderNumber());
         GuestOrder guestOrder = guestOrderRepository.findByOrder_OrderNumber(requestDto.getOrderNumber())
                 .orElseThrow(GuestOrderNotFoundException::new);
 

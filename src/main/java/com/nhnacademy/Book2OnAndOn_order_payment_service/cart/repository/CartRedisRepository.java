@@ -12,13 +12,17 @@ public interface CartRedisRepository {
     // ======================
     // 1) 장바구니 아이템 전체 조회
     Map<Long, CartRedisItem> getUserCartItems(Long userId);
+
     // 2) 회원 장바구니를 한 번에 채워넣기
     void putUserItem(Long userId, CartRedisItem cartRedisItem);
-    void updateGuestItemQuantity(String uuid, long bookId, int quantity);
+
     // 3) 회원 장바구니 단일 삭제 (write-behind용 추가)
     void deleteUserCartItem(Long userId, long bookId);
+
     // 4) merge 후 회원 장바구니 캐시 무효화
     void clearUserCart(Long userId);
+
+    void putUserItems(Long userId, Map<Long, CartRedisItem> items);
 
 
     // ======================
@@ -29,12 +33,15 @@ public interface CartRedisRepository {
 
     // 2) 장바구니 상태 갱신. TTL 연장
     void putGuestItem(String uuid, CartRedisItem item);
+    void updateGuestItemQuantity(String uuid, long bookId, int quantity);
 
     // 4) 장바구니에서 항목 삭제. TTL 연장
     void deleteGuestItem(String uuid, long bookId);
 
     // 5) 비회원 세션 종료나 로그인 후 병합 시, 비회원 카트 전체 삭제
     void clearGuestCart(String uuid);
+
+    void putGuestItems(String uuid, Map<Long, CartRedisItem> items);
 
 
     // ======================
@@ -43,21 +50,12 @@ public interface CartRedisRepository {
     // 1) Dirty Mark 등록 (사용자별 변경 여부)
     void markUserCartDirty(Long userId);
 
-    // 2) 변경/삭제된 항목 추적
-    void markUserItemDirty(Long userId, Long bookId);
-    void markUserItemDeleted(Long userId, Long bookId);
-
-    // 3) 동기화 대상 데이터 추출
+    // 2) 동기화 대상 데이터 추출
     Set<Long> getDirtyUserIds();
-    Set<Long> getDirtyItemIds(Long userId);
-    Set<Long> getDeletedItemIds(Long userId);
 
-    // 4) 상태 초기화 및 정리
+    // 3) 상태 초기화 및 정리
     void clearUserCartDirty(Long userId);
-    void markUserCartClear(Long userId);
-    boolean consumeUserCartClear(Long userId);
 
-    // (임시) dirty 키 정리
-    void cleanupUserDirtyKeys(Long userId);
+    boolean isUserCartDirty(Long userId);
 
 }

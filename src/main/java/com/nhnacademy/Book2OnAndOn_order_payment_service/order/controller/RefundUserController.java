@@ -17,7 +17,6 @@ import jakarta.validation.Valid;
 
 @RestController
 @RequiredArgsConstructor
-@RequestMapping("/orders/{orderId}/refunds")
 public class RefundUserController {
 
     private final RefundService refundService;
@@ -36,7 +35,7 @@ public class RefundUserController {
 
     // 회원 반품 신청
     // POST /orders/{orderId}/refunds
-    @PostMapping
+    @PostMapping("/orders/{orderId}/refunds")
     public ResponseEntity<RefundResponseDto> createRefund(
             @PathVariable Long orderId,
             @Valid @RequestBody RefundRequestDto request,
@@ -48,7 +47,7 @@ public class RefundUserController {
 
     // 회원 반품 신청 취소
     // POST /orders/{orderId}/refunds/{refundId}/cancel
-    @PostMapping("/{refundId}/cancel")
+    @PostMapping("/orders/{orderId}/refunds/{refundId}/cancel")
     public ResponseEntity<RefundResponseDto> cancelRefund(
             @PathVariable Long orderId,
             @PathVariable Long refundId,
@@ -60,7 +59,7 @@ public class RefundUserController {
 
     // 회원 반품 상세 조회
     // GET /orders/{orderId}/refund/{refundId}
-    @GetMapping("/{refundId}")
+    @GetMapping("/orders/{orderId}/refund/{refundId}")
     public ResponseEntity<RefundResponseDto> getRefundDetails(
             @PathVariable Long orderId,
             @PathVariable Long refundId,
@@ -74,7 +73,7 @@ public class RefundUserController {
 
     // 회원 전체 반품 목록 조회
     // GET /orders/{orderId}/returns/list?page=0&size=20
-    @GetMapping("/list")
+    @GetMapping("orders/refunds/my-list")
     public ResponseEntity<Page<RefundResponseDto>> getMyRefunds(
             Authentication authentication,
             Pageable pageable
@@ -84,7 +83,7 @@ public class RefundUserController {
     }
 
     // 회원 반품 신청 폼
-    @GetMapping("/form")
+    @GetMapping("/orders/{orderId}/refunds/form")
     public ResponseEntity<List<RefundAvailableItemResponseDto>> getRefundForm(
             @PathVariable Long orderId,
             Authentication authentication

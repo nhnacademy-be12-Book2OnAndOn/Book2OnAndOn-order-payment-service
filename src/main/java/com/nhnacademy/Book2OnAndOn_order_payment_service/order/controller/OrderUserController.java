@@ -1,7 +1,5 @@
 package com.nhnacademy.Book2OnAndOn_order_payment_service.order.controller;
 
-import com.nhnacademy.Book2OnAndOn_order_payment_service.order.dto.order.OrderCancelRequestDto;
-import com.nhnacademy.Book2OnAndOn_order_payment_service.order.dto.order.OrderCancelResponseDto;
 import com.nhnacademy.Book2OnAndOn_order_payment_service.order.dto.order.OrderCreateRequestDto;
 import com.nhnacademy.Book2OnAndOn_order_payment_service.order.dto.order.OrderCreateResponseDto;
 import com.nhnacademy.Book2OnAndOn_order_payment_service.order.dto.order.OrderDetailResponseDto;
@@ -39,10 +37,10 @@ public class OrderUserController {
     @PostMapping("/prepare")
     public ResponseEntity<OrderPrepareResponseDto> getOrderPrepare(@RequestHeader(USER_ID_HEADER) Long userId,
                                                                    @RequestBody OrderPrepareRequestDto req){
-        log.info("GET /orders/prepare 호출 : 주문시 필요한 데이터 반환 (회원 아이디 : {})", userId);
+        log.info("POST /orders/prepare 호출 : 주문시 필요한 데이터 반환 (회원 아이디 : {})", userId);
 
         // 회원 주문 로직
-        OrderPrepareResponseDto orderSheetResponseDto = orderService.prepareOrder(userId, req);
+        OrderPrepareResponseDto orderSheetResponseDto = orderService.prepareOrder(userId, null, req);
 
         return ResponseEntity.ok(orderSheetResponseDto);
     }
@@ -51,7 +49,7 @@ public class OrderUserController {
     public ResponseEntity<OrderCreateResponseDto> createPreOrder(@RequestHeader(USER_ID_HEADER) Long userId,
                                                                  @RequestBody OrderCreateRequestDto req){
         log.info("POST /orders 호출 : 사전 주문 데이터 생성");
-        OrderCreateResponseDto orderCreateResponseDto = orderService.createPreOrder(userId, req);
+        OrderCreateResponseDto orderCreateResponseDto = orderService.createPreOrder(userId, null, req);
 
         return ResponseEntity.status(HttpStatus.CREATED).body(orderCreateResponseDto);
     }
@@ -75,14 +73,14 @@ public class OrderUserController {
         return ResponseEntity.ok(orderResponseDto);
     }
 
+    // 결제 후 바로 주문 취소하는 경우
     @PatchMapping("/{orderNumber}/cancel")
-    public ResponseEntity<OrderCancelResponseDto> cancelOrder(@RequestHeader(USER_ID_HEADER) Long userId,
-                                                              @PathVariable("orderNumber") String orderNumber,
-                                                              @RequestBody OrderCancelRequestDto req){
-        log.info("PATCH /order/{}/cancel 호출 : 주문 취소", orderNumber);
+    public ResponseEntity<Void> cancelOrder(@RequestHeader(USER_ID_HEADER) Long userId,
+                                            @PathVariable("orderNumber") String orderNumber){
+        log.info("PATCH /orders/{}/cancel 호출 : 주문 취소", orderNumber);
 
-        OrderCancelResponseDto orderCancelResponseDto = orderService.cancelOrder(userId, orderNumber, req);
+        orderService.cancelOrder(userId, orderNumber);
         // 리소스 생성 및 취소 완료
-        return ResponseEntity.status(HttpStatus.CREATED).body(orderCancelResponseDto);
+        return ResponseEntity.noContent().build();
     }
 }

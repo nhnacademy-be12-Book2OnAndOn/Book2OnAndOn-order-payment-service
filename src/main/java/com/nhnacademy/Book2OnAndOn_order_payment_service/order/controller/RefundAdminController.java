@@ -1,5 +1,6 @@
 package com.nhnacademy.Book2OnAndOn_order_payment_service.order.controller;
 
+import com.nhnacademy.Book2OnAndOn_order_payment_service.order.dto.refund.request.RefundSearchCondition;
 import com.nhnacademy.Book2OnAndOn_order_payment_service.order.dto.refund.response.RefundResponseDto;
 import com.nhnacademy.Book2OnAndOn_order_payment_service.order.dto.refund.request.RefundStatusUpdateRequestDto;
 import com.nhnacademy.Book2OnAndOn_order_payment_service.order.entity.refund.RefundStatus;
@@ -23,30 +24,14 @@ public class RefundAdminController {
 
     // 관리자 반품 목록 조회
     // GET /admin/refunds?status=0&startDate=2025-01-01&endDate=2025-01-31&userId=1&orderNumber=2025123456789&includeGuest=true&page=0&size=20
+    // [변경사항] 위 파라미터를 Dto로 감쌈!
     @GetMapping
     public ResponseEntity<Page<RefundResponseDto>> getRefundList(
-            @RequestParam(name = "status", required = false) Integer refundStatus,
-            @RequestParam(name = "startDate", required = false) LocalDate startDate,
-            @RequestParam(name = "endDate", required = false) LocalDate endDate,
-            @RequestParam(name = "userId", required = false) Long userId,
-            @RequestParam(name = "userKeyword", required = false) String userKeyword,
-            @RequestParam(name = "orderNumber", required = false) String orderNumber,
-            @RequestParam(name = "includeGuest", defaultValue = "true") boolean includeGuest,
+            @ModelAttribute RefundSearchCondition condition,
             Pageable pageable
     ) {
-        RefundStatus status = refundStatus != null ? RefundStatus.fromCode(refundStatus) : null;
-
         return ResponseEntity.ok(
-                refundService.getRefundListForAdmin(
-                        status,
-                        startDate,
-                        endDate,
-                        userId,
-                        userKeyword,
-                        orderNumber,
-                        includeGuest,
-                        pageable
-                )
+                refundService.getRefundListForAdmin(condition, pageable)
         );
     }
 

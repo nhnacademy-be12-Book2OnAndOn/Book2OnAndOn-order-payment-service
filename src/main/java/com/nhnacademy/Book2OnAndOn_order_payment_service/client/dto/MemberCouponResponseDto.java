@@ -1,7 +1,13 @@
 package com.nhnacademy.Book2OnAndOn_order_payment_service.client.dto;
 
 import java.time.LocalDateTime;
+import lombok.AllArgsConstructor;
+import lombok.Getter;
+import lombok.NoArgsConstructor;
 
+@Getter
+@AllArgsConstructor
+@NoArgsConstructor
 public class MemberCouponResponseDto {
     private Long memberCouponId;
     private String couponName;

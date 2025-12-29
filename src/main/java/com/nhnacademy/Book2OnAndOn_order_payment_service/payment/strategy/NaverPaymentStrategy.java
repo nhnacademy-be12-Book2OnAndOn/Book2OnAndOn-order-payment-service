@@ -20,12 +20,7 @@ public class NaverPaymentStrategy implements PaymentStrategy{
     }
 
     @Override
-    public CommonCancelResponse cancelPayment(CommonCancelRequest req, String orderNumber) {
+    public CommonCancelResponse cancelPayment(CommonCancelRequest req, String IdempotencyKey) {
         throw new NotSupportedPayments("현재 지원하지 않는 결제 서비스 입니다");
     }
-
-//    @Override
-//    public CommonResponse findPayment(String orderNumber) {
-//        throw new NotSupportedPayments("현재 지원하지 않는 결제 서비스 입니다");
-//    }
 }

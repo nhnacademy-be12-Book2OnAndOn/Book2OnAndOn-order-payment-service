@@ -1,6 +1,8 @@
 package com.nhnacademy.Book2OnAndOn_order_payment_service.cart.support;
 
 import com.nhnacademy.Book2OnAndOn_order_payment_service.cart.domain.entity.CartItemUnavailableReason;
+import com.nhnacademy.Book2OnAndOn_order_payment_service.cart.exception.CartErrorCode;
+import com.nhnacademy.Book2OnAndOn_order_payment_service.cart.exception.CartItemNotFoundException;
 import com.nhnacademy.Book2OnAndOn_order_payment_service.client.BookServiceClient.BookSnapshot;
 import lombok.Getter;
 import lombok.RequiredArgsConstructor;
@@ -22,6 +24,9 @@ public class CartCalculator {
             Map<Long, BookSnapshot> snapshotMap // 도서(book-service) 스냅샷 묶음
     ) {
         BookSnapshot snapshot = snapshotMap.get(bookId);
+        if (snapshot == null) {
+            throw new CartItemNotFoundException(CartErrorCode.CART_ITEM_NOT_FOUND);
+        }
 
         // 내부변수 초기화
         boolean available = true;

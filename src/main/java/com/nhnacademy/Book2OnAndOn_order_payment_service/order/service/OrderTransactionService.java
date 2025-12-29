@@ -25,8 +25,8 @@ public class OrderTransactionService {
     private final OrderRepository orderRepository;
     private final OrderViewAssembler orderViewAssembler;
 
-    // 결제 취소에 필요한 로직
-    @Transactional
+    // 해당 유저가 주문을 했는지 판별 로직
+    @Transactional(readOnly = true)
     public Order validateOrderExistence(Long userId, String orderNumber){
         return orderRepository.findByUserIdAndOrderNumber(userId, orderNumber)
                 .orElseThrow(() -> new OrderNotFoundException("Not Found Order : " + orderNumber));
@@ -96,5 +96,11 @@ public class OrderTransactionService {
             }
         }
 
+    }
+
+    @Transactional(readOnly = true)
+    public Order getOrderEntity(String orderNumber){
+        return orderRepository.findByOrderNumber(orderNumber)
+                .orElseThrow(() -> new OrderNotFoundException("Not Found Order : " + orderNumber));
     }
 }

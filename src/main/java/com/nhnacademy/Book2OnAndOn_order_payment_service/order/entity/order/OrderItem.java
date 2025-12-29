@@ -62,8 +62,8 @@ public class OrderItem {
     @NotNull
     private Order order;
 
-    @OneToOne(fetch = FetchType.LAZY, cascade = CascadeType.ALL)
-    @JoinColumn(name = "wrapping_paper_id", nullable = true)
+    @ManyToOne(fetch = FetchType.LAZY, cascade = CascadeType.ALL)
+    @JoinColumn(name = "wrapping_paper_id")
     private WrappingPaper wrappingPaper;
 
     @OneToMany(mappedBy = "orderItem", cascade = CascadeType.ALL)

@@ -8,6 +8,5 @@ import com.nhnacademy.Book2OnAndOn_order_payment_service.payment.domain.dto.Comm
 public interface PaymentStrategy {
     String getProvider();
     CommonResponse confirmPayment(CommonConfirmRequest req, String idempotencyKey);
-    CommonCancelResponse cancelPayment(CommonCancelRequest req, String orderNumber);
-//    CommonResponse findPayment(String orderNumber);
+    CommonCancelResponse cancelPayment(CommonCancelRequest req, String idempotencyKey);
 }
