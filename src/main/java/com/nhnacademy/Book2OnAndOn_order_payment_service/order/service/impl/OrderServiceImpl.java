@@ -517,7 +517,7 @@ public class OrderServiceImpl implements OrderService {
     @Override
     public Page<OrderSimpleDto> getOrderList(Long userId, Pageable pageable) {
         log.info("일반 사용자 주문 리스트 조회 로직 실행 (유저 아이디 : {})", userId);
-        return orderRepository.findAllByUserId(userId, pageable);
+        return orderRepository.findAllByUserId(userId, pageable, OrderStatus.PENDING);
     }
 
     @Override
