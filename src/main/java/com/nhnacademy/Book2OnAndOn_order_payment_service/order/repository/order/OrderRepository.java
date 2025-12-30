@@ -53,7 +53,7 @@ public interface OrderRepository extends JpaRepository<Order, Long> {
     Page<OrderSimpleDto> findAllByUserId(Long userId, Pageable pageable);
 
     // 주문 번호로 조회
-    @EntityGraph(attributePaths = {"orderItems", "orderItems.wrappingPaper", "deliveryAddress", "delivery"})
+    @EntityGraph(attributePaths = {"orderItems", "orderItems.wrappingPaper", "deliveryAddress"})
     @Query("SELECT o FROM Order o WHERE o.userId = :userId AND o.orderNumber = :orderNumber")
     Optional<Order> findByUserIdAndOrderNumber(Long userId, String orderNumber);
 
