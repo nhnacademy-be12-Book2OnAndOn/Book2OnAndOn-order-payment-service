@@ -503,7 +503,7 @@ public class OrderServiceImpl implements OrderService {
     private LocalDate createWantDeliveryDate(LocalDate wantDeliveryDate){
         LocalDate today = LocalDate.now();
         LocalDate minDate = today.plusDays(1);
-        LocalDate maxDate = today.plusWeeks(1);
+        LocalDate maxDate = today.plusWeeks(1).plusDays(1);
 
         if(wantDeliveryDate.isBefore(minDate) || wantDeliveryDate.isAfter(maxDate)){
             throw new InvalidDeliveryDateException("지정 배송일은 당일 제외 1주일 후까지 선택 가능합니다 (현재 선택날짜 : " + wantDeliveryDate + ")");
