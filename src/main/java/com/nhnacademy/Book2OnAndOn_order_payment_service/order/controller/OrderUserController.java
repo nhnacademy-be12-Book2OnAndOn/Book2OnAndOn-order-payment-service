@@ -67,7 +67,7 @@ public class OrderUserController {
     @GetMapping("/{orderNumber}")
     public ResponseEntity<OrderDetailResponseDto> getOrderDetail(@RequestHeader(USER_ID_HEADER) Long userId,
                                                                  @PathVariable("orderNumber") String orderNumber){
-        log.info("GET /order/{} 호출 : 주문 상세 데이터 반환" , orderNumber);
+        log.info("GET /orders/{} 호출 : 주문 상세 데이터 반환" , orderNumber);
         OrderDetailResponseDto orderResponseDto = orderService.getOrderDetail(userId, orderNumber);
 
         return ResponseEntity.ok(orderResponseDto);
