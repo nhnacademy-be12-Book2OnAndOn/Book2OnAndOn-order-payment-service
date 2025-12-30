@@ -9,8 +9,10 @@ import com.nhnacademy.Book2OnAndOn_order_payment_service.order.entity.order.Orde
 import com.nhnacademy.Book2OnAndOn_order_payment_service.order.entity.order.OrderItemStatus;
 import com.nhnacademy.Book2OnAndOn_order_payment_service.order.entity.order.OrderStatus;
 import com.nhnacademy.Book2OnAndOn_order_payment_service.order.exception.OrderNotFoundException;
+import com.nhnacademy.Book2OnAndOn_order_payment_service.order.repository.order.OrderItemRepository;
 import com.nhnacademy.Book2OnAndOn_order_payment_service.order.repository.order.OrderRepository;
 import com.nhnacademy.Book2OnAndOn_order_payment_service.payment.domain.dto.CommonConfirmRequest;
+import java.util.List;
 import java.util.Objects;
 import lombok.RequiredArgsConstructor;
 import lombok.extern.slf4j.Slf4j;
@@ -24,6 +26,8 @@ public class OrderTransactionService {
 
     private final OrderRepository orderRepository;
     private final OrderViewAssembler orderViewAssembler;
+
+    private final OrderItemRepository orderItemRepository;
 
     // 해당 유저가 주문을 했는지 판별 로직
     @Transactional(readOnly = true)
@@ -85,6 +89,13 @@ public class OrderTransactionService {
             order.updateStatus(OrderStatus.COMPLETED);
 
             for (OrderItem orderItem : order.getOrderItems()) {
+                orderItem.updateStatus(OrderItemStatus.ORDER_COMPLETE);
+                log.info("orderItem Status : {}", orderItem.getOrderItemStatus());
+            }
+
+            List<OrderItem> orderItemList =  orderItemRepository.findByOrder_OrderId(order.getOrderId());
+
+            for (OrderItem orderItem : orderItemList) {
                 orderItem.updateStatus(OrderItemStatus.ORDER_COMPLETE);
             }
         }else{
