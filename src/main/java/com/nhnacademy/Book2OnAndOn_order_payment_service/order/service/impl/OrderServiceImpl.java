@@ -88,7 +88,7 @@ public class OrderServiceImpl implements OrderService {
 
     /**
      * 책 클라이언트를 통해 책 정보를 가져오는 공용 메서드입니다.
-     * @param bookIds
+     * @param bookIds 도서 아이디 List
      * @return 책 정보 반환 List
      */
     private List<BookOrderResponse> fetchBookInfo(List<Long> bookIds){
@@ -100,7 +100,7 @@ public class OrderServiceImpl implements OrderService {
 
     /**
      * 책 클라이언트를 통해 책 정보를 가져오는 공용 메서드입니다.
-     * @param userId
+     * @param userId 유저 아이디
      * @return 유저 배송지 정보 반환 List
      */
     private List<UserAddressResponseDto> fetchUserAddressInfo(Long userId){
@@ -124,7 +124,7 @@ public class OrderServiceImpl implements OrderService {
 
     /**
      * 책 클라이언트를 통해 책 정보를 가져오는 공용 메서드입니다.
-     * @param userId
+     * @param userId 유저 아이디
      * @return 사용 가능한 포인트 정보 반환
      */
     private CurrentPointResponseDto fetchPointInfo(Long userId){
@@ -149,8 +149,20 @@ public class OrderServiceImpl implements OrderService {
                 .map(BookInfoDto::bookId)
                 .toList();
 
-
         List<BookOrderResponse> bookOrderResponseList = fetchBookInfo(bookIds);
+
+        Map<Long, Integer> quantities = req.bookItems().stream()
+                .collect(Collectors.toMap(
+                        BookInfoDto::bookId,
+                        BookInfoDto::quantity
+                ));
+
+        for (BookOrderResponse bookOrderResponse : bookOrderResponseList) {
+            Integer quantity = quantities.get(bookOrderResponse.getBookId());
+            if(quantity != null){
+                bookOrderResponse.setQuantity(quantity);
+            }
+        }
 
         if(userId == null){
             return OrderPrepareResponseDto.forGuest(bookOrderResponseList);
@@ -161,6 +173,8 @@ public class OrderServiceImpl implements OrderService {
         // 사용 가능한 쿠폰을 받기 위한 RequestDto 생성
         OrderCouponCheckRequestDto orderCouponCheckRequestDto = createOrderCouponCheckRequest(bookOrderResponseList);
         List<MemberCouponResponseDto> userCouponResponseDtoList = fetchUsableMemberCouponInfo(userId, orderCouponCheckRequestDto);
+
+
 
         CurrentPointResponseDto userCurrentPoint = fetchPointInfo(userId);
 
@@ -229,6 +243,10 @@ public class OrderServiceImpl implements OrderService {
         int totalDiscountAmount = couponDiscount + pointDiscount;
         int totalAmount = totalItemAmount + deliveryFee + wrappingFee - totalDiscountAmount;
 
+        if(totalAmount < 100){
+            log.error("최소 결제 금액 100원 이상 결제해야합니다 (현재 주문 금액 : {}원)", totalAmount);
+        }
+
         LocalDate wantDeliveryDate = createWantDeliveryDate(req.getWantDeliveryDate());
 
         String orderNumber = orderNumberProvider.provideOrderNumber();
@@ -253,7 +271,7 @@ public class OrderServiceImpl implements OrderService {
 
     /**
      * 사용 가능한 쿠폰을 받기위해 쿠폰 서비스에 요청하는 Dto 생성 로직
-     * @param resp
+     * @param resp 도서 정보 리스트
      * @return 책 ID 리스트, 카테고리 ID 리스트가 들어있는 Dto
      */
     private OrderCouponCheckRequestDto createOrderCouponCheckRequest(List<BookOrderResponse> resp){
@@ -273,9 +291,9 @@ public class OrderServiceImpl implements OrderService {
     }
 
     /**
-     *
-     * @param bookOrderResponseList
-     * @param orderItemRequestDtoList
+     * 임시 주문 생성을 위한 OrderItem 엔티티 리스트 만드는 로직
+     * @param bookOrderResponseList 도서 정보 리스트
+     * @param orderItemRequestDtoList 도서 항목 요청 리스트
      * @return 주문 엔티티 생성용 주문 항목 리스트 생성 로직
      */
     private List<OrderItem> createOrderItemList(List<BookOrderResponse> bookOrderResponseList,
@@ -303,7 +321,7 @@ public class OrderServiceImpl implements OrderService {
 
     /**
      * 배송지 입력
-     * @param deliveryAddressRequestDto
+     * @param deliveryAddressRequestDto 배송지 요청
      * @return 배송지 엔티티
      */
     private DeliveryAddress createDeliveryAddress(DeliveryAddressRequestDto deliveryAddressRequestDto){
@@ -318,7 +336,7 @@ public class OrderServiceImpl implements OrderService {
 
     /**
      * 주문명 생성 메서드
-     * @param bookOrderResponseList
+     * @param bookOrderResponseList 도서 정보 리스트
      * @return 주문명
      */
     private String createOrderTitle(List<BookOrderResponse> bookOrderResponseList){
@@ -345,7 +363,7 @@ public class OrderServiceImpl implements OrderService {
 
     /**
      * 포장비 검증 및 생성 메서드
-     * @param orderItemList
+     * @param orderItemList 주문 항목 리스트
      * @return 포장비
      */
     private int createWrappingFee(List<OrderItem> orderItemList){
@@ -359,10 +377,10 @@ public class OrderServiceImpl implements OrderService {
 
     /**
      * 쿠폰 할인 검증 및 생성 메서드
-     * @param couponId
-     * @param orderItemList
-     * @param bookOrderResponseList
-     * @param totalItemAmount
+     * @param couponId 쿠폰 아이디
+     * @param orderItemList 주문 항목 리스트
+     * @param bookOrderResponseList 도서 정보 리스트
+     * @param totalItemAmount 총 항목 금액
      * @return 쿠폰으로 할인된 금액
      */
     private int createCouponDiscount(Long couponId, List<OrderItem> orderItemList, List<BookOrderResponse> bookOrderResponseList, int totalItemAmount){
@@ -394,8 +412,12 @@ public class OrderServiceImpl implements OrderService {
                 totalItemAmount);
 
         if(discountBaseAmount < couponTargetResponseDto.minPrice()){
-            log.error("최조 주문 금액 {}원 이상부터 할인 적용이 가능합니다 (현재 주문 금액 : {}원)", couponTargetResponseDto.minPrice(), discountBaseAmount);
+            log.error("최소 주문 금액 {}원 이상부터 할인 적용이 가능합니다 (현재 주문 금액 : {}원)", couponTargetResponseDto.minPrice(), discountBaseAmount);
             throw new OrderVerificationException("최소 주문 금액 " + couponTargetResponseDto.minPrice() + "원 이상부터 할인 쿠폰 적용이 가능합니다.");
+        }
+
+        if(discountBaseAmount - couponTargetResponseDto.discountValue() < 100){
+            log.error("최소 결제 금액 100원 이상 결제해야합니다 (현재 주문 금액 : {}원, 쿠폰 할인 금액 : {}원)", discountBaseAmount, couponTargetResponseDto.discountValue());
         }
 
         CouponPolicyDiscountType discountType = couponTargetResponseDto.discountType();
@@ -446,8 +468,9 @@ public class OrderServiceImpl implements OrderService {
 
     /**
      * 포인트 할인 검증 및 생성 메서드
-     * @param userId
-     * @param point
+     * @param userId 유저 아이디
+     * @param currentAmount 결제 금액
+     * @param point 요청 포인트
      * @return 포인트로 할인된 금액
      */
     private int createPointDiscount(Long userId, Integer currentAmount, Integer point){
@@ -464,8 +487,8 @@ public class OrderServiceImpl implements OrderService {
             ));
         }
 
-        if (currentAmount - point < 0) {
-            throw new ExceedUserPointException("사용 포인트가 결제 금액보다 더 많습니다 (결제 금액 : %d, 요청 포인트 : %d)".formatted(
+        if (currentAmount - point < 100) {
+            throw new ExceedUserPointException("최소 결제 금액 100원 이상 결제해야합니다 (결제 금액 : %d, 요청 포인트 : %d)".formatted(
                     currentAmount,
                     point
             ));
@@ -475,13 +498,13 @@ public class OrderServiceImpl implements OrderService {
 
     /**
      * 요청받은 원하는 배송일 검증 및 생성 메서드
-     * @param wantDeliveryDate
+     * @param wantDeliveryDate 원하는 배송일
      * @return 원하는 배송일
      */
     private LocalDate createWantDeliveryDate(LocalDate wantDeliveryDate){
         LocalDate today = LocalDate.now();
         LocalDate minDate = today.plusDays(1);
-        LocalDate maxDate = today.plusWeeks(1);
+        LocalDate maxDate = today.plusWeeks(1).plusDays(1);
 
         if(wantDeliveryDate.isBefore(minDate) || wantDeliveryDate.isAfter(maxDate)){
             throw new InvalidDeliveryDateException("지정 배송일은 당일 제외 1주일 후까지 선택 가능합니다 (현재 선택날짜 : " + wantDeliveryDate + ")");
@@ -495,7 +518,7 @@ public class OrderServiceImpl implements OrderService {
     @Override
     public Page<OrderSimpleDto> getOrderList(Long userId, Pageable pageable) {
         log.info("일반 사용자 주문 리스트 조회 로직 실행 (유저 아이디 : {})", userId);
-        return orderRepository.findAllByUserId(userId, pageable);
+        return orderRepository.findAllByUserId(userId, pageable, OrderStatus.PENDING);
     }
 
     @Override

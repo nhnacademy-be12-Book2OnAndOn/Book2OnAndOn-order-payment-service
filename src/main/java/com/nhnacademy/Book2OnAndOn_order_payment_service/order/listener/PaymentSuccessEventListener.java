@@ -6,6 +6,8 @@ import lombok.RequiredArgsConstructor;
 import lombok.extern.slf4j.Slf4j;
 import org.springframework.scheduling.annotation.Async;
 import org.springframework.stereotype.Component;
+import org.springframework.transaction.annotation.Propagation;
+import org.springframework.transaction.annotation.Transactional;
 import org.springframework.transaction.event.TransactionPhase;
 import org.springframework.transaction.event.TransactionalEventListener;
 
@@ -17,9 +19,10 @@ public class PaymentSuccessEventListener {
     private final DeliveryService deliveryService;
 
     @Async
-    @TransactionalEventListener(
-            phase = TransactionPhase.AFTER_COMMIT
-    )
+//    @EventListener
+//    @Transactional
+    @Transactional(propagation = Propagation.REQUIRES_NEW)
+    @TransactionalEventListener(phase = TransactionPhase.AFTER_COMMIT)
     public void paymentSuccessHandle(PaymentSuccessEvent event){
         log.info("결제 성공 후 배송 생성 이벤트 처리 - (주문번호 : {})", event.getOrder().getOrderNumber());
 

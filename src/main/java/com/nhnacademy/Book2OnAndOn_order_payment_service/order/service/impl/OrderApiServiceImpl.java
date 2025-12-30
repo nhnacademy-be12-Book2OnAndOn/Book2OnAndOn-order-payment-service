@@ -5,6 +5,8 @@ import com.nhnacademy.Book2OnAndOn_order_payment_service.order.entity.order.Orde
 import com.nhnacademy.Book2OnAndOn_order_payment_service.order.repository.order.OrderRepository;
 import com.nhnacademy.Book2OnAndOn_order_payment_service.order.service.OrderApiService;
 import java.time.LocalDate;
+import java.time.LocalDateTime;
+import java.time.LocalTime;
 import java.util.List;
 import lombok.RequiredArgsConstructor;
 import lombok.extern.slf4j.Slf4j;
@@ -54,7 +56,11 @@ public class OrderApiServiceImpl implements OrderApiService {
     @Transactional(readOnly = true)
     @Override
     public Long calculateTotalOrderAmountForUserBetweenDates(Long userId, LocalDate fromDate, LocalDate toDate) {
-        return orderRepository.sumTotalItemAmountByUserIdAndOrderDateTimeBetween(userId, fromDate, toDate)
+
+        // LocalDate -> LocalDateTime 변환
+        LocalDateTime fromDateTime = fromDate.atStartOfDay(); // 00:00:00
+        LocalDateTime toDateTime = toDate.atTime(LocalTime.MAX); // 23:59:59.999999999
+        return orderRepository.sumTotalItemAmountByUserIdAndOrderDateTimeBetween(userId, fromDateTime, toDateTime)
                 .orElse(0L);
     }
 }
