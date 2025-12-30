@@ -173,6 +173,8 @@ public class OrderServiceImpl implements OrderService {
         OrderCouponCheckRequestDto orderCouponCheckRequestDto = createOrderCouponCheckRequest(bookOrderResponseList);
         List<MemberCouponResponseDto> userCouponResponseDtoList = fetchUsableMemberCouponInfo(userId, orderCouponCheckRequestDto);
 
+
+
         CurrentPointResponseDto userCurrentPoint = fetchPointInfo(userId);
 
         // 회원 주문은 배송지, 쿠폰 및 포인트 여부도 가져옴
@@ -239,6 +241,10 @@ public class OrderServiceImpl implements OrderService {
         int pointDiscount = createPointDiscount(userId, currentAmount, req.getPoint());
         int totalDiscountAmount = couponDiscount + pointDiscount;
         int totalAmount = totalItemAmount + deliveryFee + wrappingFee - totalDiscountAmount;
+
+        if(totalAmount < 100){
+            log.error("최소 결제 금액 100원 이상 결제해야합니다 (현재 주문 금액 : {}원)", totalAmount);
+        }
 
         LocalDate wantDeliveryDate = createWantDeliveryDate(req.getWantDeliveryDate());
 
@@ -405,8 +411,12 @@ public class OrderServiceImpl implements OrderService {
                 totalItemAmount);
 
         if(discountBaseAmount < couponTargetResponseDto.minPrice()){
-            log.error("최조 주문 금액 {}원 이상부터 할인 적용이 가능합니다 (현재 주문 금액 : {}원)", couponTargetResponseDto.minPrice(), discountBaseAmount);
+            log.error("최소 주문 금액 {}원 이상부터 할인 적용이 가능합니다 (현재 주문 금액 : {}원)", couponTargetResponseDto.minPrice(), discountBaseAmount);
             throw new OrderVerificationException("최소 주문 금액 " + couponTargetResponseDto.minPrice() + "원 이상부터 할인 쿠폰 적용이 가능합니다.");
+        }
+
+        if(discountBaseAmount - couponTargetResponseDto.discountValue() < 100){
+            log.error("최소 결제 금액 100원 이상 결제해야합니다 (현재 주문 금액 : {}원, 쿠폰 할인 금액 : {}원)", discountBaseAmount, couponTargetResponseDto.discountValue());
         }
 
         CouponPolicyDiscountType discountType = couponTargetResponseDto.discountType();

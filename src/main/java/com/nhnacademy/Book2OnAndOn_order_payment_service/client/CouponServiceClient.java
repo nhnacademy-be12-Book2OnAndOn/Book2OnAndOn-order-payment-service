@@ -16,10 +16,10 @@ public interface CouponServiceClient {
     List<MemberCouponResponseDto> getUsableCoupons(@RequestHeader("X-User-Id") Long userId,
                                                    @RequestBody OrderCouponCheckRequestDto requestDto);
 
-    @GetMapping("/member-coupon/{memberCouponId}/targets")
+    @GetMapping("/my-coupon/{memberCouponId}/targets")
     CouponTargetResponseDto getCouponTargets(@PathVariable("memberCouponId") Long memberCouponId);
 
-    @PostMapping("/{member-coupon-id}/use")
+    @PostMapping("/my-coupon/{member-coupon-id}/use")
     ResponseEntity<Void> useCoupon(@PathVariable("member-coupon-id") Long memberCouponId,
                                    @RequestHeader("X-User-Id") Long userId,
                                    @RequestBody UseCouponRequestDto requestDto);
