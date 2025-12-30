@@ -107,8 +107,8 @@ public interface OrderRepository extends JpaRepository<Order, Long> {
     """)
     Optional<Long> sumTotalItemAmountByUserIdAndOrderDateTimeBetween(
             @Param("userId") Long userId,
-            @Param("fromDate") LocalDate fromDate,
-            @Param("toDate") LocalDate toDate);
+            @Param("fromDate") LocalDateTime fromDate,
+            @Param("toDate") LocalDateTime toDate);
 
     @Query("""
         SELECT oi.bookId
