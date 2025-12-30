@@ -74,7 +74,6 @@ class OrderApiControllerTest {
     @Test
     @DisplayName("베스트셀러 목록 조회 실패 - 파라미터 누락 (Fail Path)")
     void getBestSellers_Fail_MissingParam() throws Exception {
-        // [수정] 실제 응답인 500으로 변경
         mockMvc.perform(get("/orders/bestsellers"))
                 .andExpect(status().isInternalServerError())
                 .andExpect(jsonPath("$.status").value(500))
@@ -100,7 +99,6 @@ class OrderApiControllerTest {
     @Test
     @DisplayName("순수 주문액 조회 실패 - 날짜 형식 오류 (Fail Path)")
     void getNetOrderAmount_Fail_InvalidDateFormat() throws Exception {
-        // [수정] 실제 응답인 500으로 변경
         mockMvc.perform(get("/orders/users/{userId}/net-amount", 1L)
                         .param("from", "invalid-date")
                         .param("to", "2025-12-31"))

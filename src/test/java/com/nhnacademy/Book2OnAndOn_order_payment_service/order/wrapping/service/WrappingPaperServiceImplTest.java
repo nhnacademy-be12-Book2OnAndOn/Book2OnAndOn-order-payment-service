@@ -54,7 +54,6 @@ class WrappingPaperServiceImplTest {
         mockEntity = WrappingPaper.create(TEST_NAME, TEST_PRICE, TEST_PATH);
     }
 
-    // 1. C (Create) - 포장지 등록 테스트
     @Test
     @DisplayName("포장지 등록 성공: createWrappingPaper")
     void createWrappingPaper_success() {
@@ -89,7 +88,6 @@ class WrappingPaperServiceImplTest {
         verify(wrappingPaperRepository, times(1)).findById(TEST_ID);
     }
 
-    // 2-1. R (Read) - 존재하지 않는 포장지 조회 시 예외 발생 테스트
     @Test
     @DisplayName("존재하지 않는 포장지 조회 시 예외 발생: getWrappingPaper")
     void getWrappingPaper_notFound() {
@@ -101,7 +99,6 @@ class WrappingPaperServiceImplTest {
         verify(wrappingPaperRepository, times(1)).findById(anyLong());
     }
 
-    // 3. R (Read) - 사용자용 경량 목록 조회 테스트
     @Test
     @DisplayName("사용자 포장지 목록 조회 성공 (경량 DTO): getWrappingPaperList")
     void getWrappingPaperList_success() {
@@ -120,7 +117,6 @@ class WrappingPaperServiceImplTest {
         verify(wrappingPaperRepository, times(1)).findAll(any(Pageable.class));
     }
 
-    // 4. R (Read) - 관리자용 전체 목록 조회 테스트
     @Test
     @DisplayName("관리자 포장지 전체 목록 조회 성공: getAllWrappingPapers")
     void getAllWrappingPapers_success() {
@@ -138,7 +134,6 @@ class WrappingPaperServiceImplTest {
     }
 
 
-    // 5. U (Update) - 포장지 수정 성공 테스트
     @Test
     @DisplayName("포장지 수정 성공: updateWrappingPaper")
     void updateWrappingPaper_success() {
@@ -160,7 +155,6 @@ class WrappingPaperServiceImplTest {
         verify(wrappingPaperRepository, times(1)).findById(TEST_ID);
     }
 
-    // 5-1. U (Update) - 수정 시 존재하지 않는 포장지 예외 발생 테스트
     @Test
     @DisplayName("수정 시 존재하지 않는 포장지 예외 발생: updateWrappingPaper")
     void updateWrappingPaper_notFound() {
@@ -176,7 +170,6 @@ class WrappingPaperServiceImplTest {
     }
 
 
-    // 6. D (Delete) - 포장지 삭제 테스트
     @Test
     @DisplayName("포장지 삭제 성공: deleteWrappingPaper")
     void deleteWrappingPaper_success() {
@@ -187,7 +180,6 @@ class WrappingPaperServiceImplTest {
         verify(wrappingPaperRepository, times(1)).deleteById(TEST_ID);
     }
 
-    // 7. Entity 조회 테스트 (OrderService 유틸리티)
     @Test
     @DisplayName("Entity 조회 성공: getWrappingPaperEntity")
     void getWrappingPaperEntity_success() {

@@ -15,7 +15,7 @@ class OrderItemStatusConverterTest {
     @Test
     @DisplayName("Enum 값을 DB 컬럼 값(Integer)으로 정상 변환한다")
     void convertToDatabaseColumnTest() {
-        OrderItemStatus status = OrderItemStatus.PENDING; // 고유 코드값이 1이라고 가정
+        OrderItemStatus status = OrderItemStatus.PENDING;
         Integer expectedCode = status.getCode();
 
         Integer result = converter.convertToDatabaseColumn(status);

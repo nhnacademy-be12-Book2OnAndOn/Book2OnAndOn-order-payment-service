@@ -35,7 +35,6 @@ class GuestOrderRepositoryTest {
     @Test
     @DisplayName("주문 번호로 비회원 주문 정보를 조회한다.")
     void findByOrder_OrderNumberTest() {
-        // 1. Order 엔티티 생성 및 저장 (연관 관계를 위해 필요)
         Order order = Order.builder()
                 .orderNumber("GUEST-20251226")
                 .orderTitle("비회원 주문 테스트")
@@ -45,11 +44,10 @@ class GuestOrderRepositoryTest {
                 .build();
         entityManager.persist(order);
 
-        // 2. GuestOrder 엔티티 생성 (엔티티의 필드 구성에 맞춤)
         GuestOrder guestOrder = GuestOrder.builder()
                 .guestName("홍길동")
                 .guestPhoneNumber("01012345678")
-                .guestPassword("password123!") // 실제로는 인코딩된 패스워드가 들어가야 함
+                .guestPassword("password123!")
                 .order(order)
                 .build();
 
@@ -57,10 +55,8 @@ class GuestOrderRepositoryTest {
         entityManager.flush();
         entityManager.clear();
 
-        // 3. 테스트 실행
         Optional<GuestOrder> result = guestOrderRepository.findByOrder_OrderNumber("GUEST-20251226");
 
-        // 4. 검증
         assertThat(result).isPresent();
         assertThat(result.get().getGuestName()).isEqualTo("홍길동");
         assertThat(result.get().getGuestPhoneNumber()).isEqualTo("01012345678");

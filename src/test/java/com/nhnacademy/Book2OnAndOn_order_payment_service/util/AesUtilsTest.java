@@ -11,8 +11,7 @@ import org.springframework.test.util.ReflectionTestUtils;
 class AesUtilsTest {
 
     private AesUtils aesUtils;
-    private final String testSecretKey = "1234567890123456"; // 16바이트 (AES-128)
-
+    private final String testSecretKey = "1234567890123456";
     @BeforeEach
     void setUp() {
         aesUtils = new AesUtils();
@@ -44,7 +43,7 @@ class AesUtilsTest {
     @Test
     @DisplayName("잘못된 비밀키 형식이거나 암호화 로직 오류 시 RuntimeException이 발생한다")
     void encrypt_Failure_InvalidKey() {
-        ReflectionTestUtils.setField(aesUtils, "secretKey", "short"); // AES 키 길이 미달
+        ReflectionTestUtils.setField(aesUtils, "secretKey", "short");
 
         assertThatThrownBy(() -> aesUtils.encrypt("test"))
                 .isInstanceOf(RuntimeException.class)

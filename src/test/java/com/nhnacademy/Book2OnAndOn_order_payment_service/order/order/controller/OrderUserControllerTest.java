@@ -134,11 +134,9 @@ class OrderUserControllerTest {
         Long userId = 1L;
         String invalidOrderNumber = "INVALID";
 
-        // given: 서비스에서 예외를 던지도록 설정
         given(orderService.getOrderDetail(userId, invalidOrderNumber))
                 .willThrow(new IllegalArgumentException("Order not found"));
 
-        // when & then
         mockMvc.perform(get("/orders/{orderNumber}", invalidOrderNumber)
                         .header(USER_ID_HEADER, userId))
                 .andExpect(status().isBadRequest()) // 500 대신 400으로 수정

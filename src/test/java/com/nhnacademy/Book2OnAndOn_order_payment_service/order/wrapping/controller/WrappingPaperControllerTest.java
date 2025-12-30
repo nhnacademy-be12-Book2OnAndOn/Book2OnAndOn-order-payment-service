@@ -70,7 +70,7 @@ class WrappingPaperControllerTest {
             .andExpect(jsonPath("$.content", hasSize(2)))
             .andExpect(jsonPath("$.content[0].wrappingPaperName", is("기본 포장")))
             .andExpect(jsonPath("$.content[0].wrappingPaperPrice", is(1000)))
-            .andExpect(jsonPath("$.totalPages", is(5))) // 100개 항목 / size 20 = 5 페이지
+            .andExpect(jsonPath("$.totalPages", is(5)))
             .andExpect(jsonPath("$.totalElements", is(100)));
 
         verify(wrappingPaperService, times(1)).getWrappingPaperList(any(Pageable.class));
@@ -85,18 +85,18 @@ class WrappingPaperControllerTest {
             createSimpleDto(7L, "B", 100)
         );
         Pageable pageable = PageRequest.of(1, 5, Sort.by(Sort.Direction.ASC, "wrappingPaperId"));
-        Page<WrappingPaperSimpleResponseDto> page = new PageImpl<>(list, pageable, 52); // 총 52개 항목 가정
+        Page<WrappingPaperSimpleResponseDto> page = new PageImpl<>(list, pageable, 52);
 
         when(wrappingPaperService.getWrappingPaperList(any(Pageable.class))).thenReturn(page);
 
         mockMvc.perform(get("/wrappapers")
-                .param("page", "1") // 1 페이지 요청 (0부터 시작)
-                .param("size", "5") // 5개씩 요청
+                .param("page", "1")
+                .param("size", "5")
                 .contentType(MediaType.APPLICATION_JSON))
             .andExpect(status().isOk())
             .andExpect(jsonPath("$.content", hasSize(2))) 
-            .andExpect(jsonPath("$.number", is(1))) // 페이지 번호 확인
-            .andExpect(jsonPath("$.size", is(5))) // 사이즈 확인
+            .andExpect(jsonPath("$.number", is(1)))
+            .andExpect(jsonPath("$.size", is(5)))
             .andExpect(jsonPath("$.totalElements", is(52)));
 
         verify(wrappingPaperService, times(1)).getWrappingPaperList(any(Pageable.class));

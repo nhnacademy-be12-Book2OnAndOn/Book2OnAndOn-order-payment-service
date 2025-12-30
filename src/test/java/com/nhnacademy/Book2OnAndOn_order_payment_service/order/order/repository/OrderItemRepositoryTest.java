@@ -19,7 +19,7 @@ import org.springframework.context.annotation.Import;
 import org.springframework.test.context.TestPropertySource;
 
 @DataJpaTest
-@Import(AesUtils.class) // 이전 에러 방지를 위해 추가
+@Import(AesUtils.class)
 @TestPropertySource(properties = {
         "spring.cloud.config.enabled=false",
         "spring.config.import=optional:configserver:",
@@ -36,7 +36,6 @@ class OrderItemRepositoryTest {
     @Test
     @DisplayName("주문 ID로 모든 주문 항목 리스트를 조회한다.")
     void findByOrder_OrderIdTest() {
-        // 1. Order 생성 및 저장 (OrderItem의 필수 조건)
         Order order = Order.builder()
                 .orderNumber("ORD-20251226")
                 .orderTitle("테스트 주문")
@@ -46,7 +45,6 @@ class OrderItemRepositoryTest {
                 .build();
         entityManager.persist(order);
 
-        // 2. OrderItem 생성 (엔티티 필드명 unitPrice 사용)
         OrderItem item1 = OrderItem.builder()
                 .bookId(1L)
                 .unitPrice(15000)
@@ -67,10 +65,8 @@ class OrderItemRepositoryTest {
         entityManager.flush();
         entityManager.clear();
 
-        // 3. 테스트 실행
         List<OrderItem> items = orderItemRepository.findByOrder_OrderId(order.getOrderId());
 
-        // 4. 검증
         assertThat(items).hasSize(2);
         assertThat(items.get(0).getUnitPrice()).isEqualTo(15000);
     }
@@ -78,7 +74,6 @@ class OrderItemRepositoryTest {
     @Test
     @DisplayName("비관적 잠금을 적용하여 항목을 조회한다.")
     void findByIdForUpdateTest() {
-        // given
         Order order = Order.builder()
                 .orderNumber("ORD-LOCK")
                 .orderTitle("잠금 테스트")
@@ -99,10 +94,8 @@ class OrderItemRepositoryTest {
         entityManager.flush();
         entityManager.clear();
 
-        // when
         Optional<OrderItem> result = orderItemRepository.findByIdForUpdate(saved.getOrderItemId());
 
-        // then
         assertThat(result).isPresent();
         assertThat(result.get().getBookId()).isEqualTo(100L);
     }
