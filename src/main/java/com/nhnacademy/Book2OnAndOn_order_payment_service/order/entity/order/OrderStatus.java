@@ -1,6 +1,9 @@
 package com.nhnacademy.Book2OnAndOn_order_payment_service.order.entity.order;
 
 
+import lombok.Getter;
+
+@Getter
 public enum OrderStatus {
     PENDING(0, "주문 대기"),
     PREPARING(1, "배송 준비중"),
@@ -18,13 +21,6 @@ public enum OrderStatus {
     OrderStatus(int code, String description) {
         this.code = code;
         this.description = description;
-    }
-
-    public int getCode() {
-        return code;
-    }
-    public String getDescription() {
-        return description;
     }
 
     public static OrderStatus fromCode(int code) {

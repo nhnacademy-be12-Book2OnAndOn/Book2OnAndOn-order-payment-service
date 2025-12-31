@@ -543,6 +543,7 @@ public class OrderServiceImpl implements OrderService {
 
     // 일반 사용자 주문 취소
     @Override
+    @Transactional
     public void cancelOrder(Long userId, String orderNumber) {
         log.info("일반 사용자 주문 취소 로직 실행 (유저 아이디 : {}, 주문번호 : {})", userId, orderNumber);
 
@@ -590,6 +591,7 @@ public class OrderServiceImpl implements OrderService {
     }
 
     @Override
+    @Transactional
     public OrderCreateResponseDto createGuestPreOrder(String guestId, GuestOrderCreateRequestDto req) {
         log.info("비회원 임시 주문 데이터 생성 및 검증 로직 실행 (비회원 아이디 : {})", guestId);
 
