@@ -347,9 +347,11 @@ public class OrderServiceImpl implements OrderService {
         sb.setLength(Math.min(sb.length(), 90));
 
         int size = bookOrderResponseList.size() - 1;
-        int length = bookOrderResponseList.getFirst().getTitle().length();
 
-        if(sb.length() < length){
+        boolean truncated =
+                bookOrderResponseList.getFirst().getTitle().length() > 90;
+
+        if (truncated) {
             sb.append("...");
         }
 
