@@ -19,11 +19,13 @@ import com.nhnacademy.Book2OnAndOn_order_payment_service.order.dto.order.OrderDe
 import com.nhnacademy.Book2OnAndOn_order_payment_service.order.dto.order.OrderPrepareRequestDto;
 import com.nhnacademy.Book2OnAndOn_order_payment_service.order.dto.order.OrderPrepareResponseDto;
 import com.nhnacademy.Book2OnAndOn_order_payment_service.order.dto.order.OrderSimpleDto;
+import com.nhnacademy.Book2OnAndOn_order_payment_service.order.dto.order.OrderStatusUpdateDto;
 import com.nhnacademy.Book2OnAndOn_order_payment_service.order.dto.order.OrderVerificationResult;
 import com.nhnacademy.Book2OnAndOn_order_payment_service.order.dto.order.guest.GuestOrderCreateRequestDto;
 import com.nhnacademy.Book2OnAndOn_order_payment_service.order.dto.order.orderitem.BookInfoDto;
 import com.nhnacademy.Book2OnAndOn_order_payment_service.order.dto.order.orderitem.OrderItemCalcContext;
 import com.nhnacademy.Book2OnAndOn_order_payment_service.order.dto.order.orderitem.OrderItemRequestDto;
+import com.nhnacademy.Book2OnAndOn_order_payment_service.order.dto.order.orderitem.OrderItemStatusUpdateDto;
 import com.nhnacademy.Book2OnAndOn_order_payment_service.order.entity.delivery.DeliveryAddress;
 import com.nhnacademy.Book2OnAndOn_order_payment_service.order.entity.delivery.DeliveryPolicy;
 import com.nhnacademy.Book2OnAndOn_order_payment_service.order.entity.order.GuestOrder;
@@ -53,6 +55,7 @@ import java.time.LocalDate;
 import java.time.LocalDateTime;
 import java.util.List;
 import java.util.Map;
+import java.util.Objects;
 import java.util.function.Function;
 import java.util.stream.Collectors;
 import lombok.RequiredArgsConstructor;
@@ -204,7 +207,7 @@ public class OrderServiceImpl implements OrderService {
             resourceManager.prepareResources(userId, req, result, orderCreateResponseDto.getOrderId());
             return orderCreateResponseDto;
         } catch (Exception e){
-            log.error("알 수 없는 오류 발생! 복구 트랜잭션 실행");
+            log.error("알 수 없는 오류 발생! 복구 트랜잭션 실행 : {}", e.getMessage());
             // 복구 메서드
             resourceManager.releaseResources(result.orderNumber(), req.getMemberCouponId(), userId, result.pointDiscount(), orderCreateResponseDto.getOrderId());
             throw new OrderVerificationException("주문 내부 오류 발생 " + e.getMessage());
@@ -340,10 +343,18 @@ public class OrderServiceImpl implements OrderService {
      */
     private String createOrderTitle(List<BookOrderResponse> bookOrderResponseList){
         StringBuilder sb = new StringBuilder(bookOrderResponseList.getFirst().getTitle());
-        int size = bookOrderResponseList.size();
 
-        if(size <= 2){
-            sb.append("외 ").append(size).append("권");
+        sb.setLength(Math.min(sb.length(), 90));
+
+        int size = bookOrderResponseList.size() - 1;
+        int length = bookOrderResponseList.getFirst().getTitle().length();
+
+        if(sb.length() < length){
+            sb.append("...");
+        }
+
+        if(size >= 2){
+            sb.append(" 외 ").append(size).append("건");
         }
         return sb.toString();
     }
@@ -623,6 +634,58 @@ public class OrderServiceImpl implements OrderService {
         }
 
         return orderCreateResponseDto;
+    }
+
+    // 관리자 전용
+
+    @Override
+    @Transactional
+    public Page<OrderSimpleDto> getOrderListWithAdmin(Pageable pageable) {
+        return orderRepository.findAllByAdmin(pageable);
+    }
+
+    @Override
+    public OrderDetailResponseDto getOrderDetailWithAdmin(String orderNumber) {
+
+        Order order = orderRepository.findByOrderNumber(orderNumber).orElseThrow(() -> new OrderNotFoundException("Not Found Order : " + orderNumber));
+
+        List<Long> bookIds = order.getOrderItems().stream()
+                        .map(OrderItem::getBookId)
+                        .toList();
+
+        List<BookOrderResponse> bookOrderResponseList = fetchBookInfo(bookIds);
+
+        OrderDetailResponseDto orderDetailResponseDto = orderViewAssembler.toOrderDetailView(order, bookOrderResponseList);
+
+        PaymentResponse paymentResponse = getPaymentInfo(orderNumber);
+
+        orderDetailResponseDto.setPaymentResponse(paymentResponse);
+
+        return orderDetailResponseDto;
+    }
+
+    @Override
+    @Transactional
+    public void setOrderStatus(String orderNumber, OrderStatusUpdateDto req) {
+        log.info("주문 상태 변경 로직 실행 (주문번호 : {})", orderNumber);
+        Order order = orderRepository.findByOrderNumber(orderNumber).orElseThrow(() -> new OrderNotFoundException("Not Found Order : " + orderNumber));
+
+        order.setOrderStatus(req.getOrderStatus());
+    }
+
+    @Override
+    @Transactional
+    public void setOrderItemStatus(String orderNumber, OrderItemStatusUpdateDto req) {
+        log.info("주문 항목 상태 변경 로직 실행 (주문번호 : {})", orderNumber);
+        Order order = orderRepository.findByOrderNumber(orderNumber).orElseThrow(() -> new OrderNotFoundException("Not Found Order : " + orderNumber));
+
+        for (OrderItem orderItem : order.getOrderItems()) {
+            Long id = orderItem.getOrderItemId();
+
+            if(Objects.equals(req.orderItemId(), id)){
+                orderItem.setOrderItemStatus(req.orderItemStatus());
+            }
+        }
     }
 
     /*
