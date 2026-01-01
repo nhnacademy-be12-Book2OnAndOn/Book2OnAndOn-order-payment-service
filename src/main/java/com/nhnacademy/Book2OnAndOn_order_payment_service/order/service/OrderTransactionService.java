@@ -90,14 +90,13 @@ public class OrderTransactionService {
 
             for (OrderItem orderItem : order.getOrderItems()) {
                 orderItem.updateStatus(OrderItemStatus.ORDER_COMPLETE);
-                log.info("orderItem Status : {}", orderItem.getOrderItemStatus());
             }
 
-            List<OrderItem> orderItemList =  orderItemRepository.findByOrder_OrderId(order.getOrderId());
-
-            for (OrderItem orderItem : orderItemList) {
-                orderItem.updateStatus(OrderItemStatus.ORDER_COMPLETE);
-            }
+//            List<OrderItem> orderItemList =  orderItemRepository.findByOrder_OrderId(order.getOrderId());
+//
+//            for (OrderItem orderItem : orderItemList) {
+//                orderItem.updateStatus(OrderItemStatus.ORDER_COMPLETE);
+//            }
         }else{
             log.info("결제 취소 후 주문 상태 변경 로직 실행");
             order.updateStatus(OrderStatus.CANCELED);

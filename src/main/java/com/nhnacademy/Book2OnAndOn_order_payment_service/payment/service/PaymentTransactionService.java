@@ -51,7 +51,7 @@ public class PaymentTransactionService {
             orderTransactionService.changeStatusOrder(order, true);
 
             // 5-1. 외부 리소스 확정 (메시지)
-            orderResourceManager.finalizeBooks(order.getOrderNumber());
+            orderResourceManager.completeOrder(order.getOrderNumber());
 
             // 5-2. 내부 이벤트 발행 (AFTER_COMMIT)
             paymentEventPublisher.publishSuccessPayment(order);
