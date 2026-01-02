@@ -41,7 +41,7 @@ public class OrderResourceManager {
 
         reserveBook(result.orderNumber(), bookInfoDtoList);
         confirmCoupon(result.orderNumber(), userId, req.getMemberCouponId());
-        confirmPoint(orderId, userId, result.pointDiscount());
+//        confirmPoint(orderId, userId, result.pointDiscount());
     }
 
     // 자원 복구
@@ -102,11 +102,15 @@ public class OrderResourceManager {
                 new OrderCanceledEvent(userId, orderId, point, LocalDateTime.now())
         );
     }
-    private void confirmPoint(Long orderId, Long userId, Integer point){
+    public void confirmPoint(Long orderId, Long userId, Integer point){
         if(point == null || point <= 0 || userId == null) return;
         userServiceClient.usePoint(userId, new UsePointInternalRequestDto(orderId, point));
     }
 
+    public void rollbackPoint(Long orderId, Long userId, Integer point) {
+        // 기존 private releasePoint(...)를 여기서 호출
+        releasePoint(orderId, userId, point);
+    }
 
     // TODO 포인트 적립
     private void earnPoint(){}

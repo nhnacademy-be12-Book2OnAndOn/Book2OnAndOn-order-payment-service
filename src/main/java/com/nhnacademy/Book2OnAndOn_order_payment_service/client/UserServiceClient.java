@@ -36,18 +36,19 @@ public interface UserServiceClient {
     @PostMapping("/internal/users/{userId}/points/use")
     EarnPointResponseDto usePoint(
             @PathVariable("userId") Long userId,
-            @RequestBody UsePointInternalRequestDto dto
-    );
+            @RequestBody UsePointInternalRequestDto dto);
+
+    @PostMapping("/internal/users/{userId}/points/use-cancel")
+    void useCancel(@PathVariable("userId") Long userId,
+                   @RequestParam("orderId") Long orderId);
 
     @PostMapping("/internal/users/{userId}/points/earn/order")
     EarnPointResponseDto earnOrderPoint(
             @PathVariable("userId") Long userId,
-            @RequestBody EarnOrderPointRequestDto dto
-    );
+            @RequestBody EarnOrderPointRequestDto dto);
 
     @PostMapping("/internal/users/{userId}/points/refund")
     EarnPointResponseDto refundPoint(
             @PathVariable("userId") Long userId,
-            @RequestBody RefundPointInternalRequestDto dto
-    );
+            @RequestBody RefundPointInternalRequestDto dto);
 }

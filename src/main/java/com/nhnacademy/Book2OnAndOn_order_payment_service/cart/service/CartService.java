@@ -8,6 +8,7 @@ import com.nhnacademy.Book2OnAndOn_order_payment_service.cart.domain.dto.request
 import com.nhnacademy.Book2OnAndOn_order_payment_service.cart.domain.dto.response.CartItemCountResponseDto;
 import com.nhnacademy.Book2OnAndOn_order_payment_service.cart.domain.dto.response.CartItemsResponseDto;
 import com.nhnacademy.Book2OnAndOn_order_payment_service.cart.domain.dto.response.CartMergeResultResponseDto;
+import java.util.List;
 
 public interface CartService {
 
@@ -34,6 +35,8 @@ public interface CartService {
 
     // 7) 회원의 장바구니에서 선택된 모든 항목 제거
     void deleteSelectedUserCartItems(Long userId);
+
+    void deleteUserCartItemsAfterPayment(Long userId, List<Long> purchasedBookIds);
 
     // 8) 회원 장바구니 선택된 항목 조회(주문)
     CartItemsResponseDto getUserSelectedCart(Long userId);

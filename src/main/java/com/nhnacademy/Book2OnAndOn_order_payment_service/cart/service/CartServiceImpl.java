@@ -377,6 +377,28 @@ public class CartServiceImpl implements CartService {
         log.info("[UserCart] deleteSelectedUserCartItems 완료 - userId={}", userId);
     }
 
+    // +) 주문에 포함된 bookId 목록으로 삭제
+    @Transactional
+    public void deleteUserCartItemsAfterPayment(Long userId, List<Long> purchasedBookIds) {
+        if (userId == null || purchasedBookIds == null || purchasedBookIds.isEmpty()) {
+            return;
+        }
+
+        // 1) Redis 즉시 삭제
+        for (Long bookId : purchasedBookIds) {
+            cartRedisRepository.deleteUserCartItem(userId, bookId);
+        }
+
+        // 2) DB 즉시 삭제
+        Cart cart = cartRepository.findByUserId(userId).orElse(null);
+        if (cart != null && !purchasedBookIds.isEmpty()) {
+            cartItemRepository.deleteByCartAndBookIdIn(cart, purchasedBookIds);
+        }
+
+        // 3) dirty 정리 (스케줄러 불필요)
+        cartRedisRepository.clearUserCartDirty(userId);
+    }
+
     // 8. 회원 장바구니 선택된 항목 조회(주문)
     @Override
     @Transactional(readOnly = true)

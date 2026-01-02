@@ -572,6 +572,22 @@ public class OrderServiceImpl implements OrderService {
 
         // 결제 취소 호출 (사용자 주문 취소)
         paymentService.cancelPayment(new PaymentCancelRequest(order.getOrderNumber(), "사용자 주문 취소", null));
+        PaymentResponse payment = null;
+        try {
+            payment = paymentService.getPayment(new PaymentRequest(orderNumber));
+        } catch (Exception ignore) {
+            // NotFoundPaymentException 등: 결제 전 취소로 처리
+        }
+        if (payment != null /* && payment.status == APPROVED 같은 조건 */) {
+            paymentService.cancelPayment(new PaymentCancelRequest(orderNumber, "사용자 주문 취소", null));
+        }
+
+        // 포인트 롤백(이벤트 발생)
+//        resourceManager.rollbackPoint(order.getOrderId(), order.getUserId(), order.getPointDiscount());
+        // 결제 후 차감된 포인트가 있을 때만 환원
+        if (order.getPointDiscount() != null && order.getPointDiscount() > 0) {
+            resourceManager.rollbackPoint(order.getOrderId(), order.getUserId(), order.getPointDiscount());
+        }
 
         // 상태 변경
         orderTransactionService.changeStatusOrder(order, false);
