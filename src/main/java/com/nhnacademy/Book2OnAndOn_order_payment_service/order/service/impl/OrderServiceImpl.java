@@ -569,7 +569,7 @@ public class OrderServiceImpl implements OrderService {
         }
 
         // 결제 취소 호출 (사용자 주문 취소)
-//        paymentService.cancelPayment(new PaymentCancelRequest(order.getOrderNumber(), "사용자 주문 취소", null));
+        paymentService.cancelPayment(new PaymentCancelRequest(order.getOrderNumber(), "사용자 주문 취소", null));
         PaymentResponse payment = null;
         try {
             payment = paymentService.getPayment(new PaymentRequest(orderNumber));

@@ -36,6 +36,7 @@ public class PaymentSuccessEventListener {
 //
 //        deliveryService.createPendingDelivery(event.getOrder().getOrderId());
 //    }
+
     public void paymentSuccessHandle(PaymentSuccessEvent event) {
 
         Long orderId = event.getOrder().getOrderId();
@@ -47,7 +48,8 @@ public class PaymentSuccessEventListener {
         deliveryService.createPendingDelivery(orderId);
 
         // 장바구니 정리 (이게 지금까지 없었음)
-        Order order = orderRepository.findById(orderId).orElseThrow();
+//        Order order = orderRepository.findById(orderId).orElseThrow();
+        Order order = event.getOrder();
 
         if (order.getUserId() != null) {
             List<Long> bookIds = order.getOrderItems()

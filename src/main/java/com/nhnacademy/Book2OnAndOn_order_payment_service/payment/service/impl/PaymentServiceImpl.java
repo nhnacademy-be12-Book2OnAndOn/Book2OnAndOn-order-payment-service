@@ -61,42 +61,84 @@ public class PaymentServiceImpl implements PaymentService {
         return payment.toResponse();
     }
 
+//    @Override
+//    @Transactional
+//    public PaymentResponse confirmAndCreatePayment(String provider, CommonConfirmRequest req) {
+//        log.info("결제 승인 요청 및 결제 엔티티 생성 (주문번호 : {})", req.orderId());
+//        // 1. 주문 금액 검증
+//        Order order = orderTransactionService.validateOrderAmount(req);
+//        try {
+//            // 2. 결제 승인 요청 (5회 재시도 후 오류시 관리자 호출)
+//            CommonResponse commonResponse = confirmPaymentWithRetry(provider, req);
+//
+//            // 여기서만 포인트 확정 차감
+////            orderResourceManager.confirmPoint(order.getOrderId(), order.getUserId(), order.getPointDiscount());
+//
+//            // 3. DB 저장 요청 (2회 재시도 후 오류시 관리자 호출)
+//            Payment saved = paymentTransactionService.savePaymentAndPublishEvent(provider, commonResponse, order);
+//
+//            if (order.getUserId() != null) {
+//                int pureAmount = resolvePureAmountForEarn(order);
+//
+//                userServiceClient.earnOrderPoint(
+//                        order.getUserId(),
+//                        new EarnOrderPointRequestDto(null, order.getOrderId(), pureAmount)
+//                );
+//            }
+//
+//            return saved.toResponse();
+//        } catch(Exception e) {
+//            //  결제 승인/저장 실패 시 보상
+//            orderResourceManager.rollbackPoint(order.getOrderId(), order.getUserId(), order.getPointDiscount());
+//
+//            // 필요시 상태도 FAIL/CANCELED로 전환(정책에 맞게)
+//            orderTransactionService.changeStatusOrder(order, false);
+//
+//            throw e;
+//        }
+//    }
     @Override
     @Transactional
     public PaymentResponse confirmAndCreatePayment(String provider, CommonConfirmRequest req) {
         log.info("결제 승인 요청 및 결제 엔티티 생성 (주문번호 : {})", req.orderId());
         // 1. 주문 금액 검증
-        Order order = orderTransactionService.validateOrderAmount(req);
+        Order order = orderTransactionService.getOrderEntity(req.orderId());
 
         try {
-            // 2. 결제 승인 요청 (5회 재시도 후 오류시 관리자 호출)
-            CommonResponse commonResponse = confirmPaymentWithRetry(provider, req);
-
-            // 여기서만 포인트 확정 차감
-//            orderResourceManager.confirmPoint(order.getOrderId(), order.getUserId(), order.getPointDiscount());
-
-            // 3. DB 저장 요청 (2회 재시도 후 오류시 관리자 호출)
-            Payment saved = paymentTransactionService.savePaymentAndPublishEvent(provider, commonResponse, order);
-
-            if (order.getUserId() != null) {
-                int pureAmount = resolvePureAmountForEarn(order);
-
-                userServiceClient.earnOrderPoint(
-                        order.getUserId(),
-                        new EarnOrderPointRequestDto(null, order.getOrderId(), pureAmount)
-                );
-            }
-
-            return saved.toResponse();
+            order = orderTransactionService.validateOrderAmount(req);
         } catch(Exception e) {
             //  결제 승인/저장 실패 시 보상
-            orderResourceManager.rollbackPoint(order.getOrderId(), order.getUserId(), order.getPointDiscount());
+            // TODO 자원(포인트) 롤백
+//            orderResourceManager.releaseResources(
+//                    order.getOrderNumber(),
+//                    null,
+//                    order.getUserId(),
+//                    order.getPointDiscount(),
+//                    order.getOrderId()
+//            );
 
             // 필요시 상태도 FAIL/CANCELED로 전환(정책에 맞게)
             orderTransactionService.changeStatusOrder(order, false);
 
             throw e;
         }
+
+        // 2. 결제 승인 요청 (5회 재시도 후 오류시 관리자 호출)
+        CommonResponse commonResponse = confirmPaymentWithRetry(provider, req);
+
+        // 3. DB 저장 요청 (2회 재시도 후 오류시 관리자 호출)
+        Payment saved = paymentTransactionService.savePaymentAndPublishEvent(provider, commonResponse, order);
+
+        if (order.getUserId() != null) {
+            int pureAmount = resolvePureAmountForEarn(order);
+
+            userServiceClient.earnOrderPoint(
+                    order.getUserId(),
+                    new EarnOrderPointRequestDto(null, order.getOrderId(), pureAmount)
+            );
+        }
+
+        return saved.toResponse();
     }
     private int resolvePureAmountForEarn(Order order) {
         // null 안전 처리
