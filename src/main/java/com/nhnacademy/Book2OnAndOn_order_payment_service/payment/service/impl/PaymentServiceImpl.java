@@ -73,7 +73,7 @@ public class PaymentServiceImpl implements PaymentService {
             CommonResponse commonResponse = confirmPaymentWithRetry(provider, req);
 
             // 여기서만 포인트 확정 차감
-            orderResourceManager.confirmPoint(order.getOrderId(), order.getUserId(), order.getPointDiscount());
+//            orderResourceManager.confirmPoint(order.getOrderId(), order.getUserId(), order.getPointDiscount());
 
             // 3. DB 저장 요청 (2회 재시도 후 오류시 관리자 호출)
             Payment saved = paymentTransactionService.savePaymentAndPublishEvent(provider, commonResponse, order);
