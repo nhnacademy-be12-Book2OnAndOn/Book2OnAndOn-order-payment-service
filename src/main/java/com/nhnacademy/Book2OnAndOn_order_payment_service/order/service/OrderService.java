@@ -24,6 +24,9 @@ public interface OrderService {
 
     // 비회원 전용
     OrderPrepareResponseDto prepareGuestOrder(String guestId, OrderPrepareRequestDto req);
+
+    void cancelGuestOrder(String orderNumber, String guestToken);
+
     OrderCreateResponseDto createGuestPreOrder(String guestId, GuestOrderCreateRequestDto req);
 
     // 스케줄러 전용

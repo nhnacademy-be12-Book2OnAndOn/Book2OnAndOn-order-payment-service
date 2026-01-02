@@ -36,7 +36,6 @@ import com.nhnacademy.Book2OnAndOn_order_payment_service.order.exception.ExceedU
 import com.nhnacademy.Book2OnAndOn_order_payment_service.order.exception.InvalidDeliveryDateException;
 import com.nhnacademy.Book2OnAndOn_order_payment_service.order.exception.OrderNotCancellableException;
 import com.nhnacademy.Book2OnAndOn_order_payment_service.order.exception.OrderNotFoundException;
-import com.nhnacademy.Book2OnAndOn_order_payment_service.order.provider.GuestTokenProvider;
 import com.nhnacademy.Book2OnAndOn_order_payment_service.order.provider.OrderNumberProvider;
 import com.nhnacademy.Book2OnAndOn_order_payment_service.order.repository.delivery.DeliveryPolicyRepository;
 import com.nhnacademy.Book2OnAndOn_order_payment_service.order.repository.order.GuestOrderRepository;
@@ -529,23 +528,13 @@ public class OrderServiceImpl implements OrderService {
     // 일반 사용자 주문 취소
     @Override
     public void cancelOrder(Long userId, String orderNumber) {
-        log.info("일반 사용자 주문 취소 로직 실행 (유저 아이디 : {}, 주문번호 : {})", userId, orderNumber);
+        log.info("회원 주문 취소 요청 (User: {}, Order: {})", userId, orderNumber);
 
-        // 주문 검증
         Order order = orderRepository.findByUserIdAndOrderNumber(userId, orderNumber)
-                .orElseThrow(() -> new OrderNotFoundException("Not Found Order : " + orderNumber));
+                .orElseThrow(() -> new OrderNotFoundException("주문을 찾을 수 없습니다: " + orderNumber));
 
-        // 주문 상태에 따른 오류 던지기
-        if(!order.getOrderStatus().isCancellable()){
-            log.warn("주문 취소를 할 수 없는 상태입니다 (현재 상태  : {})", order.getOrderStatus().name());
-            throw new OrderNotCancellableException("주문 취소를 할 수 없는 상태입니다 : " + order.getOrderStatus().name());
-        }
-
-        // 결제 취소 호출 (사용자 주문 취소)
-        paymentService.cancelPayment(new PaymentCancelRequest(order.getOrderNumber(), "사용자 주문 취소", null));
-
-        // 상태 변경
-        orderTransactionService.changeStatusOrder(order, false);
+        // 공통 취소 로직 호출
+        processCancelOrder(order);
     }
 
     private PaymentResponse getPaymentInfo(String orderNumber){
@@ -572,6 +561,19 @@ public class OrderServiceImpl implements OrderService {
                 null,
                 null
         );
+    }
+
+    //비회원 주문 취소
+    @Override
+    public void cancelGuestOrder(String orderNumber, String guestToken) {
+        log.info("비회원 주문 취소 요청 (Order: {})", orderNumber);
+
+        Order order = orderRepository.findByOrderNumber(orderNumber)
+                .orElseThrow(() -> new OrderNotFoundException("주문 정보를 찾을 수 없습니다. Order: " + orderNumber));
+
+        orderTransactionService.validateOrderExistence(order, null, guestToken);
+
+        processCancelOrder(order);
     }
 
     @Override
@@ -621,5 +623,18 @@ public class OrderServiceImpl implements OrderService {
     @Override
     public int deleteJunkOrder(List<Long> ids) {
         return orderRepository.deleteByIds(ids);
+    }
+
+
+    //주문 취소 공통 로직 따로 뻄
+    private void processCancelOrder(Order order) {
+        if (!order.getOrderStatus().isCancellable()) {
+            log.warn("주문 취소를 할 수 없는 상태입니다 (현재 상태 : {})", order.getOrderStatus().name());
+            throw new OrderNotCancellableException("주문 취소를 할 수 없는 상태입니다 : " + order.getOrderStatus().name());
+        }
+
+        paymentService.cancelPayment(new PaymentCancelRequest(order.getOrderNumber(), "사용자 주문 취소", null));
+
+        orderTransactionService.changeStatusOrder(order, false);
     }
 }

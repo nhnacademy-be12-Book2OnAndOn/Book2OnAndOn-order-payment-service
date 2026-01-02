@@ -17,6 +17,7 @@ import org.springframework.data.domain.Sort;
 import org.springframework.data.web.PageableDefault;
 import org.springframework.http.HttpStatus;
 import org.springframework.http.ResponseEntity;
+import org.springframework.security.access.AccessDeniedException;
 import org.springframework.web.bind.annotation.GetMapping;
 import org.springframework.web.bind.annotation.PatchMapping;
 import org.springframework.web.bind.annotation.PathVariable;
@@ -76,14 +77,25 @@ public class OrderUserController {
         return ResponseEntity.ok(orderResponseDto);
     }
 
-    // 결제 후 바로 주문 취소하는 경우
     @PatchMapping("/{orderNumber}/cancel")
-    public ResponseEntity<OrderCancelResponseDto> cancelOrder(@RequestHeader(USER_ID_HEADER) Long userId,
-                                                              @PathVariable("orderNumber") String orderNumber){
+    public ResponseEntity<Void> cancelOrder(
+            @PathVariable String orderNumber,
+            @RequestHeader(value = "X-User-Id", required = false) Long userId,
+            @RequestHeader(value = "X-Guest-Order-Token", required = false) String guestToken
+    ) {
         log.info("PATCH /order/{}/cancel 호출 : 주문 취소", orderNumber);
 
-        orderService.cancelOrder(userId, orderNumber);
-        // 리소스 생성 및 취소 완료
-        return ResponseEntity.noContent().build();
+        if (userId != null) {
+            // 회원 주문 취소
+            orderService.cancelOrder(userId, orderNumber);
+        } else if (guestToken != null) {
+            // 비회원 주문 취소
+            orderService.cancelGuestOrder(orderNumber, guestToken);
+        } else {
+            // 둘 다 없으면 에러
+            throw new AccessDeniedException("권한이 없습니다.");
+        }
+
+        return ResponseEntity.ok().build();
     }
 }
