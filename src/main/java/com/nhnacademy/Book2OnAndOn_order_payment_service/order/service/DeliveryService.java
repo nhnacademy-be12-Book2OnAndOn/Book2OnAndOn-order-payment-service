@@ -37,37 +37,23 @@ public class DeliveryService {
 
     // 배송 데이터 선 생성 (주문 완료 시 호출)
     // 이거 주문 생성할 때  orderService에서 호출
-//    public Long createPendingDelivery(Long orderId) {
-//        Order order = orderRepository.findById(orderId)
-//                .orElseThrow(() -> new OrderNotFoundException(orderId));
-//
-//        // 1:1 관계 중복 체크
-//        if (deliveryRepository.existsByOrder_OrderId(orderId)) {
-//            throw new IllegalStateException("이미 배송 정보가 생성된 주문입니다. Order ID: " + orderId);
-//        }
-//
-//        // 배송 엔티티 생성
-//        Delivery delivery = new Delivery(order);
-//
-//        Delivery savedDelivery = deliveryRepository.save(delivery);
-//
-//        log.info("배송 데이터 생성 완료: deliveryId={}, orderId={}", savedDelivery.getDeliveryId(), order.getOrderId());
-//
-//        return savedDelivery.getDeliveryId();
-//    }
     public Long createPendingDelivery(Long orderId) {
         Order order = orderRepository.findById(orderId)
                 .orElseThrow(() -> new OrderNotFoundException(orderId));
 
-        // 1:1 중복이면 기존 deliveryId 반환 (멱등)
-        return deliveryRepository.findByOrder_OrderId(orderId)
-                .map(Delivery::getDeliveryId) // 또는 findDeliveryIdByOrderId 사용
-                .orElseGet(() -> {
-                    Delivery delivery = new Delivery(order);
-                    Delivery saved = deliveryRepository.save(delivery);
-                    log.info("배송 데이터 생성 완료: deliveryId={}, orderId={}", saved.getDeliveryId(), orderId);
-                    return saved.getDeliveryId();
-                });
+        // 1:1 관계 중복 체크
+        if (deliveryRepository.existsByOrder_OrderId(orderId)) {
+            throw new IllegalStateException("이미 배송 정보가 생성된 주문입니다. Order ID: " + orderId);
+        }
+
+        // 배송 엔티티 생성
+        Delivery delivery = new Delivery(order);
+
+        Delivery savedDelivery = deliveryRepository.save(delivery);
+
+        log.info("배송 데이터 생성 완료: deliveryId={}, orderId={}", savedDelivery.getDeliveryId(), order.getOrderId());
+
+        return savedDelivery.getDeliveryId();
     }
 
      // admin 운송장 등록
