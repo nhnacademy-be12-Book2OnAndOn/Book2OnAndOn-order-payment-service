@@ -35,4 +35,16 @@ public enum OrderStatus {
     public boolean isCancellable(){
         return this.equals(COMPLETED);
     }
+
+    public boolean isPaidLike() {
+        return switch (this) {
+            case PREPARING,
+                 SHIPPING,
+                 DELIVERED,
+                 COMPLETED,
+                 PARTIAL_REFUND,
+                 RETURN_REQUESTED -> true;
+            default -> false;
+        };
+    }
 }

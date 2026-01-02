@@ -1,5 +1,7 @@
 package com.nhnacademy.Book2OnAndOn_order_payment_service.payment.service.impl;
 
+import com.nhnacademy.Book2OnAndOn_order_payment_service.client.UserServiceClient;
+import com.nhnacademy.Book2OnAndOn_order_payment_service.client.dto.EarnOrderPointRequestDto;
 import com.nhnacademy.Book2OnAndOn_order_payment_service.exception.PaymentException;
 import com.nhnacademy.Book2OnAndOn_order_payment_service.order.entity.order.Order;
 import com.nhnacademy.Book2OnAndOn_order_payment_service.order.service.OrderResourceManager;
@@ -41,9 +43,10 @@ public class PaymentServiceImpl implements PaymentService {
     private final PaymentRepository paymentRepository;
     private final PaymentStrategyFactory factory;
     private final PaymentTransactionService paymentTransactionService;
-
     private final OrderTransactionService orderTransactionService;
 
+    private final OrderResourceManager orderResourceManager;
+    private final UserServiceClient userServiceClient;
 
     private static final int MAX_TRY = 5;
 
@@ -65,13 +68,46 @@ public class PaymentServiceImpl implements PaymentService {
         // 1. 주문 금액 검증
         Order order = orderTransactionService.validateOrderAmount(req);
 
-        // 2. 결제 승인 요청 (5회 재시도 후 오류시 관리자 호출)
-        CommonResponse commonResponse = confirmPaymentWithRetry(provider, req);
+        try {
+            // 2. 결제 승인 요청 (5회 재시도 후 오류시 관리자 호출)
+            CommonResponse commonResponse = confirmPaymentWithRetry(provider, req);
 
-        // 3. DB 저장 요청 (2회 재시도 후 오류시 관리자 호출)
-        Payment saved = paymentTransactionService.savePaymentAndPublishEvent(provider, commonResponse, order);
+            // 여기서만 포인트 확정 차감
+            orderResourceManager.confirmPoint(order.getOrderId(), order.getUserId(), order.getPointDiscount());
 
-        return saved.toResponse();
+            // 3. DB 저장 요청 (2회 재시도 후 오류시 관리자 호출)
+            Payment saved = paymentTransactionService.savePaymentAndPublishEvent(provider, commonResponse, order);
+
+            if (order.getUserId() != null) {
+                int pureAmount = resolvePureAmountForEarn(order);
+
+                userServiceClient.earnOrderPoint(
+                        order.getUserId(),
+                        new EarnOrderPointRequestDto(null, order.getOrderId(), pureAmount)
+                );
+            }
+
+            return saved.toResponse();
+        } catch(Exception e) {
+            //  결제 승인/저장 실패 시 보상
+            orderResourceManager.rollbackPoint(order.getOrderId(), order.getUserId(), order.getPointDiscount());
+
+            // 필요시 상태도 FAIL/CANCELED로 전환(정책에 맞게)
+            orderTransactionService.changeStatusOrder(order, false);
+
+            throw e;
+        }
+    }
+    private int resolvePureAmountForEarn(Order order) {
+        // null 안전 처리
+        int totalAmount = order.getTotalAmount(); // Order에 있는 최종 결제 금액 필드명에 맞게 조정
+        int pointDiscount = (order.getPointDiscount() == null) ? 0 : order.getPointDiscount();
+
+        // "현금성 결제"만 적립 대상으로 잡는 정책
+        int pureAmount = totalAmount - pointDiscount;
+
+        // 음수 방지 (이상 데이터 방어)
+        return Math.max(pureAmount, 0);
     }
 
     // 결제 내역 삭제

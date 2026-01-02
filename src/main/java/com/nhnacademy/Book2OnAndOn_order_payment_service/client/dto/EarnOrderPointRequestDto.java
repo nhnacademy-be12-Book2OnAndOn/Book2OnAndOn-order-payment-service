@@ -18,6 +18,4 @@ public class EarnOrderPointRequestDto {
     private Long orderId;
     @NotNull
     private Integer pureAmount;
-    @NotNull
-    private Double pointAddRate;
 }
