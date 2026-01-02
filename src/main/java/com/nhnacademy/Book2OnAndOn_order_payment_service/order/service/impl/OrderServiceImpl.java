@@ -209,7 +209,7 @@ public class OrderServiceImpl implements OrderService {
         } catch (Exception e){
             log.error("알 수 없는 오류 발생! 복구 트랜잭션 실행 : {}", e.getMessage());
             // 복구 메서드
-            resourceManager.releaseResources(result.orderNumber(), req.getMemberCouponId(), userId, result.pointDiscount(), orderCreateResponseDto.getOrderId());
+            resourceManager.releaseResources(result.orderNumber(), userId, result.pointDiscount(), orderCreateResponseDto.getOrderId());
             throw new OrderVerificationException("주문 내부 오류 발생 " + e.getMessage());
         }
     }
@@ -572,25 +572,11 @@ public class OrderServiceImpl implements OrderService {
 
         // 결제 취소 호출 (사용자 주문 취소)
         paymentService.cancelPayment(new PaymentCancelRequest(order.getOrderNumber(), "사용자 주문 취소", null));
-        PaymentResponse payment = null;
-        try {
-            payment = paymentService.getPayment(new PaymentRequest(orderNumber));
-        } catch (Exception ignore) {
-            // NotFoundPaymentException 등: 결제 전 취소로 처리
-        }
-        if (payment != null /* && payment.status == APPROVED 같은 조건 */) {
-            paymentService.cancelPayment(new PaymentCancelRequest(orderNumber, "사용자 주문 취소", null));
-        }
-
-        // 포인트 롤백(이벤트 발생)
-//        resourceManager.rollbackPoint(order.getOrderId(), order.getUserId(), order.getPointDiscount());
-        // 결제 후 차감된 포인트가 있을 때만 환원
-        if (order.getPointDiscount() != null && order.getPointDiscount() > 0) {
-            resourceManager.rollbackPoint(order.getOrderId(), order.getUserId(), order.getPointDiscount());
-        }
 
         // 상태 변경
         orderTransactionService.changeStatusOrder(order, false);
+
+        resourceManager.releaseResources(orderNumber, userId, order.getPointDiscount(), order.getOrderId());
     }
 
     private PaymentResponse getPaymentInfo(String orderNumber){

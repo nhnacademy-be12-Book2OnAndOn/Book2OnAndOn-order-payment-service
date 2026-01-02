@@ -97,6 +97,7 @@ public class PaymentServiceImpl implements PaymentService {
 //            throw e;
 //        }
 //    }
+
     @Override
     @Transactional
     public PaymentResponse confirmAndCreatePayment(String provider, CommonConfirmRequest req) {
@@ -108,14 +109,12 @@ public class PaymentServiceImpl implements PaymentService {
             order = orderTransactionService.validateOrderAmount(req);
         } catch(Exception e) {
             //  결제 승인/저장 실패 시 보상
-            // TODO 자원(포인트) 롤백
-//            orderResourceManager.releaseResources(
-//                    order.getOrderNumber(),
-//                    null,
-//                    order.getUserId(),
-//                    order.getPointDiscount(),
-//                    order.getOrderId()
-//            );
+            orderResourceManager.releaseResources(
+                    order.getOrderNumber(),
+                    order.getUserId(),
+                    order.getPointDiscount(),
+                    order.getOrderId()
+            );
 
             // 필요시 상태도 FAIL/CANCELED로 전환(정책에 맞게)
             orderTransactionService.changeStatusOrder(order, false);
@@ -129,28 +128,9 @@ public class PaymentServiceImpl implements PaymentService {
         // 3. DB 저장 요청 (2회 재시도 후 오류시 관리자 호출)
         Payment saved = paymentTransactionService.savePaymentAndPublishEvent(provider, commonResponse, order);
 
-        if (order.getUserId() != null) {
-            int pureAmount = resolvePureAmountForEarn(order);
-
-            userServiceClient.earnOrderPoint(
-                    order.getUserId(),
-                    new EarnOrderPointRequestDto(null, order.getOrderId(), pureAmount)
-            );
-        }
-
         return saved.toResponse();
     }
-    private int resolvePureAmountForEarn(Order order) {
-        // null 안전 처리
-        int totalAmount = order.getTotalAmount(); // Order에 있는 최종 결제 금액 필드명에 맞게 조정
-        int pointDiscount = (order.getPointDiscount() == null) ? 0 : order.getPointDiscount();
 
-        // "현금성 결제"만 적립 대상으로 잡는 정책
-        int pureAmount = totalAmount - pointDiscount;
-
-        // 음수 방지 (이상 데이터 방어)
-        return Math.max(pureAmount, 0);
-    }
 
     // 결제 내역 삭제
     @Override
@@ -164,6 +144,7 @@ public class PaymentServiceImpl implements PaymentService {
     }
 
     @Override
+    @Transactional
     public void cancelPayment(PaymentCancelRequest req) {
         log.info("주문 취소 로직 실행 (주문번호 : {})", req.orderNumber());
 

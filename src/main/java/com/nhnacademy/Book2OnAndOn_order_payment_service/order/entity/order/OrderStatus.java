@@ -33,7 +33,7 @@ public enum OrderStatus {
     }
 
     public boolean isCancellable(){
-        return this.equals(COMPLETED);
+        return this.equals(COMPLETED) || this.equals(DELIVERED);
     }
 
     public boolean isPaidLike() {
