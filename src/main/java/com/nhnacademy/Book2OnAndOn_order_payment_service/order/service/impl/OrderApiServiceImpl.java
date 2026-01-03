@@ -50,20 +50,16 @@ public class OrderApiServiceImpl implements OrderApiService {
             LocalDate yesterday = now.minusDays(1);
             startDateTime = yesterday.atStartOfDay();
             endDateTime = yesterday.atTime(LocalTime.MAX);
-            List<Long> result = orderRepository.findTopBestSellerBookIds(
-                    startDateTime, endDateTime, ORDER_STATUS_DELIVERED, ORDER_ITEM_STATUS_DELIVERED, TOP_10);
-            log.info("dailyBestsellers: {}", result.size());
-            return result;
+            return orderRepository.findTopBestSellerBookIds(
+                    startDateTime, endDateTime, ORDER_STATUS_DELIVERED, ORDER_ITEM_STATUS_DELIVERED, TOP_10);;
         }
 
         // 주간 (7일 전 00:00:00 ~ 어제 23:59:59)
         if ("WEEKLY".equals(period)) {
             startDateTime = now.minusWeeks(1).atStartOfDay();
             endDateTime = now.minusDays(1).atTime(LocalTime.MAX);
-            List<Long> result = orderRepository.findTopBestSellerBookIds(
-                    startDateTime, endDateTime, ORDER_STATUS_DELIVERED, ORDER_ITEM_STATUS_DELIVERED, TOP_10);
-            log.info("weeklyBestsellers: {}", result.size());
-            return result;
+            return orderRepository.findTopBestSellerBookIds(
+                    startDateTime, endDateTime, ORDER_STATUS_DELIVERED, ORDER_ITEM_STATUS_DELIVERED, TOP_10);;
         }
         return List.of();
     }
