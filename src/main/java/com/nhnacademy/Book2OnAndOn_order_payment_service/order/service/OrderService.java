@@ -18,7 +18,7 @@ import org.springframework.data.domain.Pageable;
 
 public interface OrderService {
     // 회원 전용
-    OrderPrepareResponseDto prepareOrder(Long userId, String guestId, OrderPrepareRequestDto req);
+    OrderPrepareResponseDto prepareOrder(Long userId, OrderPrepareRequestDto req);
     OrderCreateResponseDto createPreOrder(Long userId, String guestId, OrderCreateRequestDto req);
     Page<OrderSimpleDto> getOrderList(Long userId, Pageable pageable);
     OrderDetailResponseDto getOrderDetail(Long userId, String orderNumber, String token);
