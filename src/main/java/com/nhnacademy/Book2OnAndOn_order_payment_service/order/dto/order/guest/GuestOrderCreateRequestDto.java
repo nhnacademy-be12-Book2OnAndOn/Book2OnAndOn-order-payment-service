@@ -21,7 +21,6 @@ import java.util.List;
 @AllArgsConstructor
 public class GuestOrderCreateRequestDto {
     // 비회원 식별용 계정 및 주문 조회시 필요 데이터
-    private String orderNumber;
     private String guestName;
     private String guestPhoneNumber;
     private String guestPassword;
