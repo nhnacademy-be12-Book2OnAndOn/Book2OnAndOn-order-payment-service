@@ -69,7 +69,8 @@ public class SecurityConfig {
                 .authorizeHttpRequests(auth -> auth
 
                         .requestMatchers("/cart/guest/**").permitAll()
-                        .requestMatchers("/cart/user/**").authenticated()
+//                        .requestMatchers("/cart/user/**").authenticated()
+                        .requestMatchers("/cart/user/**").permitAll()
                         .requestMatchers("/order/admin/**").hasRole("ORDER_ADMIN")
                         .requestMatchers("/admin/refunds/**").hasRole("ORDER_ADMIN")
                         .anyRequest().permitAll()

@@ -84,13 +84,13 @@ Content-Type: application/json
     "recipientPhoneNumber": "01012345678"
   },
   "deliveryPolicyId": 1,
-  "wantDeliveryDate": "2025-12-28"
+  "wantDeliveryDate": "2026-01-05"
 }
 
 
 ### 회원 주문 준비 데이터 요청
-POST http://localhost:10421/orders/prepare
-X-User-ID: 5
+GET http://localhost:10421/orders/B2-623596838912
+X-User-ID: 16
 Content-Type: application/json
 
 {
@@ -105,3 +105,7 @@ Content-Type: application/json
     }
   ]
 }
+
+###
+PATCH http://localhost:10421/orders/B2-623143854080/cancel
+X-User-ID: 16

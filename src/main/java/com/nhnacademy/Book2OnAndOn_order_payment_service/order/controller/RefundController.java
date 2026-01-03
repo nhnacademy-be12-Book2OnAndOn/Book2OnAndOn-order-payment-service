@@ -72,7 +72,7 @@ public class RefundController {
 
     // 회원 전체 반품 목록 조회
     // GET /orders/{orderId}/returns/list?page=0&size=20
-    @GetMapping("orders/refunds/my-list")
+    @GetMapping("/orders/refunds/my-list")
     public ResponseEntity<Page<RefundResponseDto>> getMyRefunds(
             @RequestHeader("X-User-Id") Long userId,
             Pageable pageable

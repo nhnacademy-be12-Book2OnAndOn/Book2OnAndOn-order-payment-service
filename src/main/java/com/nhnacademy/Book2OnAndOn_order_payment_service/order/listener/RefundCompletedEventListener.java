@@ -5,7 +5,6 @@ import com.nhnacademy.Book2OnAndOn_order_payment_service.order.entity.refund.Ref
 import com.nhnacademy.Book2OnAndOn_order_payment_service.order.entity.refund.RefundStatus;
 import com.nhnacademy.Book2OnAndOn_order_payment_service.order.exception.RefundNotFoundException;
 import com.nhnacademy.Book2OnAndOn_order_payment_service.order.repository.refund.RefundRepository;
-import com.nhnacademy.Book2OnAndOn_order_payment_service.order.service.RefundServiceImpl; // 아래에서 제거할 것이므로 의존하지 않는 게 더 좋음
 import feign.FeignException;
 import lombok.RequiredArgsConstructor;
 import lombok.extern.slf4j.Slf4j;

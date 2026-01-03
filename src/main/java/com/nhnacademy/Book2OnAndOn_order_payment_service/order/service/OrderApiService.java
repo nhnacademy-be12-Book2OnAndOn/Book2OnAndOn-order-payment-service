@@ -1,5 +1,6 @@
 package com.nhnacademy.Book2OnAndOn_order_payment_service.order.service;
 
+import com.nhnacademy.Book2OnAndOn_order_payment_service.order.dto.order.OrderRollbackDto;
 import java.time.LocalDate;
 import java.util.List;
 
@@ -9,4 +10,7 @@ public interface OrderApiService {
     List<Long> getBestSellers(String period);
     // -- 유저 --
     Long calculateTotalOrderAmountForUserBetweenDates(Long userId, LocalDate fromDate, LocalDate toDate);
+
+    // 자원 롤백
+    void rollback(Long userId, OrderRollbackDto req);
 }

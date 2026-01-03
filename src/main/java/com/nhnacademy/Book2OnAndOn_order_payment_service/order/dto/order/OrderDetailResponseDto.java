@@ -19,7 +19,7 @@ public class OrderDetailResponseDto {
     // 1. 주문 기본 정보
     private Long orderId;
     private String orderNumber;
-    private OrderStatus orderStatus;
+    private String orderStatus;
     private LocalDateTime orderDatetime;
 
     // 2. 금액 상세 정보 (Order 엔티티)
