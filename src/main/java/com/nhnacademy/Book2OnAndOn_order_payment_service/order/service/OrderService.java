@@ -8,7 +8,9 @@ import com.nhnacademy.Book2OnAndOn_order_payment_service.order.dto.order.OrderDe
 import com.nhnacademy.Book2OnAndOn_order_payment_service.order.dto.order.OrderPrepareRequestDto;
 import com.nhnacademy.Book2OnAndOn_order_payment_service.order.dto.order.OrderPrepareResponseDto;
 import com.nhnacademy.Book2OnAndOn_order_payment_service.order.dto.order.OrderSimpleDto;
+import com.nhnacademy.Book2OnAndOn_order_payment_service.order.dto.order.OrderStatusUpdateDto;
 import com.nhnacademy.Book2OnAndOn_order_payment_service.order.dto.order.guest.GuestOrderCreateRequestDto;
+import com.nhnacademy.Book2OnAndOn_order_payment_service.order.dto.order.orderitem.OrderItemStatusUpdateDto;
 import java.time.LocalDateTime;
 import java.util.List;
 import org.springframework.data.domain.Page;
@@ -28,6 +30,13 @@ public interface OrderService {
     void cancelGuestOrder(String orderNumber, String guestToken);
 
     OrderCreateResponseDto createGuestPreOrder(String guestId, GuestOrderCreateRequestDto req);
+
+    // 관리자 전용
+    Page<OrderSimpleDto> getOrderListWithAdmin(Pageable pageable);
+    OrderDetailResponseDto getOrderDetailWithAdmin(String orderNumber);
+
+    void setOrderStatus(String orderNumber, OrderStatusUpdateDto req);
+    void setOrderItemStatus(String orderNumber, OrderItemStatusUpdateDto req);
 
     // 스케줄러 전용
     List<Long> findNextBatch(LocalDateTime thresholdTime, Long lastId, int batchSize);

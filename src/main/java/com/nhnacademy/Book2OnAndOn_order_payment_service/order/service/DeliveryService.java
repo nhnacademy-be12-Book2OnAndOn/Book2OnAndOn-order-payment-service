@@ -56,7 +56,6 @@ public class DeliveryService {
         return savedDelivery.getDeliveryId();
     }
 
-
      // admin 운송장 등록
      //상태: PREPARING -> SHIPPING
     public void registerWaybill(Long deliveryId, DeliveryWaybillUpdateDto requestDto) {

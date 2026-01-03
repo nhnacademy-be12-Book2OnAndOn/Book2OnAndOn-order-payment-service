@@ -1,6 +1,9 @@
 package com.nhnacademy.Book2OnAndOn_order_payment_service.order.entity.order;
 
 
+import lombok.Getter;
+
+@Getter
 public enum OrderStatus {
     PENDING(0, "주문 대기"),
     PREPARING(1, "배송 준비중"),
@@ -20,13 +23,6 @@ public enum OrderStatus {
         this.description = description;
     }
 
-    public int getCode() {
-        return code;
-    }
-    public String getDescription() {
-        return description;
-    }
-
     public static OrderStatus fromCode(int code) {
         for (OrderStatus status : OrderStatus.values()) {
             if (status.getCode() == code) {
@@ -37,6 +33,18 @@ public enum OrderStatus {
     }
 
     public boolean isCancellable(){
-        return this.equals(COMPLETED);
+        return this.equals(COMPLETED) || this.equals(DELIVERED);
+    }
+
+    public boolean isPaidLike() {
+        return switch (this) {
+            case PREPARING,
+                 SHIPPING,
+                 DELIVERED,
+                 COMPLETED,
+                 PARTIAL_REFUND,
+                 RETURN_REQUESTED -> true;
+            default -> false;
+        };
     }
 }
