@@ -3,10 +3,10 @@ package com.nhnacademy.Book2OnAndOn_order_payment_service.order.service;
 import com.nhnacademy.Book2OnAndOn_order_payment_service.client.BookServiceClient;
 import com.nhnacademy.Book2OnAndOn_order_payment_service.client.CouponServiceClient;
 import com.nhnacademy.Book2OnAndOn_order_payment_service.client.UserServiceClient;
+import com.nhnacademy.Book2OnAndOn_order_payment_service.client.dto.OrderCanceledEvent;
 import com.nhnacademy.Book2OnAndOn_order_payment_service.client.dto.ReserveBookRequestDto;
 import com.nhnacademy.Book2OnAndOn_order_payment_service.client.dto.UseCouponRequestDto;
 import com.nhnacademy.Book2OnAndOn_order_payment_service.client.dto.UsePointInternalRequestDto;
-import com.nhnacademy.Book2OnAndOn_order_payment_service.order.client.dto.OrderCanceledEvent;
 import com.nhnacademy.Book2OnAndOn_order_payment_service.config.RabbitConfig;
 import com.nhnacademy.Book2OnAndOn_order_payment_service.order.dto.order.OrderCreateRequestDto;
 import com.nhnacademy.Book2OnAndOn_order_payment_service.order.dto.order.OrderVerificationResult;
@@ -14,12 +14,14 @@ import com.nhnacademy.Book2OnAndOn_order_payment_service.order.dto.order.orderit
 import java.time.LocalDateTime;
 import java.util.List;
 import lombok.RequiredArgsConstructor;
+import lombok.extern.slf4j.Slf4j;
 import org.springframework.amqp.rabbit.core.RabbitTemplate;
 import org.springframework.stereotype.Service;
 
 /**
  * 결제 성공시에만 사용되는 서비스
  */
+@Slf4j
 @Service
 @RequiredArgsConstructor
 public class OrderResourceManager {
@@ -32,6 +34,7 @@ public class OrderResourceManager {
 
     // 자원 준비
     public void prepareResources(Long userId, OrderCreateRequestDto req, OrderVerificationResult result, Long orderId){
+        log.info("주문 자원 선점 로직 실행 (주문 번호 : {})", result.orderNumber());
         List<BookInfoDto> bookInfoDtoList = req.getOrderItems().stream()
                 .map(item -> new BookInfoDto(item.getBookId(), item.getQuantity()))
                 .toList();

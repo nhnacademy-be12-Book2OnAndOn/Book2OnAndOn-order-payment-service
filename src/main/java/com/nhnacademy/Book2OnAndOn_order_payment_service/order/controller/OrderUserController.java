@@ -77,6 +77,7 @@ public class OrderUserController {
         return ResponseEntity.ok(orderResponseDto);
     }
 
+    // 결제 후 바로 주문 취소하는 경우
     @PatchMapping("/{orderNumber}/cancel")
     public ResponseEntity<Void> cancelOrder(
             @PathVariable String orderNumber,

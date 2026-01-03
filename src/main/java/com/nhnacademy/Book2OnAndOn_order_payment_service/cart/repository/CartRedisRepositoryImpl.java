@@ -97,16 +97,18 @@ public class CartRedisRepositoryImpl implements CartRedisRepository {
         String key = userKey(userId);
         cartRedisItem.setQuantity(capQuantity(cartRedisItem.getQuantity())); // 수량이 정해진 최대/최소 허용 범위를 벗어나지 않도록
 
-        // cart 레벨 createdAt 유지: 기존 아이템이 있으면 createdAt 재사용
-        Map<Long, CartRedisItem> existingItems = hashOps().entries(key);
-        if (existingItems != null && !existingItems.isEmpty()) {
-            long createdAt = existingItems.values().iterator().next().getCreatedAt();
-            if (createdAt > 0) {
-                cartRedisItem.setCreatedAt(createdAt);
-            }
-        } else if (cartRedisItem.getCreatedAt() == 0) {
-            long now = System.currentTimeMillis();
-            cartRedisItem.setCreatedAt(now);
+        // 기존 동일 bookId만 조회 (HGET)
+        CartRedisItem existing = hashOps().get(key, cartRedisItem.getBookId());
+        long now = System.currentTimeMillis();
+
+        if (existing != null) {
+            // 기존 createdAt 유지
+            if (existing.getCreatedAt() > 0) cartRedisItem.setCreatedAt(existing.getCreatedAt());
+            // updatedAt 갱신
+            cartRedisItem.setUpdatedAt(now);
+        } else {
+            // 신규라면 createdAt 초기화
+            if (cartRedisItem.getCreatedAt() == 0) cartRedisItem.setCreatedAt(now);
             cartRedisItem.setUpdatedAt(now);
         }
 
@@ -124,6 +126,29 @@ public class CartRedisRepositoryImpl implements CartRedisRepository {
     public void clearUserCart(Long userId) {
         redisTemplate.delete(userKey(userId));
     }
+
+    @Override
+    public void putUserItems(Long userId, Map<Long, CartRedisItem> items) {
+        if (items == null || items.isEmpty()) return;
+
+        String key = userKey(userId);
+
+        // 기존 createdAt 유지가 필요하면 기존값을 한 번에 읽는다
+        Map<Long, CartRedisItem> existing = hashOps().entries(key);
+        long now = System.currentTimeMillis();
+
+        for (CartRedisItem it : items.values()) {
+            it.setQuantity(capQuantity(it.getQuantity()));
+            CartRedisItem old = existing.get(it.getBookId());
+            if (old != null && old.getCreatedAt() > 0) it.setCreatedAt(old.getCreatedAt());
+            if (it.getCreatedAt() == 0) it.setCreatedAt(now);
+            it.setUpdatedAt(now);
+        }
+
+        // 한 번에 HMSET
+        hashOps().putAll(key, items);
+    }
+
 
     // ======================
     // 2. 비회원 장바구니
@@ -145,20 +170,18 @@ public class CartRedisRepositoryImpl implements CartRedisRepository {
         String key = guestKey(uuid);
         cartRedisItem.setQuantity(capQuantity(cartRedisItem.getQuantity()));
 
-        // cart 레벨 createdAt 유지
-        Map<Long, CartRedisItem> existingItems = hashOps().entries(key);
-        if (existingItems != null && !existingItems.isEmpty()) {
-            long createdAt = existingItems.values().iterator().next().getCreatedAt();
-            if (createdAt > 0) {
-                cartRedisItem.setCreatedAt(createdAt);
-            }
-        } else if (cartRedisItem.getCreatedAt() == 0) {
-            long now = System.currentTimeMillis();
-            cartRedisItem.setCreatedAt(now);
+        CartRedisItem existing = hashOps().get(key, cartRedisItem.getBookId());
+        long now = System.currentTimeMillis();
+
+        if (existing != null) {
+            if (existing.getCreatedAt() > 0) cartRedisItem.setCreatedAt(existing.getCreatedAt());
+            cartRedisItem.setUpdatedAt(now);
+        } else {
+            if (cartRedisItem.getCreatedAt() == 0) cartRedisItem.setCreatedAt(now);
             cartRedisItem.setUpdatedAt(now);
         }
 
-        hashOps().put(guestKey(uuid), cartRedisItem.getBookId(), cartRedisItem);
+        hashOps().put(key, cartRedisItem.getBookId(), cartRedisItem);
         extendGuestTtl(uuid);
     }
 
@@ -203,6 +226,51 @@ public class CartRedisRepositoryImpl implements CartRedisRepository {
         redisTemplate.delete(guestKey(uuid));
     }
 
+    @Override
+    public void putGuestItems(String uuid, Map<Long, CartRedisItem> items) {
+        if (uuid == null || uuid.isBlank()) return;
+        if (items == null || items.isEmpty()) {
+            // 비어있는 요청이면 TTL만 연장할지 정책 선택 가능
+            extendGuestTtl(uuid);
+            return;
+        }
+
+        String key = guestKey(uuid);
+
+        // 기존 createdAt 유지 (guest 카트는 보통 “카트 생성 시각”을 item마다 동일하게 유지하려는 의도)
+        long now = System.currentTimeMillis();
+        long createdAt = now;
+
+        Map<Long, CartRedisItem> existingItems = hashOps().entries(key);
+        if (existingItems != null && !existingItems.isEmpty()) {
+            // 기존 로직과 동일한 방식: 아무 아이템 하나의 createdAt을 카트 createdAt으로 취급
+            CartRedisItem any = existingItems.values().iterator().next();
+            if (any != null && any.getCreatedAt() > 0) {
+                createdAt = any.getCreatedAt();
+            }
+        }
+
+        // putAll로 밀어넣을 값 준비: cap/createdAt/updatedAt 정리
+        Map<Long, CartRedisItem> toSave = new java.util.HashMap<>(items.size());
+        for (Map.Entry<Long, CartRedisItem> e : items.entrySet()) {
+            Long bookId = e.getKey();
+            CartRedisItem v = e.getValue();
+            if (bookId == null || v == null) continue;
+
+            int cappedQty = capQuantity(v.getQuantity());
+            boolean selected = v.isSelected(); // 또는 기본값 정책 적용 가능
+
+            CartRedisItem normalized = new CartRedisItem(bookId, cappedQty, selected, createdAt, now);
+            toSave.put(bookId, normalized);
+        }
+
+        if (!toSave.isEmpty()) {
+            hashOps().putAll(key, toSave);   // HMSET 1회
+        }
+
+        extendGuestTtl(uuid); // TTL 연장 1회
+    }
+
 
     // ======================
     // 3. 장바구니 동기화 관리
@@ -211,16 +279,6 @@ public class CartRedisRepositoryImpl implements CartRedisRepository {
     @Override
     public void markUserCartDirty(Long userId) {
         stringRedisTemplate.opsForSet().add(USER_CART_DIRTY_SET_KEY, String.valueOf(userId));
-    }
-
-    @Override
-    public void markUserItemDirty(Long userId, Long bookId) {
-
-    }
-
-    @Override
-    public void markUserItemDeleted(Long userId, Long bookId) {
-
     }
 
     // 6) Dirty ID 목록 조회 : Dirty Set에 들어있는 userId에 대해서만 DB flush가 발생. (Scheduler 사용)
@@ -235,16 +293,6 @@ public class CartRedisRepositoryImpl implements CartRedisRepository {
                 .collect(Collectors.toSet());
     }
 
-    @Override
-    public Set<Long> getDirtyItemIds(Long userId) {
-        return Set.of();
-    }
-
-    @Override
-    public Set<Long> getDeletedItemIds(Long userId) {
-        return Set.of();
-    }
-
     // 7) Dirty Mark 해제 : flush 완료 후, Dirty Set에서 해당 userId 제거
     @Override
     public void clearUserCartDirty(Long userId) {
@@ -252,18 +300,11 @@ public class CartRedisRepositoryImpl implements CartRedisRepository {
     }
 
     @Override
-    public void markUserCartClear(Long userId) {
-
-    }
-
-    @Override
-    public boolean consumeUserCartClear(Long userId) {
-        return false;
-    }
-
-    @Override
-    public void cleanupUserDirtyKeys(Long userId) {
-
+    public boolean isUserCartDirty(Long userId) {
+        if (userId == null) return false;
+        Boolean result = stringRedisTemplate.opsForSet()
+                .isMember(DIRTY_USERS, String.valueOf(userId));
+        return Boolean.TRUE.equals(result);
     }
 
 }

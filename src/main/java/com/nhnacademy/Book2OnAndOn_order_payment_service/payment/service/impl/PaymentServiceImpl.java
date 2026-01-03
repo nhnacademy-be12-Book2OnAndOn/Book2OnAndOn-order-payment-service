@@ -43,9 +43,7 @@ public class PaymentServiceImpl implements PaymentService {
     private final PaymentTransactionService paymentTransactionService;
 
     private final OrderTransactionService orderTransactionService;
-    private final OrderResourceManager orderResourceManager;
 
-    private final PaymentEventPublisher paymentEventPublisher;
 
     private static final int MAX_TRY = 5;
 
@@ -61,6 +59,7 @@ public class PaymentServiceImpl implements PaymentService {
     }
 
     @Override
+    @Transactional
     public PaymentResponse confirmAndCreatePayment(String provider, CommonConfirmRequest req) {
         log.info("결제 승인 요청 및 결제 엔티티 생성 (주문번호 : {})", req.orderId());
         // 1. 주문 금액 검증
@@ -70,16 +69,7 @@ public class PaymentServiceImpl implements PaymentService {
         CommonResponse commonResponse = confirmPaymentWithRetry(provider, req);
 
         // 3. DB 저장 요청 (2회 재시도 후 오류시 관리자 호출)
-        Payment saved = paymentTransactionService.savePayment(provider, commonResponse);
-
-        // 4. 주문 및 주문 항목 상태 변경 (동기)
-        orderTransactionService.changeStatusOrder(order, true);
-
-        // 5. 이벤트 핸들러 구현 (비동기)
-        // 외부
-        orderResourceManager.finalizeBooks(req.orderId());
-        // 내부
-        paymentEventPublisher.publishSuccessPayment(order);
+        Payment saved = paymentTransactionService.savePaymentAndPublishEvent(provider, commonResponse, order);
 
         return saved.toResponse();
     }

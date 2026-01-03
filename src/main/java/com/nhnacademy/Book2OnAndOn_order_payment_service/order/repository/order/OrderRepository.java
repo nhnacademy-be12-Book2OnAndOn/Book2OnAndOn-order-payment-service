@@ -48,12 +48,12 @@ public interface OrderRepository extends JpaRepository<Order, Long> {
                 o.orderId, o.orderNumber, o.orderStatus, o.orderDateTime, o.totalAmount, o.orderTitle
             )
         FROM Order o
-        WHERE o.userId = :userId
+        WHERE o.userId = :userId AND o.orderStatus != :orderStatus
     """)
-    Page<OrderSimpleDto> findAllByUserId(Long userId, Pageable pageable);
+    Page<OrderSimpleDto> findAllByUserId(Long userId, Pageable pageable, OrderStatus orderStatus);
 
     // 주문 번호로 조회
-    @EntityGraph(attributePaths = {"orderItems", "orderItems.wrappingPaper", "deliveryAddress", "delivery"})
+    @EntityGraph(attributePaths = {"orderItems", "orderItems.wrappingPaper", "deliveryAddress"})
     @Query("SELECT o FROM Order o WHERE o.userId = :userId AND o.orderNumber = :orderNumber")
     Optional<Order> findByUserIdAndOrderNumber(Long userId, String orderNumber);
 
@@ -107,8 +107,8 @@ public interface OrderRepository extends JpaRepository<Order, Long> {
     """)
     Optional<Long> sumTotalItemAmountByUserIdAndOrderDateTimeBetween(
             @Param("userId") Long userId,
-            @Param("fromDate") LocalDate fromDate,
-            @Param("toDate") LocalDate toDate);
+            @Param("fromDate") LocalDateTime fromDate,
+            @Param("toDate") LocalDateTime toDate);
 
     @Query("""
         SELECT oi.bookId
