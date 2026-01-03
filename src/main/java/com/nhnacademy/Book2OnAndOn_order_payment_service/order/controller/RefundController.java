@@ -17,78 +17,67 @@ import jakarta.validation.Valid;
 
 @RestController
 @RequiredArgsConstructor
-public class RefundUserController {
+public class RefundController {
 
     private final RefundService refundService;
 
-    // Security Authentication에서 userId 추출
-    private Long getUserId(Authentication authentication) {
-        if (authentication == null || authentication.getName() == null) {
-            throw new AccessDeniedException("인증된 사용자 정보가 없습니다.");
-        }
-        try {
-            return Long.valueOf(authentication.getName());
-        } catch (NumberFormatException e) {
-            throw new AccessDeniedException("인증 정보에서 userId를 추출할 수 없습니다.");
-        }
-    }
-
-    // 회원 반품 신청
+    // 반품 신청
     // POST /orders/{orderId}/refunds
     @PostMapping("/orders/{orderId}/refunds")
     public ResponseEntity<RefundResponseDto> createRefund(
             @PathVariable Long orderId,
             @Valid @RequestBody RefundRequestDto request,
-            Authentication authentication
+            @RequestHeader(value = "X-User-Id", required = false) Long userId,
+            @RequestHeader(value = "X-Guest-Order-Token", required = false) String guestToken
+
     ) {
-        Long userId = getUserId(authentication);
-        return ResponseEntity.status(HttpStatus.CREATED).body(refundService.createRefundForMember(orderId, userId, request));
+        return ResponseEntity.status(HttpStatus.CREATED).body(refundService.createRefund(orderId, userId, request, guestToken));
     }
 
-    // 회원 반품 신청 취소
+    // 반품 신청 취소
     // POST /orders/{orderId}/refunds/{refundId}/cancel
     @PostMapping("/orders/{orderId}/refunds/{refundId}/cancel")
     public ResponseEntity<RefundResponseDto> cancelRefund(
             @PathVariable Long orderId,
             @PathVariable Long refundId,
-            Authentication authentication
+            @RequestHeader(value = "X-User-Id", required = false) Long userId,
+            @RequestHeader(value = "X-Guest-Order-Token", required = false) String guestToken
     ) {
-        Long userId = getUserId(authentication);
-        return ResponseEntity.ok(refundService.cancelRefundForMember(orderId, refundId, userId));
+
+        return ResponseEntity.ok(refundService.cancelRefund(orderId, refundId, userId, guestToken));
     }
 
-    // 회원 반품 상세 조회
+    // 반품 상세 조회
     // GET /orders/{orderId}/refund/{refundId}
     @GetMapping("/orders/{orderId}/refund/{refundId}")
     public ResponseEntity<RefundResponseDto> getRefundDetails(
             @PathVariable Long orderId,
             @PathVariable Long refundId,
-            Authentication authentication
+            @RequestHeader(value = "X-User-Id", required = false) Long userId,
+            @RequestHeader(value = "X-Guest-Order-Token", required = false) String guestToken
     ) {
-        Long userId = getUserId(authentication);
-        return ResponseEntity.ok(refundService.getRefundDetailsForMember(orderId, refundId, userId
-        ));
+        return ResponseEntity.ok(refundService.getRefundDetails(orderId, refundId, userId, guestToken));
     }
 
+    // 반품 신청 폼
+    @GetMapping("/orders/{orderId}/refunds/form")
+    public ResponseEntity<List<RefundAvailableItemResponseDto>> getRefundForm(
+            @PathVariable Long orderId,
+            @RequestHeader(value = "X-User-Id", required = false) Long userId,
+            @RequestHeader(value = "X-Guest-Order-Token", required = false) String guestToken
+
+    ) {
+        return ResponseEntity.ok(refundService.getRefundableItems(orderId, userId, guestToken));
+    }
 
     // 회원 전체 반품 목록 조회
     // GET /orders/{orderId}/returns/list?page=0&size=20
     @GetMapping("/orders/refunds/my-list")
     public ResponseEntity<Page<RefundResponseDto>> getMyRefunds(
-            Authentication authentication,
+            @RequestHeader("X-User-Id") Long userId,
             Pageable pageable
     ) {
-        Long userId = getUserId(authentication);
         return ResponseEntity.ok(refundService.getRefundsForMember(userId, pageable));
     }
 
-    // 회원 반품 신청 폼
-    @GetMapping("/orders/{orderId}/refunds/form")
-    public ResponseEntity<List<RefundAvailableItemResponseDto>> getRefundForm(
-            @PathVariable Long orderId,
-            Authentication authentication
-    ) {
-        Long userId = getUserId(authentication);
-        return ResponseEntity.ok(refundService.getRefundableItemsForMember(orderId, userId));
-    }
 }
