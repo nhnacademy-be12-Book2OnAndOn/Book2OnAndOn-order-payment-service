@@ -143,8 +143,8 @@ public class OrderServiceImpl implements OrderService {
      */
     // TODO 캐시 설정?
     @Override
-    public OrderPrepareResponseDto prepareOrder(Long userId, String guestId, OrderPrepareRequestDto req) {
-        log.info("주문 전 데이터 정보 가져오기 로직 실행 (회원 아이디 : {}, 비회원 아이디 : {})", userId, guestId);
+    public OrderPrepareResponseDto prepareOrder(Long userId, OrderPrepareRequestDto req) {
+        log.info("주문 전 데이터 정보 가져오기 로직 실행 (회원 아이디 : {})", userId);
 
         // 책 id
         List<Long> bookIds = req.bookItems().stream()
@@ -164,10 +164,6 @@ public class OrderServiceImpl implements OrderService {
             if(quantity != null){
                 bookOrderResponse.setQuantity(quantity);
             }
-        }
-
-        if(userId == null){
-            return OrderPrepareResponseDto.forGuest(bookOrderResponseList);
         }
 
         List<UserAddressResponseDto> userAddressResponseDtoList = fetchUserAddressInfo(userId);
@@ -590,18 +586,27 @@ public class OrderServiceImpl implements OrderService {
     public OrderPrepareResponseDto prepareGuestOrder(String guestId, OrderPrepareRequestDto req) {
         log.info("주문 전 데이터 정보 가져오기 로직 실행 (비회원 유저 : {})", guestId);
 
+        // 책 id
         List<Long> bookIds = req.bookItems().stream()
                 .map(BookInfoDto::bookId)
                 .toList();
 
         List<BookOrderResponse> bookOrderResponseList = fetchBookInfo(bookIds);
 
-        return new OrderPrepareResponseDto(
-                bookOrderResponseList,
-                null,
-                null,
-                null
-        );
+        Map<Long, Integer> quantities = req.bookItems().stream()
+                .collect(Collectors.toMap(
+                        BookInfoDto::bookId,
+                        BookInfoDto::quantity
+                ));
+
+        for (BookOrderResponse bookOrderResponse : bookOrderResponseList) {
+            Integer quantity = quantities.get(bookOrderResponse.getBookId());
+            if(quantity != null){
+                bookOrderResponse.setQuantity(quantity);
+            }
+        }
+
+        return OrderPrepareResponseDto.forGuest(bookOrderResponseList);
     }
 
     //비회원 주문 취소
