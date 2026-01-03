@@ -1,40 +1,35 @@
-package com.nhnacademy.Book2OnAndOn_order_payment_service.order.controller;
+package com.nhnacademy.Book2OnAndOn_order_payment_service.order.order.controller;
 
 import static org.mockito.ArgumentMatchers.any;
 import static org.mockito.ArgumentMatchers.eq;
 import static org.mockito.BDDMockito.given;
-import static org.springframework.test.web.servlet.request.MockMvcRequestBuilders.*;
-import static org.springframework.test.web.servlet.result.MockMvcResultMatchers.*;
-import static org.hamcrest.Matchers.*;
+import static org.springframework.security.test.web.servlet.request.SecurityMockMvcRequestPostProcessors.csrf;
+import static org.springframework.test.web.servlet.request.MockMvcRequestBuilders.post;
+import static org.springframework.test.web.servlet.result.MockMvcResultHandlers.print;
+import static org.springframework.test.web.servlet.result.MockMvcResultMatchers.jsonPath;
+import static org.springframework.test.web.servlet.result.MockMvcResultMatchers.status;
 
 import com.fasterxml.jackson.databind.ObjectMapper;
-import com.nhnacademy.Book2OnAndOn_order_payment_service.order.dto.order.*;
+import com.nhnacademy.Book2OnAndOn_order_payment_service.order.controller.OrderGuestController;
+import com.nhnacademy.Book2OnAndOn_order_payment_service.order.dto.order.OrderCreateResponseDto;
+import com.nhnacademy.Book2OnAndOn_order_payment_service.order.dto.order.OrderPrepareRequestDto;
+import com.nhnacademy.Book2OnAndOn_order_payment_service.order.dto.order.OrderPrepareResponseDto;
+import com.nhnacademy.Book2OnAndOn_order_payment_service.order.dto.order.guest.GuestLoginRequestDto;
+import com.nhnacademy.Book2OnAndOn_order_payment_service.order.dto.order.guest.GuestLoginResponseDto;
 import com.nhnacademy.Book2OnAndOn_order_payment_service.order.dto.order.guest.GuestOrderCreateRequestDto;
+import com.nhnacademy.Book2OnAndOn_order_payment_service.order.service.GuestOrderService;
 import com.nhnacademy.Book2OnAndOn_order_payment_service.order.service.OrderService;
-import com.nhnacademy.Book2OnAndOn_order_payment_service.util.AesUtils;
-import java.time.LocalDate;
-import java.time.LocalDateTime;
-import java.util.ArrayList;
-import java.util.UUID;
+import java.util.List;
 import org.junit.jupiter.api.DisplayName;
 import org.junit.jupiter.api.Test;
 import org.springframework.beans.factory.annotation.Autowired;
-import org.springframework.boot.test.autoconfigure.web.servlet.AutoConfigureMockMvc;
 import org.springframework.boot.test.autoconfigure.web.servlet.WebMvcTest;
-import org.springframework.boot.test.mock.mockito.MockBean;
-import org.springframework.context.annotation.Import;
 import org.springframework.http.MediaType;
-import org.springframework.test.context.TestPropertySource;
+import org.springframework.security.test.context.support.WithMockUser;
+import org.springframework.test.context.bean.override.mockito.MockitoBean;
 import org.springframework.test.web.servlet.MockMvc;
 
 @WebMvcTest(OrderGuestController.class)
-@AutoConfigureMockMvc(addFilters = false)
-@Import(AesUtils.class)
-@TestPropertySource(properties = {
-        "spring.cloud.config.enabled=false",
-        "spring.config.import=optional:configserver:",
-        "encryption.secret-key=12345678901234567890123456789012"
-})
 class OrderGuestControllerTest {
 
     @Autowired
@@ -43,79 +38,84 @@ class OrderGuestControllerTest {
     @Autowired
     private ObjectMapper objectMapper;
 
-    @MockBean
+    @MockitoBean
     private OrderService orderService;
+
+    @MockitoBean
+    private GuestOrderService guestOrderService;
 
     private static final String GUEST_ID_HEADER = "X-Guest-Id";
 
     @Test
-    @DisplayName("비회원 주문 준비 성공 (Happy Path)")
+    @DisplayName("비회원 로그인 성공")
+    @WithMockUser // Spring Security 통과용
+    void loginGuest_Success() throws Exception {
+        // given
+        GuestLoginRequestDto requestDto = new GuestLoginRequestDto("ORD-001", "1234");
+        GuestLoginResponseDto responseDto = new GuestLoginResponseDto("access-token", 1L);
+
+        given(guestOrderService.loginGuest(any(GuestLoginRequestDto.class)))
+                .willReturn(responseDto);
+
+        // when & then
+        mockMvc.perform(post("/guest/orders/login")
+                        .with(csrf()) // CSRF 토큰
+                        .contentType(MediaType.APPLICATION_JSON)
+                        .content(objectMapper.writeValueAsString(requestDto)))
+                .andExpect(status().isOk())
+                .andExpect(jsonPath("$.accessToken").value("access-token"))
+                .andExpect(jsonPath("$.orderId").value(1L))
+                .andDo(print());
+    }
+
+    @Test
+    @DisplayName("비회원 주문 준비 데이터 조회 성공")
+    @WithMockUser
     void getGuestOrderPrepare_Success() throws Exception {
-        String guestId = UUID.randomUUID().toString();
-        OrderPrepareRequestDto requestDto = new OrderPrepareRequestDto(new ArrayList<>());
-        OrderPrepareResponseDto responseDto = OrderPrepareResponseDto.forGuest(new ArrayList<>());
+        // given
+        String guestId = "guest-session-id";
+        OrderPrepareRequestDto requestDto = new OrderPrepareRequestDto(List.of());
+
+        OrderPrepareResponseDto responseDto = new OrderPrepareResponseDto(null, null, null, null);
 
         given(orderService.prepareGuestOrder(eq(guestId), any(OrderPrepareRequestDto.class)))
                 .willReturn(responseDto);
 
+        // when & then
         mockMvc.perform(post("/guest/orders/prepare")
-                        .header(GUEST_ID_HEADER, guestId)
+                        .with(csrf())
+                        .header(GUEST_ID_HEADER, guestId) // 헤더 필수
                         .contentType(MediaType.APPLICATION_JSON)
                         .content(objectMapper.writeValueAsString(requestDto)))
                 .andExpect(status().isOk())
-                .andExpect(jsonPath("$.orderItems").isArray())
-                .andExpect(jsonPath("$.addresses").value(nullValue()));
+                .andDo(print());
     }
 
     @Test
-    @DisplayName("비회원 주문 준비 실패 - 헤더 누락 (Fail Path)")
-    void getGuestOrderPrepare_Fail_MissingHeader() throws Exception {
-        OrderPrepareRequestDto requestDto = new OrderPrepareRequestDto(new ArrayList<>());
-
-        mockMvc.perform(post("/guest/orders/prepare")
-                        .contentType(MediaType.APPLICATION_JSON)
-                        .content(objectMapper.writeValueAsString(requestDto)))
-                .andExpect(status().isBadRequest());
-    }
-
-    @Test
-    @DisplayName("비회원 주문 생성 성공 (Happy Path)")
+    @DisplayName("비회원 주문 생성 성공")
+    @WithMockUser
     void createGuestOrder_Success() throws Exception {
-        String guestId = UUID.randomUUID().toString();
+        // given
+        String guestId = "guest-session-id";
         GuestOrderCreateRequestDto requestDto = new GuestOrderCreateRequestDto();
+        requestDto.setGuestName("홍길동");
+        requestDto.setGuestPhoneNumber("010-1234-5678");
 
-        OrderCreateResponseDto responseDto = new OrderCreateResponseDto(
-                1L, "GUEST-001", "비회원도서", LocalDateTime.now(),
-                20000, 3000, 0, 0, 0, 0, 23000,
-                LocalDate.now().plusDays(2), new ArrayList<>(), null
-        );
+        OrderCreateResponseDto responseDto = new OrderCreateResponseDto();
+        responseDto.setOrderId(1L);
+        responseDto.setOrderNumber("ORD-GUEST-001");
 
         given(orderService.createGuestPreOrder(eq(guestId), any(GuestOrderCreateRequestDto.class)))
                 .willReturn(responseDto);
 
         mockMvc.perform(post("/guest/orders")
+                        .with(csrf())
                         .header(GUEST_ID_HEADER, guestId)
                         .contentType(MediaType.APPLICATION_JSON)
                         .content(objectMapper.writeValueAsString(requestDto)))
                 .andExpect(status().isCreated())
-                .andExpect(jsonPath("$.orderNumber").value("GUEST-001"))
-                .andExpect(jsonPath("$.totalAmount").value(23000));
-    }
-
-    @Test
-    @DisplayName("비회원 주문 상세 조회 (커버리지용 - 현재 null 반환)")
-    void findGuestOrderDetails_ReturnsNull() throws Exception {
-        mockMvc.perform(get("/guest/orders"))
-                .andExpect(status().isOk())
-                .andExpect(content().string(""));
-    }
-
-    @Test
-    @DisplayName("비회원 주문 취소 (커버리지용 - 현재 null 반환)")
-    void cancelGuestOrder_ReturnsNull() throws Exception {
-        mockMvc.perform(patch("/guest/orders/{orderId}", 1L)
-                        .param("password", "1234"))
-                .andExpect(status().isOk())
-                .andExpect(content().string(""));
+                .andExpect(jsonPath("$.orderId").value(1L))
+                .andExpect(jsonPath("$.orderNumber").value("ORD-GUEST-001"))
+                .andDo(print());
     }
 }

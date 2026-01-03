@@ -21,11 +21,14 @@ public interface OrderService {
     OrderPrepareResponseDto prepareOrder(Long userId, String guestId, OrderPrepareRequestDto req);
     OrderCreateResponseDto createPreOrder(Long userId, String guestId, OrderCreateRequestDto req);
     Page<OrderSimpleDto> getOrderList(Long userId, Pageable pageable);
-    OrderDetailResponseDto getOrderDetail(Long userId, String orderNumber);
+    OrderDetailResponseDto getOrderDetail(Long userId, String orderNumber, String token);
     void cancelOrder(Long userId, String orderNumber);
 
     // 비회원 전용
     OrderPrepareResponseDto prepareGuestOrder(String guestId, OrderPrepareRequestDto req);
+
+    void cancelGuestOrder(String orderNumber, String guestToken);
+
     OrderCreateResponseDto createGuestPreOrder(String guestId, GuestOrderCreateRequestDto req);
 
     // 관리자 전용
