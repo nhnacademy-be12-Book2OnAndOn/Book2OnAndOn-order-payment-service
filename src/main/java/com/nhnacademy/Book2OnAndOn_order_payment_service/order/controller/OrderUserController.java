@@ -43,7 +43,7 @@ public class OrderUserController {
         log.info("POST /orders/prepare 호출 : 주문시 필요한 데이터 반환 (회원 아이디 : {})", userId);
 
         // 회원 주문 로직
-        OrderPrepareResponseDto orderSheetResponseDto = orderService.prepareOrder(userId, null, req);
+        OrderPrepareResponseDto orderSheetResponseDto = orderService.prepareOrder(userId, req);
 
         return ResponseEntity.ok(orderSheetResponseDto);
     }
