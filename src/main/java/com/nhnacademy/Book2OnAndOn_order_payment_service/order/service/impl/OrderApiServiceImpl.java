@@ -84,14 +84,14 @@ public class OrderApiServiceImpl implements OrderApiService {
             // TODO 비회원 작업
         }
 
-        Order order = orderTransactionService.validateOrderExistence(userId, req.orderNumber());
+//        Order order = orderTransactionService.validateOrderExistence(userId, req.orderNumber(), null);
 
-        orderResourceManager.releaseResources(req.orderNumber(), userId, order.getPointDiscount(), order.getOrderId());
-
-        order.setOrderStatus(OrderStatus.CANCELED);
-
-        for (OrderItem orderItem : order.getOrderItems()) {
-            orderItem.setOrderItemStatus(OrderItemStatus.ORDER_CANCELED);
-        }
+//        orderResourceManager.releaseResources(req.orderNumber(), userId, order.getPointDiscount(), order.getOrderId());
+//
+//        order.setOrderStatus(OrderStatus.CANCELED);
+//
+//        for (OrderItem orderItem : order.getOrderItems()) {
+//            orderItem.setOrderItemStatus(OrderItemStatus.ORDER_CANCELED);
+//        }
     }
 }
