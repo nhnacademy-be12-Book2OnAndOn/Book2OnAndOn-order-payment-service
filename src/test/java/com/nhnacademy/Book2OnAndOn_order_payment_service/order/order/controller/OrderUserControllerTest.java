@@ -2,8 +2,8 @@ package com.nhnacademy.Book2OnAndOn_order_payment_service.order.order.controller
 
 import static org.mockito.ArgumentMatchers.any;
 import static org.mockito.ArgumentMatchers.eq;
-import static org.mockito.ArgumentMatchers.isNull;
 import static org.mockito.BDDMockito.given;
+import static org.mockito.Mockito.doThrow;
 import static org.springframework.test.web.servlet.request.MockMvcRequestBuilders.*;
 import static org.springframework.test.web.servlet.result.MockMvcResultMatchers.*;
 
@@ -46,16 +46,15 @@ class OrderUserControllerTest {
     private OrderService orderService;
 
     private static final String USER_ID_HEADER = "X-User-Id";
-    private static final String GUEST_TOKEN_HEADER = "X-Guest-Order-Token";
 
     @Test
     @DisplayName("주문 준비 데이터 조회 성공 (Happy Path)")
     void getOrderPrepare_Success() throws Exception {
         Long userId = 1L;
         OrderPrepareRequestDto requestDto = new OrderPrepareRequestDto(new ArrayList<>());
-        OrderPrepareResponseDto responseDto = OrderPrepareResponseDto.forMember(new ArrayList<>(), new ArrayList<>(), new ArrayList<>(), null);
+        OrderPrepareResponseDto responseDto = OrderPrepareResponseDto.forMember(new ArrayList<>(), new ArrayList<>(), new ArrayList<>(), new ArrayList<>(), null);
 
-        given(orderService.prepareOrder(eq(userId), eq(null), any(OrderPrepareRequestDto.class)))
+        given(orderService.prepareOrder(eq(userId), any(OrderPrepareRequestDto.class)))
                 .willReturn(responseDto);
 
         mockMvc.perform(post("/orders/prepare")
@@ -101,38 +100,15 @@ class OrderUserControllerTest {
     }
 
     @Test
-    @DisplayName("회원 주문 상세 조회 성공 (Happy Path)")
-    void getOrderDetail_Member_Success() throws Exception {
-        // given
+    @DisplayName("주문 상세 조회 성공 (Happy Path)")
+    void getOrderDetail_Success() throws Exception {
         Long userId = 1L;
         String orderNumber = "ORD-100";
         OrderDetailResponseDto responseDto = new OrderDetailResponseDto();
 
-        // 회원이므로 guestToken은 null이어야 함
-        given(orderService.getOrderDetail(eq(userId), eq(orderNumber), isNull()))
-                .willReturn(responseDto);
+        given(orderService.getOrderDetail(userId, orderNumber, null)).willReturn(responseDto);
 
-        // when & then
-        mockMvc.perform(get("/orders/{orderNumber}", orderNumber)
-                        .header(USER_ID_HEADER, userId))
-                .andExpect(status().isOk());
-    }
-
-    @Test
-    @DisplayName("비회원 주문 상세 조회 성공 (Happy Path)")
-    void getOrderDetail_Guest_Success() throws Exception {
-        // given
-        String guestToken = "guest-token-sample";
-        String orderNumber = "ORD-100";
-        OrderDetailResponseDto responseDto = new OrderDetailResponseDto();
-
-        // 비회원이므로 userId는 null이어야 함
-        given(orderService.getOrderDetail(isNull(), eq(orderNumber), eq(guestToken)))
-                .willReturn(responseDto);
-
-        // when & then
-        mockMvc.perform(get("/orders/{orderNumber}", orderNumber)
-                        .header(GUEST_TOKEN_HEADER, guestToken))
+        mockMvc.perform(get("/orders/{orderNumber}", orderNumber).header(USER_ID_HEADER, userId))
                 .andExpect(status().isOk());
     }
 
@@ -154,20 +130,17 @@ class OrderUserControllerTest {
     }
 
     @Test
-    @DisplayName("존재하지 않는 주문 상세 조회 실패 (Fail Path - 회원)")
+    @DisplayName("존재하지 않는 주문 상세 조회 실패 (Fail Path)")
     void getOrderDetail_Fail_NotFound() throws Exception {
-        // given
         Long userId = 1L;
         String invalidOrderNumber = "INVALID";
 
-        // Service가 예외를 던지도록 설정
-        given(orderService.getOrderDetail(eq(userId), eq(invalidOrderNumber), isNull()))
+        given(orderService.getOrderDetail(userId, invalidOrderNumber, null))
                 .willThrow(new IllegalArgumentException("Order not found"));
 
-        // when & then
         mockMvc.perform(get("/orders/{orderNumber}", invalidOrderNumber)
                         .header(USER_ID_HEADER, userId))
-                .andExpect(status().isBadRequest())
+                .andExpect(status().isBadRequest()) // 500 대신 400으로 수정
                 .andExpect(jsonPath("$.message").value("Order not found"));
     }
 }
