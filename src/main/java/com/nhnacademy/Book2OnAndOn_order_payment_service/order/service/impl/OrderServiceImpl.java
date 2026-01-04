@@ -696,7 +696,7 @@ public class OrderServiceImpl implements OrderService {
     @Override
     @Transactional
     public Page<OrderSimpleDto> getOrderListWithAdmin(Pageable pageable) {
-        return orderRepository.findAllByAdmin(pageable);
+        return orderRepository.findAllByAdmin(pageable, OrderStatus.PENDING);
     }
 
     @Override
@@ -717,6 +717,22 @@ public class OrderServiceImpl implements OrderService {
         orderDetailResponseDto.setPaymentResponse(paymentResponse);
 
         return orderDetailResponseDto;
+    }
+
+    @Override
+    @Transactional
+    public void cancelOrderByAdmin(String orderNumber) {
+        log.info("관리자 주문 취소 요청 (주문번호 : {})", orderNumber);
+
+        Order order = orderRepository.findByOrderNumber(orderNumber)
+                .orElseThrow(() -> new OrderNotFoundException("Not Found Order : " + orderNumber));
+
+        // 공통 취소 로직 호출
+        processCancelOrder(order);
+        // 상태 변경
+        orderTransactionService.changeStatusOrder(order, false);
+
+        resourceManager.releaseResources(orderNumber, order.getUserId(), order.getPointDiscount(), order.getOrderId());
     }
 
     @Override
