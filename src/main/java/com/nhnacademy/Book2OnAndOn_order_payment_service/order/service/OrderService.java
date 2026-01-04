@@ -34,6 +34,7 @@ public interface OrderService {
     // 관리자 전용
     Page<OrderSimpleDto> getOrderListWithAdmin(Pageable pageable);
     OrderDetailResponseDto getOrderDetailWithAdmin(String orderNumber);
+    void cancelOrderByAdmin(String orderNumber);
 
     void setOrderStatus(String orderNumber, OrderStatusUpdateDto req);
     void setOrderItemStatus(String orderNumber, OrderItemStatusUpdateDto req);
