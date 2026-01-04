@@ -52,7 +52,7 @@ class OrderGuestControllerTest {
     void loginGuest_Success() throws Exception {
         // given
         GuestLoginRequestDto requestDto = new GuestLoginRequestDto("ORD-001", "1234");
-        GuestLoginResponseDto responseDto = new GuestLoginResponseDto("access-token", 1L);
+        GuestLoginResponseDto responseDto = new GuestLoginResponseDto("access-token", "ORD-001");
 
         given(guestOrderService.loginGuest(any(GuestLoginRequestDto.class)))
                 .willReturn(responseDto);
@@ -64,7 +64,7 @@ class OrderGuestControllerTest {
                         .content(objectMapper.writeValueAsString(requestDto)))
                 .andExpect(status().isOk())
                 .andExpect(jsonPath("$.accessToken").value("access-token"))
-                .andExpect(jsonPath("$.orderId").value(1L))
+                .andExpect(jsonPath("$.orderNumber").value("ORD-001"))
                 .andDo(print());
     }
 
@@ -76,7 +76,7 @@ class OrderGuestControllerTest {
         String guestId = "guest-session-id";
         OrderPrepareRequestDto requestDto = new OrderPrepareRequestDto(List.of());
 
-        OrderPrepareResponseDto responseDto = new OrderPrepareResponseDto(null, null, null, null);
+        OrderPrepareResponseDto responseDto = new OrderPrepareResponseDto(null, null, null, null, null);
 
         given(orderService.prepareGuestOrder(eq(guestId), any(OrderPrepareRequestDto.class)))
                 .willReturn(responseDto);

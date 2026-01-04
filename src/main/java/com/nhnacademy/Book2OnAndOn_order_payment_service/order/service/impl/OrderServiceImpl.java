@@ -124,6 +124,12 @@ public class OrderServiceImpl implements OrderService {
         return memberCouponResponseDtoList;
     }
 
+    private List<CouponTargetResponseDto> fetchCouponTarget(List<Long> couponIds){
+        return couponIds.stream()
+                .map(couponServiceClient::getCouponTargets)
+                .toList();
+    }
+
     /**
      * 책 클라이언트를 통해 책 정보를 가져오는 공용 메서드입니다.
      * @param userId 유저 아이디
@@ -172,6 +178,11 @@ public class OrderServiceImpl implements OrderService {
         OrderCouponCheckRequestDto orderCouponCheckRequestDto = createOrderCouponCheckRequest(bookOrderResponseList);
         List<MemberCouponResponseDto> userCouponResponseDtoList = fetchUsableMemberCouponInfo(userId, orderCouponCheckRequestDto);
 
+        List<Long> couponIds = userCouponResponseDtoList.stream()
+                .map(MemberCouponResponseDto::getMemberCouponId)
+                .toList();
+
+        List<CouponTargetResponseDto> couponTargetResponseDtoList = fetchCouponTarget(couponIds);
 
 
         CurrentPointResponseDto userCurrentPoint = fetchPointInfo(userId);
@@ -181,6 +192,7 @@ public class OrderServiceImpl implements OrderService {
                 bookOrderResponseList,
                 userAddressResponseDtoList,
                 userCouponResponseDtoList,
+                couponTargetResponseDtoList,
                 userCurrentPoint
         );
     }
@@ -419,25 +431,46 @@ public class OrderServiceImpl implements OrderService {
                 targetCategoryIds,
                 totalItemAmount);
 
-        if(discountBaseAmount < couponTargetResponseDto.minPrice()){
-            log.error("최소 주문 금액 {}원 이상부터 할인 적용이 가능합니다 (현재 주문 금액 : {}원)", couponTargetResponseDto.minPrice(), discountBaseAmount);
-            throw new OrderVerificationException("최소 주문 금액 " + couponTargetResponseDto.minPrice() + "원 이상부터 할인 쿠폰 적용이 가능합니다.");
+        // null값 방어처리
+        Integer minPrice = couponTargetResponseDto.minPrice();
+        Integer maxPrice = couponTargetResponseDto.maxPrice();
+        Integer discountValue = couponTargetResponseDto.discountValue();
+
+        minPrice = minPrice != null ? minPrice : 0;
+        maxPrice = maxPrice != null ? maxPrice : 0;
+        discountValue = discountValue != null ? discountValue : 0;
+
+        if (discountBaseAmount < minPrice) {
+            log.error(
+                    "최소 주문 금액 {}원 이상부터 할인 적용이 가능합니다 (현재 주문 금액 : {}원)",
+                    minPrice, discountBaseAmount
+            );
+            throw new OrderVerificationException(
+                    "최소 주문 금액 " + minPrice + "원 이상부터 할인 쿠폰 적용이 가능합니다."
+            );
         }
 
-        if(discountBaseAmount - couponTargetResponseDto.discountValue() < 100){
-            log.error("최소 결제 금액 100원 이상 결제해야합니다 (현재 주문 금액 : {}원, 쿠폰 할인 금액 : {}원)", discountBaseAmount, couponTargetResponseDto.discountValue());
+        if (discountBaseAmount - discountValue < 100) {
+            log.error(
+                    "최소 결제 금액 100원 이상 결제해야합니다 (현재 주문 금액 : {}원, 쿠폰 할인 금액 : {}원)",
+                    discountBaseAmount, discountValue
+            );
         }
+
 
         CouponPolicyDiscountType discountType = couponTargetResponseDto.discountType();
 
         // 할인금액이 고정
-        if(CouponPolicyDiscountType.FIXED.equals(discountType)){
-            return couponTargetResponseDto.discountValue();
+        if (CouponPolicyDiscountType.FIXED.equals(discountType)) {
+            return discountValue;
         }
 
-        int discount = discountBaseAmount * couponTargetResponseDto.discountValue() / 100;
-        // 최대 할인 보다 높을시 최대 할인 금액 적용
-        return discount > couponTargetResponseDto.maxPrice() ? couponTargetResponseDto.maxPrice() : discount;
+        // 할인금액이 퍼센트
+        int discount = discountBaseAmount * discountValue / 100;
+
+        // maxPrice가 있으면 제한, 없으면 그대로
+        return Math.min(maxPrice, discount);
+
     }
 
     // 할인 대상 금액 계산
@@ -611,6 +644,7 @@ public class OrderServiceImpl implements OrderService {
 
     //비회원 주문 취소
     @Override
+    @Transactional
     public void cancelGuestOrder(String orderNumber, String guestToken) {
         log.info("비회원 주문 취소 요청 (Order: {})", orderNumber);
 
