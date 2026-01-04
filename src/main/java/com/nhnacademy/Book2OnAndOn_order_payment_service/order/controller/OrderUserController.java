@@ -81,20 +81,13 @@ public class OrderUserController {
     @PatchMapping("/{orderNumber}/cancel")
     public ResponseEntity<Void> cancelOrder(
             @PathVariable String orderNumber,
-            @RequestHeader(value = "X-User-Id", required = false) Long userId,
-            @RequestHeader(value = "X-Guest-Order-Token", required = false) String guestToken
+            @RequestHeader(value = "X-User-Id", required = false) Long userId
     ) {
         log.info("PATCH /order/{}/cancel 호출 : 주문 취소", orderNumber);
 
         if (userId != null) {
             // 회원 주문 취소
             orderService.cancelOrder(userId, orderNumber);
-        } else if (guestToken != null) {
-            // 비회원 주문 취소
-            orderService.cancelGuestOrder(orderNumber, guestToken);
-        } else {
-            // 둘 다 없으면 에러
-            throw new AccessDeniedException("권한이 없습니다.");
         }
 
         return ResponseEntity.noContent().build();

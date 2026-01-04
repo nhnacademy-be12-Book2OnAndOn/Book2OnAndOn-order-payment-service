@@ -11,6 +11,7 @@ import lombok.RequiredArgsConstructor;
 import lombok.extern.slf4j.Slf4j;
 import org.springframework.http.HttpStatus;
 import org.springframework.http.ResponseEntity;
+import org.springframework.security.access.AccessDeniedException;
 import org.springframework.web.bind.annotation.*;
 
 @Slf4j
@@ -47,5 +48,18 @@ public class OrderGuestController {
         log.info("POST /guest/orders 호출 : 비회원 사전 주문 데이터 생성");
         OrderCreateResponseDto resp = orderService.createGuestPreOrder(guestId, req);
         return ResponseEntity.status(HttpStatus.CREATED).body(resp);
+    }
+
+    @PatchMapping("/{orderNumber}/cancel")
+    public ResponseEntity<Void> cancelOrder(@PathVariable("orderNumber") String orderNumber,
+                                            @RequestHeader(value = "X-Guest-Order-Token", required = false) String guestToken){
+        if (guestToken != null) {
+            // 비회원 주문 취소
+            orderService.cancelGuestOrder(orderNumber, guestToken);
+        } else {
+            throw new AccessDeniedException("권한이 없습니다.");
+        }
+
+        return ResponseEntity.noContent().build();
     }
 }

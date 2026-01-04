@@ -611,6 +611,7 @@ public class OrderServiceImpl implements OrderService {
 
     //비회원 주문 취소
     @Override
+    @Transactional
     public void cancelGuestOrder(String orderNumber, String guestToken) {
         log.info("비회원 주문 취소 요청 (Order: {})", orderNumber);
 

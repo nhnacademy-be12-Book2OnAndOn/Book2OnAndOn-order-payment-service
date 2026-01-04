@@ -10,5 +10,5 @@ import lombok.NoArgsConstructor;
 public class GuestLoginResponseDto {
 
     String accessToken;
-    Long orderId;
+    String orderNumber;
 }
