@@ -1,4 +1,4 @@
-package com.nhnacademy.Book2OnAndOn_order_payment_service.order.controller;
+package com.nhnacademy.Book2OnAndOn_order_payment_service.order.order.controller;
 
 import static org.mockito.ArgumentMatchers.any;
 import static org.mockito.ArgumentMatchers.eq;
@@ -8,6 +8,7 @@ import static org.springframework.test.web.servlet.request.MockMvcRequestBuilder
 import static org.springframework.test.web.servlet.result.MockMvcResultMatchers.*;
 
 import com.fasterxml.jackson.databind.ObjectMapper;
+import com.nhnacademy.Book2OnAndOn_order_payment_service.order.controller.OrderUserController;
 import com.nhnacademy.Book2OnAndOn_order_payment_service.order.dto.order.*;
 import com.nhnacademy.Book2OnAndOn_order_payment_service.order.entity.order.OrderStatus;
 import com.nhnacademy.Book2OnAndOn_order_payment_service.order.service.OrderService;
@@ -20,11 +21,11 @@ import org.junit.jupiter.api.Test;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.boot.test.autoconfigure.web.servlet.AutoConfigureMockMvc;
 import org.springframework.boot.test.autoconfigure.web.servlet.WebMvcTest;
-import org.springframework.boot.test.mock.mockito.MockBean;
 import org.springframework.data.domain.PageImpl;
 import org.springframework.data.domain.Pageable;
 import org.springframework.http.MediaType;
 import org.springframework.test.context.TestPropertySource;
+import org.springframework.test.context.bean.override.mockito.MockitoBean;
 import org.springframework.test.web.servlet.MockMvc;
 
 @WebMvcTest(OrderUserController.class)
@@ -41,7 +42,7 @@ class OrderUserControllerTest {
     @Autowired
     private ObjectMapper objectMapper;
 
-    @MockBean
+    @MockitoBean
     private OrderService orderService;
 
     private static final String USER_ID_HEADER = "X-User-Id";
@@ -51,9 +52,9 @@ class OrderUserControllerTest {
     void getOrderPrepare_Success() throws Exception {
         Long userId = 1L;
         OrderPrepareRequestDto requestDto = new OrderPrepareRequestDto(new ArrayList<>());
-        OrderPrepareResponseDto responseDto = OrderPrepareResponseDto.forMember(new ArrayList<>(), new ArrayList<>(), new ArrayList<>(), null);
+        OrderPrepareResponseDto responseDto = OrderPrepareResponseDto.forMember(new ArrayList<>(), new ArrayList<>(), new ArrayList<>(), new ArrayList<>(), null);
 
-        given(orderService.prepareOrder(eq(userId), eq(null), any(OrderPrepareRequestDto.class)))
+        given(orderService.prepareOrder(eq(userId), any(OrderPrepareRequestDto.class)))
                 .willReturn(responseDto);
 
         mockMvc.perform(post("/orders/prepare")
@@ -105,7 +106,7 @@ class OrderUserControllerTest {
         String orderNumber = "ORD-100";
         OrderDetailResponseDto responseDto = new OrderDetailResponseDto();
 
-        given(orderService.getOrderDetail(userId, orderNumber)).willReturn(responseDto);
+        given(orderService.getOrderDetail(userId, orderNumber, null)).willReturn(responseDto);
 
         mockMvc.perform(get("/orders/{orderNumber}", orderNumber).header(USER_ID_HEADER, userId))
                 .andExpect(status().isOk());
@@ -134,7 +135,7 @@ class OrderUserControllerTest {
         Long userId = 1L;
         String invalidOrderNumber = "INVALID";
 
-        given(orderService.getOrderDetail(userId, invalidOrderNumber))
+        given(orderService.getOrderDetail(userId, invalidOrderNumber, null))
                 .willThrow(new IllegalArgumentException("Order not found"));
 
         mockMvc.perform(get("/orders/{orderNumber}", invalidOrderNumber)

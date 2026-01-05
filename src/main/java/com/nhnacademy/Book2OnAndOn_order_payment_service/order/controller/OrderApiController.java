@@ -24,7 +24,7 @@ public class OrderApiController {
 
     private final OrderApiService orderApiService;
 
-    @GetMapping("/order/check-purchase/{bookId}")
+    @GetMapping("/orders/check-purchase/{bookId}")
     public ResponseEntity<Boolean> hasPurchasedBook(@RequestHeader(USER_ID_HEADER) Long userId,
                                                     @PathVariable("bookId") Long bookId){
         log.info("GET /order/check-purchase/{} 호출 : 유저 책 구매 여부 반환", bookId);

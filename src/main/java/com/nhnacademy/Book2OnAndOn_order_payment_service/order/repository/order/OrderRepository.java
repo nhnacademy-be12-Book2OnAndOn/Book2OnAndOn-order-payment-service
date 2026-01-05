@@ -45,8 +45,9 @@ public interface OrderRepository extends JpaRepository<Order, Long> {
                o.orderId, o.orderNumber, o.orderStatus, o.orderDateTime, o.totalAmount, o.orderTitle
             )
         FROM Order o
+        WHERE o.orderStatus <> :orderStatus
     """)
-    Page<OrderSimpleDto> findAllByAdmin(Pageable pageable);
+    Page<OrderSimpleDto> findAllByAdmin(Pageable pageable, OrderStatus orderStatus);
     /*
         스케쥴러 작업
      */
@@ -109,12 +110,14 @@ public interface OrderRepository extends JpaRepository<Order, Long> {
         GROUP BY oi.bookId
         ORDER BY SUM(oi.orderItemQuantity) DESC
     """)
-    List<Long> findTopBestSellerBookIds(LocalDate start,
-                                        LocalDate end,
+    List<Long> findTopBestSellerBookIds(LocalDateTime start,
+                                        LocalDateTime end,
                                         OrderStatus orderStatus,
                                         OrderItemStatus orderItemStatus,
                                         Pageable pageable);
+
     @EntityGraph(attributePaths = {"orderItems"})
     Optional<Order> findByOrderNumber(String orderNumber);
+
 }
 

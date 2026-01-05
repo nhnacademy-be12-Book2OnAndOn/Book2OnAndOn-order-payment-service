@@ -41,13 +41,18 @@ public class OrderResourceManager {
                 .toList();
 
         reserveBook(result.orderNumber(), bookInfoDtoList);
+
+        if(userId == null) return;
+
         confirmCoupon(result.orderNumber(), userId, req.getMemberCouponId());
-//        confirmPoint(orderId, userId, result.pointDiscount());
+        confirmPoint(orderId, userId, result.pointDiscount());
     }
 
     // 자원 복구
     public void releaseResources(String orderNumber, Long userId, Integer point, Long orderId){
         releaseBook(orderNumber);
+
+        if(userId == null) return;
         releaseCoupon(orderNumber);
         releasePoint(orderId, userId, point);
     }
@@ -55,6 +60,9 @@ public class OrderResourceManager {
     // 도서 확정 (결제 성공시 이벤트 핸들러용)
     public void completeOrder(Long userId, String orderNumber, Long orderId, Integer totalItemAmount){
         confirmBook(orderNumber);
+
+        if(userId == null) return;
+
         earnPoint(userId, new EarnOrderPointRequestDto(userId, orderId, totalItemAmount));
     }
 
@@ -88,7 +96,7 @@ public class OrderResourceManager {
 
     }
     private void confirmCoupon(String orderNumber, Long userId, Long memberCouponId){
-        if(memberCouponId == null || userId == null) return;
+        if(memberCouponId == null) return;
         couponServiceClient.useCoupon(memberCouponId, userId, new UseCouponRequestDto(orderNumber));
     }
 
@@ -103,7 +111,7 @@ public class OrderResourceManager {
         );
     }
     public void confirmPoint(Long orderId, Long userId, Integer point){
-        if(point == null || point <= 0 || userId == null) return;
+        if(point == null || point <= 0) return;
         userServiceClient.usePoint(userId, new UsePointInternalRequestDto(orderId, point));
     }
 

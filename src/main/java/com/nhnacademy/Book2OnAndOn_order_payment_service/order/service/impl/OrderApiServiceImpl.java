@@ -41,21 +41,25 @@ public class OrderApiServiceImpl implements OrderApiService {
 
     @Override
     public List<Long> getBestSellers(String period) {
+        log.info(">>> [OrderService] getBestSellers 진입. period: [{}]", period);
         LocalDate now = LocalDate.now();
-        LocalDate start;
-        LocalDate end;
-        // 일일
-        if ("DAILY".equals(period)){
-            start = now.minusDays(1);
-            end = start;
-            return orderRepository.findTopBestSellerBookIds(start, end, ORDER_STATUS_DELIVERED, ORDER_ITEM_STATUS_DELIVERED, TOP_10);
+        LocalDateTime startDateTime;
+        LocalDateTime endDateTime;
+        // 일일 (어제 00:00:00 ~ 어제 23:59:59)
+        if ("DAILY".equals(period)) {
+            LocalDate yesterday = now.minusDays(1);
+            startDateTime = yesterday.atStartOfDay();
+            endDateTime = yesterday.atTime(LocalTime.MAX);
+            return orderRepository.findTopBestSellerBookIds(
+                    startDateTime, endDateTime, ORDER_STATUS_DELIVERED, ORDER_ITEM_STATUS_DELIVERED, TOP_10);
         }
 
-        // 주간
-        if("WEEKLY".equals(period)){
-            start = now.minusWeeks(1);
-            end = now.minusDays(1);
-            return orderRepository.findTopBestSellerBookIds(start, end, ORDER_STATUS_DELIVERED, ORDER_ITEM_STATUS_DELIVERED, TOP_10);
+        // 주간 (7일 전 00:00:00 ~ 어제 23:59:59)
+        if ("WEEKLY".equals(period)) {
+            startDateTime = now.minusWeeks(1).atStartOfDay();
+            endDateTime = now.minusDays(1).atTime(LocalTime.MAX);
+            return orderRepository.findTopBestSellerBookIds(
+                    startDateTime, endDateTime, ORDER_STATUS_DELIVERED, ORDER_ITEM_STATUS_DELIVERED, TOP_10);
         }
         return List.of();
     }
@@ -80,14 +84,14 @@ public class OrderApiServiceImpl implements OrderApiService {
             // TODO 비회원 작업
         }
 
-        Order order = orderTransactionService.validateOrderExistence(userId, req.orderNumber());
+//        Order order = orderTransactionService.validateOrderExistence(userId, req.orderNumber(), null);
 
-        orderResourceManager.releaseResources(req.orderNumber(), userId, order.getPointDiscount(), order.getOrderId());
-
-        order.setOrderStatus(OrderStatus.CANCELED);
-
-        for (OrderItem orderItem : order.getOrderItems()) {
-            orderItem.setOrderItemStatus(OrderItemStatus.ORDER_CANCELED);
-        }
+//        orderResourceManager.releaseResources(req.orderNumber(), userId, order.getPointDiscount(), order.getOrderId());
+//
+//        order.setOrderStatus(OrderStatus.CANCELED);
+//
+//        for (OrderItem orderItem : order.getOrderItems()) {
+//            orderItem.setOrderItemStatus(OrderItemStatus.ORDER_CANCELED);
+//        }
     }
 }

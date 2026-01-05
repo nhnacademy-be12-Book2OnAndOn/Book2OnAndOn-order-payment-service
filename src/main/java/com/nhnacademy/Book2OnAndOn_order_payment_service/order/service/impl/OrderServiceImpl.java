@@ -124,6 +124,12 @@ public class OrderServiceImpl implements OrderService {
         return memberCouponResponseDtoList;
     }
 
+    private List<CouponTargetResponseDto> fetchCouponTarget(List<Long> couponIds){
+        return couponIds.stream()
+                .map(couponServiceClient::getCouponTargets)
+                .toList();
+    }
+
     /**
      * 책 클라이언트를 통해 책 정보를 가져오는 공용 메서드입니다.
      * @param userId 유저 아이디
@@ -143,8 +149,8 @@ public class OrderServiceImpl implements OrderService {
      */
     // TODO 캐시 설정?
     @Override
-    public OrderPrepareResponseDto prepareOrder(Long userId, String guestId, OrderPrepareRequestDto req) {
-        log.info("주문 전 데이터 정보 가져오기 로직 실행 (회원 아이디 : {}, 비회원 아이디 : {})", userId, guestId);
+    public OrderPrepareResponseDto prepareOrder(Long userId, OrderPrepareRequestDto req) {
+        log.info("주문 전 데이터 정보 가져오기 로직 실행 (회원 아이디 : {})", userId);
 
         // 책 id
         List<Long> bookIds = req.bookItems().stream()
@@ -166,16 +172,17 @@ public class OrderServiceImpl implements OrderService {
             }
         }
 
-        if(userId == null){
-            return OrderPrepareResponseDto.forGuest(bookOrderResponseList);
-        }
-
         List<UserAddressResponseDto> userAddressResponseDtoList = fetchUserAddressInfo(userId);
 
         // 사용 가능한 쿠폰을 받기 위한 RequestDto 생성
         OrderCouponCheckRequestDto orderCouponCheckRequestDto = createOrderCouponCheckRequest(bookOrderResponseList);
         List<MemberCouponResponseDto> userCouponResponseDtoList = fetchUsableMemberCouponInfo(userId, orderCouponCheckRequestDto);
 
+        List<Long> couponIds = userCouponResponseDtoList.stream()
+                .map(MemberCouponResponseDto::getMemberCouponId)
+                .toList();
+
+        List<CouponTargetResponseDto> couponTargetResponseDtoList = fetchCouponTarget(couponIds);
 
 
         CurrentPointResponseDto userCurrentPoint = fetchPointInfo(userId);
@@ -185,6 +192,7 @@ public class OrderServiceImpl implements OrderService {
                 bookOrderResponseList,
                 userAddressResponseDtoList,
                 userCouponResponseDtoList,
+                couponTargetResponseDtoList,
                 userCurrentPoint
         );
     }
@@ -423,25 +431,46 @@ public class OrderServiceImpl implements OrderService {
                 targetCategoryIds,
                 totalItemAmount);
 
-        if(discountBaseAmount < couponTargetResponseDto.minPrice()){
-            log.error("최소 주문 금액 {}원 이상부터 할인 적용이 가능합니다 (현재 주문 금액 : {}원)", couponTargetResponseDto.minPrice(), discountBaseAmount);
-            throw new OrderVerificationException("최소 주문 금액 " + couponTargetResponseDto.minPrice() + "원 이상부터 할인 쿠폰 적용이 가능합니다.");
+        // null값 방어처리
+        Integer minPrice = couponTargetResponseDto.minPrice();
+        Integer maxPrice = couponTargetResponseDto.maxPrice();
+        Integer discountValue = couponTargetResponseDto.discountValue();
+
+        minPrice = minPrice != null ? minPrice : 0;
+        maxPrice = maxPrice != null ? maxPrice : 0;
+        discountValue = discountValue != null ? discountValue : 0;
+
+        if (discountBaseAmount < minPrice) {
+            log.error(
+                    "최소 주문 금액 {}원 이상부터 할인 적용이 가능합니다 (현재 주문 금액 : {}원)",
+                    minPrice, discountBaseAmount
+            );
+            throw new OrderVerificationException(
+                    "최소 주문 금액 " + minPrice + "원 이상부터 할인 쿠폰 적용이 가능합니다."
+            );
         }
 
-        if(discountBaseAmount - couponTargetResponseDto.discountValue() < 100){
-            log.error("최소 결제 금액 100원 이상 결제해야합니다 (현재 주문 금액 : {}원, 쿠폰 할인 금액 : {}원)", discountBaseAmount, couponTargetResponseDto.discountValue());
+        if (discountBaseAmount - discountValue < 100) {
+            log.error(
+                    "최소 결제 금액 100원 이상 결제해야합니다 (현재 주문 금액 : {}원, 쿠폰 할인 금액 : {}원)",
+                    discountBaseAmount, discountValue
+            );
         }
+
 
         CouponPolicyDiscountType discountType = couponTargetResponseDto.discountType();
 
         // 할인금액이 고정
-        if(CouponPolicyDiscountType.FIXED.equals(discountType)){
-            return couponTargetResponseDto.discountValue();
+        if (CouponPolicyDiscountType.FIXED.equals(discountType)) {
+            return discountValue;
         }
 
-        int discount = discountBaseAmount * couponTargetResponseDto.discountValue() / 100;
-        // 최대 할인 보다 높을시 최대 할인 금액 적용
-        return discount > couponTargetResponseDto.maxPrice() ? couponTargetResponseDto.maxPrice() : discount;
+        // 할인금액이 퍼센트
+        int discount = discountBaseAmount * discountValue / 100;
+
+        // maxPrice가 있으면 제한, 없으면 그대로
+        return Math.min(maxPrice, discount);
+
     }
 
     // 할인 대상 금액 계산
@@ -534,10 +563,17 @@ public class OrderServiceImpl implements OrderService {
     }
 
     @Override
-    public OrderDetailResponseDto getOrderDetail(Long userId, String orderNumber) {
-        log.info("일반 사용자 주문 상세 정보 조회 로직 실행 (유저 아이디 : {}, 주문번호 : {})", userId, orderNumber);
+    public OrderDetailResponseDto getOrderDetail(Long userId, String orderNumber, String guestToken) {
+        if (userId != null) {
+            log.info("회원 주문 상세 조회 요청 - UserID: {}, OrderNum: {}", userId, orderNumber);
+        } else {
+            log.info("비회원 주문 상세 조회 요청 - GuestToken(exist), OrderNum: {}", orderNumber);
+        }
 
-        Order order = orderTransactionService.validateOrderExistence(userId, orderNumber);
+        Order order = orderRepository.findByOrderNumber(orderNumber)
+                .orElseThrow(() -> new OrderNotFoundException("주문 정보를 찾을 수 없습니다. Order: " + orderNumber));
+
+        orderTransactionService.validateOrderExistence(order, userId, guestToken);
 
         List<Long> bookIds = order.getOrderItems().stream()
                 .map(OrderItem::getBookId)
@@ -558,21 +594,13 @@ public class OrderServiceImpl implements OrderService {
     @Override
     @Transactional
     public void cancelOrder(Long userId, String orderNumber) {
-        log.info("일반 사용자 주문 취소 로직 실행 (유저 아이디 : {}, 주문번호 : {})", userId, orderNumber);
+        log.info("회원 주문 취소 요청 (User: {}, Order: {})", userId, orderNumber);
 
-        // 주문 검증
         Order order = orderRepository.findByUserIdAndOrderNumber(userId, orderNumber)
-                .orElseThrow(() -> new OrderNotFoundException("Not Found Order : " + orderNumber));
+                .orElseThrow(() -> new OrderNotFoundException("주문을 찾을 수 없습니다: " + orderNumber));
 
-        // 주문 상태에 따른 오류 던지기
-        if(!order.getOrderStatus().isCancellable()){
-            log.warn("주문 취소를 할 수 없는 상태입니다 (현재 상태  : {})", order.getOrderStatus().name());
-            throw new OrderNotCancellableException("주문 취소를 할 수 없는 상태입니다 : " + order.getOrderStatus().name());
-        }
-
-        // 결제 취소 호출 (사용자 주문 취소)
-        paymentService.cancelPayment(new PaymentCancelRequest(order.getOrderNumber(), "사용자 주문 취소", null));
-
+        // 공통 취소 로직 호출
+        processCancelOrder(order);
         // 상태 변경
         orderTransactionService.changeStatusOrder(order, false);
 
@@ -591,18 +619,41 @@ public class OrderServiceImpl implements OrderService {
     public OrderPrepareResponseDto prepareGuestOrder(String guestId, OrderPrepareRequestDto req) {
         log.info("주문 전 데이터 정보 가져오기 로직 실행 (비회원 유저 : {})", guestId);
 
+        // 책 id
         List<Long> bookIds = req.bookItems().stream()
                 .map(BookInfoDto::bookId)
                 .toList();
 
         List<BookOrderResponse> bookOrderResponseList = fetchBookInfo(bookIds);
 
-        return new OrderPrepareResponseDto(
-                bookOrderResponseList,
-                null,
-                null,
-                null
-        );
+        Map<Long, Integer> quantities = req.bookItems().stream()
+                .collect(Collectors.toMap(
+                        BookInfoDto::bookId,
+                        BookInfoDto::quantity
+                ));
+
+        for (BookOrderResponse bookOrderResponse : bookOrderResponseList) {
+            Integer quantity = quantities.get(bookOrderResponse.getBookId());
+            if(quantity != null){
+                bookOrderResponse.setQuantity(quantity);
+            }
+        }
+
+        return OrderPrepareResponseDto.forGuest(bookOrderResponseList);
+    }
+
+    //비회원 주문 취소
+    @Override
+    @Transactional
+    public void cancelGuestOrder(String orderNumber, String guestToken) {
+        log.info("비회원 주문 취소 요청 (Order: {})", orderNumber);
+
+        Order order = orderRepository.findByOrderNumber(orderNumber)
+                .orElseThrow(() -> new OrderNotFoundException("주문 정보를 찾을 수 없습니다. Order: " + orderNumber));
+
+        orderTransactionService.validateOrderExistence(order, null, guestToken);
+
+        processCancelOrder(order);
     }
 
     @Override
@@ -645,7 +696,7 @@ public class OrderServiceImpl implements OrderService {
     @Override
     @Transactional
     public Page<OrderSimpleDto> getOrderListWithAdmin(Pageable pageable) {
-        return orderRepository.findAllByAdmin(pageable);
+        return orderRepository.findAllByAdmin(pageable, OrderStatus.PENDING);
     }
 
     @Override
@@ -666,6 +717,22 @@ public class OrderServiceImpl implements OrderService {
         orderDetailResponseDto.setPaymentResponse(paymentResponse);
 
         return orderDetailResponseDto;
+    }
+
+    @Override
+    @Transactional
+    public void cancelOrderByAdmin(String orderNumber) {
+        log.info("관리자 주문 취소 요청 (주문번호 : {})", orderNumber);
+
+        Order order = orderRepository.findByOrderNumber(orderNumber)
+                .orElseThrow(() -> new OrderNotFoundException("Not Found Order : " + orderNumber));
+
+        // 공통 취소 로직 호출
+        processCancelOrder(order);
+        // 상태 변경
+        orderTransactionService.changeStatusOrder(order, false);
+
+        resourceManager.releaseResources(orderNumber, order.getUserId(), order.getPointDiscount(), order.getOrderId());
     }
 
     @Override
@@ -705,5 +772,18 @@ public class OrderServiceImpl implements OrderService {
     @Override
     public int deleteJunkOrder(List<Long> ids) {
         return orderRepository.deleteByIds(ids);
+    }
+
+
+    //주문 취소 공통 로직 따로 뻄
+    private void processCancelOrder(Order order) {
+        if (!order.getOrderStatus().isCancellable()) {
+            log.warn("주문 취소를 할 수 없는 상태입니다 (현재 상태 : {})", order.getOrderStatus().name());
+            throw new OrderNotCancellableException("주문 취소를 할 수 없는 상태입니다 : " + order.getOrderStatus().name());
+        }
+
+        paymentService.cancelPayment(new PaymentCancelRequest(order.getOrderNumber(), "사용자 주문 취소", null));
+
+        orderTransactionService.changeStatusOrder(order, false);
     }
 }

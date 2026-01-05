@@ -50,13 +50,13 @@ class GuestOrderServiceTest {
         given(passwordEncoder.matches(request.getGuestPassword(), "encoded-password"))
                 .willReturn(true);
         given(guestOrder.getOrder()).willReturn(order);
-        given(order.getOrderId()).willReturn(1L);
+        given(order.getOrderNumber()).willReturn("ORD-100");
         given(tokenProvider.createToken(1L)).willReturn("guest-jwt-token");
 
         GuestLoginResponseDto result = guestOrderService.loginGuest(request);
 
         assertThat(result.getAccessToken()).isEqualTo("guest-jwt-token");
-        assertThat(result.getOrderId()).isEqualTo(1L);
+        assertThat(result.getOrderNumber()).isEqualTo("ORD-100");
     }
 
     @Test

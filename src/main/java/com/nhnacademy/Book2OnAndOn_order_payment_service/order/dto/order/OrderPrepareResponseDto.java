@@ -1,6 +1,7 @@
 package com.nhnacademy.Book2OnAndOn_order_payment_service.order.dto.order;
 
 import com.nhnacademy.Book2OnAndOn_order_payment_service.client.dto.BookOrderResponse;
+import com.nhnacademy.Book2OnAndOn_order_payment_service.client.dto.CouponTargetResponseDto;
 import com.nhnacademy.Book2OnAndOn_order_payment_service.client.dto.CurrentPointResponseDto;
 import com.nhnacademy.Book2OnAndOn_order_payment_service.client.dto.MemberCouponResponseDto;
 import com.nhnacademy.Book2OnAndOn_order_payment_service.client.dto.UserAddressResponseDto;
@@ -13,17 +14,21 @@ public record OrderPrepareResponseDto(
         List<UserAddressResponseDto> addresses,
         // 사용할 수 있는 쿠폰 조회
         List<MemberCouponResponseDto> coupons,
+        // 쿠폰 할인 계산 조회용
+        List<CouponTargetResponseDto> couponTargets,
         // 유저 포인트 조회
         CurrentPointResponseDto currentPoint
 ) {
     public static OrderPrepareResponseDto forMember(List<BookOrderResponse> orderItems,
                                              List<UserAddressResponseDto> addresses,
                                              List<MemberCouponResponseDto> coupons,
+                                             List<CouponTargetResponseDto> couponTargets,
                                              CurrentPointResponseDto currentPoint){
         return new OrderPrepareResponseDto(
                 orderItems,
                 addresses,
                 coupons,
+                couponTargets,
                 currentPoint
         );
     }
@@ -31,6 +36,7 @@ public record OrderPrepareResponseDto(
     public static OrderPrepareResponseDto forGuest(List<BookOrderResponse> orderItems){
         return new OrderPrepareResponseDto(
                 orderItems,
+                null,
                 null,
                 null,
                 null

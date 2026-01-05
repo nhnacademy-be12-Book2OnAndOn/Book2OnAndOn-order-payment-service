@@ -9,6 +9,7 @@ import com.nhnacademy.Book2OnAndOn_order_payment_service.order.entity.order.Orde
 import com.nhnacademy.Book2OnAndOn_order_payment_service.order.entity.order.OrderItemStatus;
 import com.nhnacademy.Book2OnAndOn_order_payment_service.order.entity.order.OrderStatus;
 import com.nhnacademy.Book2OnAndOn_order_payment_service.order.exception.OrderNotFoundException;
+import com.nhnacademy.Book2OnAndOn_order_payment_service.order.provider.GuestTokenProvider;
 import com.nhnacademy.Book2OnAndOn_order_payment_service.order.repository.order.OrderItemRepository;
 import com.nhnacademy.Book2OnAndOn_order_payment_service.order.repository.order.OrderRepository;
 import com.nhnacademy.Book2OnAndOn_order_payment_service.payment.domain.dto.CommonConfirmRequest;
@@ -16,6 +17,7 @@ import java.util.List;
 import java.util.Objects;
 import lombok.RequiredArgsConstructor;
 import lombok.extern.slf4j.Slf4j;
+import org.springframework.security.access.AccessDeniedException;
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
 
@@ -26,14 +28,35 @@ public class OrderTransactionService {
 
     private final OrderRepository orderRepository;
     private final OrderViewAssembler orderViewAssembler;
+    private final GuestTokenProvider guestTokenProvider;
 
     private final OrderItemRepository orderItemRepository;
 
     // 해당 유저가 주문을 했는지 판별 로직
     @Transactional(readOnly = true)
-    public Order validateOrderExistence(Long userId, String orderNumber){
-        return orderRepository.findByUserIdAndOrderNumber(userId, orderNumber)
-                .orElseThrow(() -> new OrderNotFoundException("Not Found Order : " + orderNumber));
+    public void validateOrderExistence(Order order, Long userId, String guestToken){
+
+        //회원
+        if(userId != null) {
+            if (!userId.equals(order.getUserId())) {
+                throw new AccessDeniedException("본인의 주문 내역만 조회할 수 있습니다.");
+            }
+            return;
+        }
+
+        // 비회원
+        if (guestToken != null) {
+            // 토큰 자체의 유효성 검증 & 토큰 안에 들어있는 orderId 꺼내기
+            Long tokenOrderId = guestTokenProvider.validateTokenAndGetOrderId(guestToken);
+
+            // 토큰의 (tokenOrderId)과 현재 조회하려는 주문(order.getOrderId()) 같은지 확인
+            if (!tokenOrderId.equals(order.getOrderId())) {
+                throw new AccessDeniedException("접근 권한이 없는 주문입니다. (토큰 불일치)");
+            }
+            return;
+        }
+
+        throw new AccessDeniedException("로그인이 필요하거나, 비회원 인증 정보가 누락되었습니다.");
     }
 
     // payment건

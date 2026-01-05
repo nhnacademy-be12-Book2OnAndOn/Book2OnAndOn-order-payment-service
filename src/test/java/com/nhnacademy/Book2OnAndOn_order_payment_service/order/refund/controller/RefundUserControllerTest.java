@@ -11,7 +11,7 @@
 //import static org.springframework.test.web.servlet.result.MockMvcResultMatchers.status;
 //
 //import com.fasterxml.jackson.databind.ObjectMapper;
-//import com.nhnacademy.Book2OnAndOn_order_payment_service.order.controller.RefundUserController;
+//import com.nhnacademy.Book2OnAndOn_order_payment_service.order.controller.RefundController;
 //import com.nhnacademy.Book2OnAndOn_order_payment_service.order.dto.refund.request.RefundRequestDto;
 //import com.nhnacademy.Book2OnAndOn_order_payment_service.order.dto.refund.response.RefundAvailableItemResponseDto;
 //import com.nhnacademy.Book2OnAndOn_order_payment_service.order.dto.refund.response.RefundResponseDto;
@@ -28,7 +28,7 @@
 //import org.springframework.test.context.bean.override.mockito.MockitoBean;
 //import org.springframework.test.web.servlet.MockMvc;
 //
-//@WebMvcTest(RefundUserController.class)
+//@WebMvcTest(RefundController.class)
 //class RefundUserControllerTest {
 //
 //    @Autowired
@@ -49,7 +49,7 @@
 //        RefundResponseDto responseDto = mock(RefundResponseDto.class);
 //        given(responseDto.getRefundId()).willReturn(50L);
 //
-//        given(refundService.createRefundForMember(eq(orderId), eq(100L), any(RefundRequestDto.class)))
+//        given(refundService.createRefund(eq(orderId), eq(100L), any(RefundRequestDto.class)))
 //                .willReturn(responseDto);
 //
 //        mockMvc.perform(post("/orders/{orderId}/refunds", orderId)
