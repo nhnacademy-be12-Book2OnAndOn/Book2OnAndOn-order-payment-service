@@ -3,6 +3,7 @@ package com.nhnacademy.Book2OnAndOn_order_payment_service.order.service;
 import com.nhnacademy.Book2OnAndOn_order_payment_service.client.BookServiceClient;
 import com.nhnacademy.Book2OnAndOn_order_payment_service.client.CouponServiceClient;
 import com.nhnacademy.Book2OnAndOn_order_payment_service.client.UserServiceClient;
+import com.nhnacademy.Book2OnAndOn_order_payment_service.client.dto.EarnOrderPointRequestDto;
 import com.nhnacademy.Book2OnAndOn_order_payment_service.client.dto.OrderCanceledEvent;
 import com.nhnacademy.Book2OnAndOn_order_payment_service.client.dto.ReserveBookRequestDto;
 import com.nhnacademy.Book2OnAndOn_order_payment_service.client.dto.UseCouponRequestDto;
@@ -40,20 +41,29 @@ public class OrderResourceManager {
                 .toList();
 
         reserveBook(result.orderNumber(), bookInfoDtoList);
+
+        if(userId == null) return;
+
         confirmCoupon(result.orderNumber(), userId, req.getMemberCouponId());
         confirmPoint(orderId, userId, result.pointDiscount());
     }
 
     // 자원 복구
-    public void releaseResources(String orderNumber, Long memberCouponId, Long userId, Integer point, Long orderId){
+    public void releaseResources(String orderNumber, Long userId, Integer point, Long orderId){
         releaseBook(orderNumber);
-        releaseCoupon(orderNumber, memberCouponId);
+
+        if(userId == null) return;
+        releaseCoupon(orderNumber);
         releasePoint(orderId, userId, point);
     }
 
     // 도서 확정 (결제 성공시 이벤트 핸들러용)
-    public void finalizeBooks(String orderNumber){
+    public void completeOrder(Long userId, String orderNumber, Long orderId, Integer totalItemAmount){
         confirmBook(orderNumber);
+
+        if(userId == null) return;
+
+        earnPoint(userId, new EarnOrderPointRequestDto(userId, orderId, totalItemAmount));
     }
 
     /// 실제 로직
@@ -77,8 +87,7 @@ public class OrderResourceManager {
     }
 
     // 쿠폰
-    private void releaseCoupon(String orderNumber, Long memberCouponId){
-        if(memberCouponId == null) return;
+    private void releaseCoupon(String orderNumber){
         rabbitTemplate.convertAndSend(
                 RabbitConfig.EXCHANGE,
                 RabbitConfig.ROUTING_KEY_CANCEL_COUPON,
@@ -87,7 +96,7 @@ public class OrderResourceManager {
 
     }
     private void confirmCoupon(String orderNumber, Long userId, Long memberCouponId){
-        if(memberCouponId == null || userId == null) return;
+        if(memberCouponId == null) return;
         couponServiceClient.useCoupon(memberCouponId, userId, new UseCouponRequestDto(orderNumber));
     }
 
@@ -101,10 +110,18 @@ public class OrderResourceManager {
                 new OrderCanceledEvent(userId, orderId, point, LocalDateTime.now())
         );
     }
-    private void confirmPoint(Long orderId, Long userId, Integer point){
-        if(point == null || point <= 0 || userId == null) return;
+    public void confirmPoint(Long orderId, Long userId, Integer point){
+        if(point == null || point <= 0) return;
         userServiceClient.usePoint(userId, new UsePointInternalRequestDto(orderId, point));
+    }
 
+    public void rollbackPoint(Long orderId, Long userId, Integer point) {
+        // 기존 private releasePoint(...)를 여기서 호출
+        releasePoint(orderId, userId, point);
+    }
+
+    private void earnPoint(Long userId, EarnOrderPointRequestDto req){
+        userServiceClient.earnOrderPoint(userId, req);
     }
 
 }

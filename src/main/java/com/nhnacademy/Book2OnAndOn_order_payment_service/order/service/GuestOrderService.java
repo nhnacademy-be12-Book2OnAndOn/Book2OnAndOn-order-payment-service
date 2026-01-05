@@ -23,7 +23,7 @@ public class GuestOrderService {
 
     @Transactional(readOnly = true)
     public GuestLoginResponseDto loginGuest(GuestLoginRequestDto requestDto) {
-        log.debug("orderNumber {} ", requestDto.getOrderNumber());
+        log.debug("주문 번호 {} ", requestDto.getOrderNumber());
         GuestOrder guestOrder = guestOrderRepository.findByOrder_OrderNumber(requestDto.getOrderNumber())
                 .orElseThrow(GuestOrderNotFoundException::new);
 
@@ -36,6 +36,8 @@ public class GuestOrderService {
         String token = tokenProvider.createToken(orderId);
         log.debug("Guest Token 발급 성공. orderId = {}", orderId);
 
-        return new GuestLoginResponseDto(token, orderId);
+        // 반환은 orderNumber로
+        String orderNumber = guestOrder.getOrder().getOrderNumber();
+        return new GuestLoginResponseDto(token, orderNumber);
     }
 }

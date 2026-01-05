@@ -14,30 +14,9 @@ import org.springframework.data.jpa.repository.Query;
 import org.springframework.data.repository.query.Param;
 import org.springframework.stereotype.Repository;
 import com.nhnacademy.Book2OnAndOn_order_payment_service.order.entity.order.*;
-import org.springframework.transaction.annotation.Transactional;
 
 @Repository
 public interface OrderRepository extends JpaRepository<Order, Long> {
-    // 1. N+1 해결을 위한 상세 조회 (Order, OrderItems, DeliveryAddress를 Fetch Join)
-    // DTO 변환 시 사용하므로 이들이 N+1 문제의 핵심
-    @Query("SELECT o FROM Order o JOIN FETCH o.orderItems oi JOIN FETCH o.deliveryAddress da WHERE o.orderId = :orderId")
-    Optional<Order> findOrderWithDetails(Long orderId);
-    Page<Order> findByUserId(Long userId, Pageable pageable);
-
-    // 해당아이디에 해당 주문이 있는지
-    boolean existsByOrderNumberAndUserId(String orderNumber, Long userId);
-    // 결제 검증용
-    @Query("SELECT o.totalAmount FROM Order o WHERE o.orderNumber = :orderNumber")
-    Optional<Integer> findTotalAmount(String orderNumber);
-
-    // OrderNumber 존재하는지
-    boolean existsByOrderNumber(String orderNumber);
-
-
-    /*
-        TODO 새로 만들 작업
-     */
-
     /*
         일반 사용자
      */
@@ -57,6 +36,18 @@ public interface OrderRepository extends JpaRepository<Order, Long> {
     @Query("SELECT o FROM Order o WHERE o.userId = :userId AND o.orderNumber = :orderNumber")
     Optional<Order> findByUserIdAndOrderNumber(Long userId, String orderNumber);
 
+    /*
+        관리자
+     */
+
+    @Query("""
+        SELECT new com.nhnacademy.Book2OnAndOn_order_payment_service.order.dto.order.OrderSimpleDto(
+               o.orderId, o.orderNumber, o.orderStatus, o.orderDateTime, o.totalAmount, o.orderTitle
+            )
+        FROM Order o
+        WHERE o.orderStatus <> :orderStatus
+    """)
+    Page<OrderSimpleDto> findAllByAdmin(Pageable pageable, OrderStatus orderStatus);
     /*
         스케쥴러 작업
      */
@@ -119,12 +110,14 @@ public interface OrderRepository extends JpaRepository<Order, Long> {
         GROUP BY oi.bookId
         ORDER BY SUM(oi.orderItemQuantity) DESC
     """)
-    List<Long> findTopBestSellerBookIds(LocalDate start,
-                                        LocalDate end,
+    List<Long> findTopBestSellerBookIds(LocalDateTime start,
+                                        LocalDateTime end,
                                         OrderStatus orderStatus,
                                         OrderItemStatus orderItemStatus,
                                         Pageable pageable);
+
     @EntityGraph(attributePaths = {"orderItems"})
     Optional<Order> findByOrderNumber(String orderNumber);
+
 }
 

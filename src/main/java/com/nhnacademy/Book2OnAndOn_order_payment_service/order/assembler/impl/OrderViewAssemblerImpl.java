@@ -70,7 +70,7 @@ public class OrderViewAssemblerImpl implements OrderViewAssembler {
         return new OrderDetailResponseDto(
                 order.getOrderId(),
                 order.getOrderNumber(),
-                order.getOrderStatus(),
+                order.getOrderStatus().getDescription(),
                 order.getOrderDateTime(),
                 order.getTotalAmount(),
                 order.getTotalDiscountAmount(),
@@ -111,7 +111,7 @@ public class OrderViewAssemblerImpl implements OrderViewAssembler {
                 orderItem.getOrderItemQuantity(),
                 bookOrder.getPriceSales().intValue(),
                 orderItem.isWrapped(),
-                orderItem.getOrderItemStatus().name(),
+                orderItem.getOrderItemStatus().getDescription(),
                 orderItem.isWrapped() && (orderItem.getWrappingPaper() != null)
                         ? orderItem.getWrappingPaper().getWrappingPaperId()
                         : null
