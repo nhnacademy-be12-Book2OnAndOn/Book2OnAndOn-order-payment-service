@@ -1,13 +1,9 @@
 package com.nhnacademy.Book2OnAndOn_order_payment_service.order.repository.refund;
 
-import com.nhnacademy.Book2OnAndOn_order_payment_service.order.entity.refund.Refund;
 import com.nhnacademy.Book2OnAndOn_order_payment_service.order.entity.refund.RefundItem;
 import com.nhnacademy.Book2OnAndOn_order_payment_service.order.entity.refund.RefundStatus;
 import java.util.Collection;
 import java.util.List;
-import java.util.Optional;
-import org.springframework.data.domain.Page;
-import org.springframework.data.domain.Pageable;
 import org.springframework.data.jpa.repository.JpaRepository;
 import org.springframework.data.jpa.repository.Query;
 import org.springframework.data.repository.query.Param;
@@ -15,6 +11,11 @@ import org.springframework.stereotype.Repository;
 
 @Repository
 public interface RefundItemRepository extends JpaRepository<RefundItem, Long> {
+
+    interface OrderItemQtyAggregate {
+        Long getOrderItemId();
+        Integer getQuantity();
+    }
 
     // 완료(환불 완료) 기준으로만 "이미 반품된 수량" 합산
     @Query("""
@@ -44,12 +45,15 @@ public interface RefundItemRepository extends JpaRepository<RefundItem, Long> {
     boolean existsByOrderItemOrderItemIdAndRefundRefundStatusIn(Long orderItemId, Collection<RefundStatus> refundStatuses);
 
     @Query("""
-        select ri.orderItem.orderItemId as orderItemId,
-               coalesce(sum(ri.refundQuantity),0) as qty
+        select oi.orderItemId as orderItemId,
+               sum(ri.refundQuantity) as quantity
         from RefundItem ri
-        where ri.orderItem.order.orderId = :orderId
-          and ri.refund.refundStatus = :status
-        group by ri.orderItem.orderItemId
+        join ri.refund r
+        join ri.orderItem oi
+        join oi.order o
+        where o.orderId = :orderId
+          and r.refundStatus = :status
+        group by oi.orderItemId
     """)
     List<OrderItemQtyAggregate> sumByOrderIdAndStatus(
             @Param("orderId") Long orderId,
@@ -57,21 +61,18 @@ public interface RefundItemRepository extends JpaRepository<RefundItem, Long> {
     );
 
     @Query("""
-        select ri.orderItem.orderItemId as orderItemId,
-               coalesce(sum(ri.refundQuantity),0) as qty
+        select oi.orderItemId as orderItemId,
+               sum(ri.refundQuantity) as quantity
         from RefundItem ri
-        where ri.orderItem.order.orderId = :orderId
-          and ri.refund.refundStatus in :statuses
-        group by ri.orderItem.orderItemId
+        join ri.refund r
+        join ri.orderItem oi
+        join oi.order o
+        where o.orderId = :orderId
+          and r.refundStatus in :statuses
+        group by oi.orderItemId
     """)
     List<OrderItemQtyAggregate> sumByOrderIdAndStatuses(
             @Param("orderId") Long orderId,
-            @Param("statuses") Collection<RefundStatus> statuses
+            @Param("statuses") List<RefundStatus> statuses
     );
-
-    interface OrderItemQtyAggregate {
-        Long getOrderItemId();
-        Integer getQuantity();
-    }
-
 }
