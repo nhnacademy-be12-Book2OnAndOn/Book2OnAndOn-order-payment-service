@@ -8,6 +8,7 @@ import com.nhnacademy.Book2OnAndOn_order_payment_service.order.entity.order.Orde
 import com.nhnacademy.Book2OnAndOn_order_payment_service.order.entity.order.OrderStatus;
 import com.nhnacademy.Book2OnAndOn_order_payment_service.order.exception.DeliveryNotFoundException;
 import com.nhnacademy.Book2OnAndOn_order_payment_service.order.exception.OrderNotFoundException;
+import com.nhnacademy.Book2OnAndOn_order_payment_service.order.provider.GuestTokenProvider;
 import com.nhnacademy.Book2OnAndOn_order_payment_service.order.repository.delivery.DeliveryRepository;
 import com.nhnacademy.Book2OnAndOn_order_payment_service.order.repository.order.OrderRepository;
 import com.nhnacademy.Book2OnAndOn_order_payment_service.order.service.DeliveryService;
@@ -31,8 +32,10 @@ import java.util.Optional;
 import static org.assertj.core.api.Assertions.assertThat;
 import static org.assertj.core.api.Assertions.assertThatThrownBy;
 import static org.mockito.ArgumentMatchers.any;
+import static org.mockito.ArgumentMatchers.eq;
 import static org.mockito.BDDMockito.given;
-import static org.mockito.Mockito.*;
+import static org.mockito.Mockito.mock;
+import static org.mockito.Mockito.verify;
 
 @ExtendWith(MockitoExtension.class)
 class DeliveryServiceTest {
@@ -46,9 +49,11 @@ class DeliveryServiceTest {
     @Mock
     private OrderRepository orderRepository;
 
+    @Mock
+    private GuestTokenProvider guestTokenProvider;
+
     @BeforeEach
     void setUp() {
-        // @Value 필드 주입
         ReflectionTestUtils.setField(deliveryService, "sweetTrackerApiKey", "test-api-key");
     }
 
@@ -137,8 +142,8 @@ class DeliveryServiceTest {
     }
 
     @Test
-    @DisplayName("배송 정보 단일 조회 - 성공")
-    void getDelivery_Success() {
+    @DisplayName("배송 정보 단일 조회 - 성공 (회원)")
+    void getDelivery_Member_Success() {
         // given
         Long orderId = 1L;
         Long userId = 100L;
@@ -148,18 +153,57 @@ class DeliveryServiceTest {
 
         given(deliveryRepository.findByOrder_OrderId(orderId)).willReturn(Optional.of(delivery));
         given(delivery.getOrder()).willReturn(order);
+        given(order.getOrderId()).willReturn(orderId);
         given(order.getUserId()).willReturn(userId);
 
         // when
-        DeliveryResponseDto result = deliveryService.getDelivery(orderId, userId, isNull());
+        DeliveryResponseDto result = deliveryService.getDelivery(orderId, userId, null);
 
         // then
         assertThat(result).isNotNull();
     }
 
     @Test
-    @DisplayName("배송 정보 단일 조회 - 실패: 본인 아님")
-    void getDelivery_Fail_AccessDenied() {
+    @DisplayName("배송 정보 단일 조회 - 성공 (비회원)")
+    void getDelivery_Guest_Success() {
+        // given
+        Long orderId = 1L;
+        String guestToken = "valid-token";
+
+        Delivery delivery = mock(Delivery.class);
+        Order order = mock(Order.class);
+
+        given(deliveryRepository.findByOrder_OrderId(orderId)).willReturn(Optional.of(delivery));
+        given(delivery.getOrder()).willReturn(order);
+        given(order.getOrderId()).willReturn(orderId);
+
+        // 비회원 토큰 검증 스터빙
+        given(guestTokenProvider.validateTokenAndGetOrderId(guestToken)).willReturn(orderId);
+
+        // when
+        DeliveryResponseDto result = deliveryService.getDelivery(orderId, null, guestToken);
+
+        // then
+        assertThat(result).isNotNull();
+    }
+
+    @Test
+    @DisplayName("배송 정보 단일 조회 - 실패: 배송 정보 없음")
+    void getDelivery_Fail_DeliveryNotFound() {
+        // given
+        Long orderId = 1L;
+        Long userId = 100L;
+
+        given(deliveryRepository.findByOrder_OrderId(orderId)).willReturn(Optional.empty());
+
+        // when & then
+        assertThatThrownBy(() -> deliveryService.getDelivery(orderId, userId, null))
+                .isInstanceOf(DeliveryNotFoundException.class);
+    }
+
+    @Test
+    @DisplayName("배송 정보 단일 조회 - 실패: 본인 아님 (회원)")
+    void getDelivery_Fail_AccessDenied_Member() {
         // given
         Long orderId = 1L;
         Long userId = 100L;
@@ -170,28 +214,69 @@ class DeliveryServiceTest {
 
         given(deliveryRepository.findByOrder_OrderId(orderId)).willReturn(Optional.of(delivery));
         given(delivery.getOrder()).willReturn(order);
+        given(order.getOrderId()).willReturn(orderId);
         given(order.getUserId()).willReturn(otherUser); // 다른 유저
 
         // when & then
-        assertThatThrownBy(() -> deliveryService.getDelivery(orderId, userId, isNull()))
+        assertThatThrownBy(() -> deliveryService.getDelivery(orderId, userId, null))
                 .isInstanceOf(AccessDeniedException.class);
+    }
+
+    @Test
+    @DisplayName("배송 정보 단일 조회 - 실패: 본인 아님 (비회원)")
+    void getDelivery_Fail_AccessDenied_Guest() {
+        // given
+        Long orderId = 1L;
+        String guestToken = "invalid-token";
+        Long otherOrderId = 2L;
+
+        Delivery delivery = mock(Delivery.class);
+        Order order = mock(Order.class);
+
+        given(deliveryRepository.findByOrder_OrderId(orderId)).willReturn(Optional.of(delivery));
+        given(delivery.getOrder()).willReturn(order);
+        given(order.getOrderId()).willReturn(orderId);
+
+        given(guestTokenProvider.validateTokenAndGetOrderId(guestToken)).willReturn(otherOrderId);
+
+        // when & then
+        assertThatThrownBy(() -> deliveryService.getDelivery(orderId, null, guestToken))
+                .isInstanceOf(AccessDeniedException.class);
+    }
+
+    @Test
+    @DisplayName("배송 정보 단일 조회 - 실패: 인증 정보 없음")
+    void getDelivery_Fail_NoCredentials() {
+        // given
+        Long orderId = 1L;
+        Delivery delivery = mock(Delivery.class);
+        Order order = mock(Order.class);
+
+        given(deliveryRepository.findByOrder_OrderId(orderId)).willReturn(Optional.of(delivery));
+        given(delivery.getOrder()).willReturn(order);
+        given(order.getOrderId()).willReturn(orderId);
+
+        // when & then
+        assertThatThrownBy(() -> deliveryService.getDelivery(orderId, null, null))
+                .isInstanceOf(AccessDeniedException.class)
+                .hasMessageContaining("로그인이 필요하거나 잘못된 접근입니다");
     }
 
     @Test
     @DisplayName("배송 목록 조회 - 상태값 없음(전체 조회)")
     void getDeliveries_All() {
         // Given
-        Order order = createEntity(Order.class);
-        setField(order, "orderId", 1L);
-        setField(order, "orderNumber", "ORD-1");
-        setField(order, "orderStatus", OrderStatus.COMPLETED);
+        Order order = mock(Order.class);
+        // [수정] UnnecessaryStubbingException 방지: DTO 변환 시 orderId는 사용되지 않으므로 제거
+        // given(order.getOrderId()).willReturn(1L);
+        given(order.getOrderNumber()).willReturn("ORD-1");
+        given(order.getOrderStatus()).willReturn(OrderStatus.COMPLETED);
 
-        // Delivery 객체 생성 및 Order 주입
-        Delivery delivery = createEntity(Delivery.class);
-        setField(delivery, "deliveryId", 100L);
-        setField(delivery, "order", order); // [중요] Order 객체를 연결해줘야 NPE가 안 납니다.
-        setField(delivery, "deliveryCompany", DeliveryCompany.CJ_LOGISTICS); // DTO 변환 시 필요할 수 있음
-        setField(delivery, "waybill", "123456789");
+        Delivery delivery = mock(Delivery.class);
+        given(delivery.getDeliveryId()).willReturn(100L);
+        given(delivery.getOrder()).willReturn(order);
+        given(delivery.getDeliveryCompany()).willReturn(DeliveryCompany.CJ_LOGISTICS);
+        given(delivery.getWaybill()).willReturn("123456789");
 
         Pageable pageable = PageRequest.of(0, 10);
         Page<Delivery> page = new PageImpl<>(List.of(delivery));
@@ -203,24 +288,25 @@ class DeliveryServiceTest {
 
         // Then
         assertThat(result.getContent()).hasSize(1);
-        assertThat(result.getContent().get(0).getOrderNumber()).isNotNull();
+        assertThat(result.getContent().get(0).getOrderNumber()).isEqualTo("ORD-1");
         verify(deliveryRepository).findAll(any(Pageable.class));
-
     }
 
     @Test
     @DisplayName("배송 목록 조회 - 상태값 있음")
     void getDeliveries_WithStatus() {
         // Given
-        Order order = createEntity(Order.class);
-        setField(order, "orderId", 2L);
-        setField(order, "orderStatus", OrderStatus.SHIPPING);
+        Order order = mock(Order.class);
+        // [수정] UnnecessaryStubbingException 방지: DTO 변환 시 orderId는 사용되지 않으므로 제거
+        // given(order.getOrderId()).willReturn(2L);
+        given(order.getOrderNumber()).willReturn("ORD-2");
+        given(order.getOrderStatus()).willReturn(OrderStatus.SHIPPING);
 
-        Delivery delivery = createEntity(Delivery.class);
-        setField(delivery, "deliveryId", 200L);
-        setField(delivery, "order", order); // [NPE 해결]
-        setField(delivery, "deliveryCompany", DeliveryCompany.POST_OFFICE);
-        setField(delivery, "waybill", "987654321");
+        Delivery delivery = mock(Delivery.class);
+        given(delivery.getDeliveryId()).willReturn(200L);
+        given(delivery.getOrder()).willReturn(order);
+        given(delivery.getDeliveryCompany()).willReturn(DeliveryCompany.POST_OFFICE);
+        given(delivery.getWaybill()).willReturn("987654321");
 
         Pageable pageable = PageRequest.of(0, 10);
         OrderStatus status = OrderStatus.SHIPPING;
@@ -254,24 +340,17 @@ class DeliveryServiceTest {
         verify(delivery).updateTrackingInfo(any(DeliveryCompany.class), eq("999999"));
     }
 
-    private <T> T createEntity(Class<T> clazz) {
-        try {
-            java.lang.reflect.Constructor<T> constructor = clazz.getDeclaredConstructor();
-            constructor.setAccessible(true); // protected 생성자 접근 허용
-            return constructor.newInstance();
-        } catch (Exception e) {
-            throw new RuntimeException("Entity 생성 실패 (Reflection Error): " + clazz.getName(), e);
-        }
-    }
+    @Test
+    @DisplayName("배송 정보 수정 - 실패: 배송 정보 없음")
+    void updateDeliveryInfo_Fail_NotFound() {
+        // given
+        Long deliveryId = 1L;
+        DeliveryWaybillUpdateDto dto = new DeliveryWaybillUpdateDto("우체국택배", "999999");
 
-    // 2. Private 필드에 값 주입 (Setter 없이 주입)
-    private void setField(Object object, String fieldName, Object value) {
-        try {
-            java.lang.reflect.Field field = object.getClass().getDeclaredField(fieldName);
-            field.setAccessible(true); // private 필드 접근 허용
-            field.set(object, value);
-        } catch (NoSuchFieldException | IllegalAccessException e) {
-            throw new RuntimeException("필드 주입 실패: " + fieldName, e);
-        }
+        given(deliveryRepository.findById(deliveryId)).willReturn(Optional.empty());
+
+        // when & then
+        assertThatThrownBy(() -> deliveryService.updateDeliveryInfo(deliveryId, dto))
+                .isInstanceOf(DeliveryNotFoundException.class);
     }
 }

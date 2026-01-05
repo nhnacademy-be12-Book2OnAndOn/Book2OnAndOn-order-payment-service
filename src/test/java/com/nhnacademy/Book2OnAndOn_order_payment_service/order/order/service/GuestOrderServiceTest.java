@@ -49,8 +49,12 @@ class GuestOrderServiceTest {
         given(guestOrder.getGuestPassword()).willReturn("encoded-password");
         given(passwordEncoder.matches(request.getGuestPassword(), "encoded-password"))
                 .willReturn(true);
+
+        // [수정] Order 객체 연결 및 ID 반환 설정 추가
         given(guestOrder.getOrder()).willReturn(order);
+        given(order.getOrderId()).willReturn(1L); // 이 부분이 빠져서 0L이 넘어갔습니다.
         given(order.getOrderNumber()).willReturn("ORD-100");
+
         given(tokenProvider.createToken(1L)).willReturn("guest-jwt-token");
 
         GuestLoginResponseDto result = guestOrderService.loginGuest(request);

@@ -1,10 +1,13 @@
 package com.nhnacademy.Book2OnAndOn_order_payment_service.order.order.listener;
 
+import static org.mockito.ArgumentMatchers.anyList;
+import static org.mockito.ArgumentMatchers.anyLong;
 import static org.mockito.BDDMockito.given;
 import static org.mockito.Mockito.mock;
 import static org.mockito.Mockito.times;
 import static org.mockito.Mockito.verify;
 
+import com.nhnacademy.Book2OnAndOn_order_payment_service.cart.service.CartService;
 import com.nhnacademy.Book2OnAndOn_order_payment_service.order.entity.order.Order;
 import com.nhnacademy.Book2OnAndOn_order_payment_service.order.listener.PaymentSuccessEventListener;
 import com.nhnacademy.Book2OnAndOn_order_payment_service.order.service.DeliveryService;
@@ -19,17 +22,21 @@ import org.mockito.junit.jupiter.MockitoExtension;
 @ExtendWith(MockitoExtension.class)
 class PaymentSuccessEventListenerTest {
 
+    @InjectMocks
+    private PaymentSuccessEventListener eventListener;
+
     @Mock
     private DeliveryService deliveryService;
 
-    @InjectMocks
-    private PaymentSuccessEventListener eventListener;
+    @Mock
+    private CartService cartService;
 
     @Test
     @DisplayName("결제 성공 이벤트 수신 시 배송 생성 서비스를 호출한다")
     void paymentSuccessHandle_Success() {
         Long orderId = 100L;
         String orderNumber = "ORD-123";
+
         Order mockOrder = mock(Order.class);
         PaymentSuccessEvent event = new PaymentSuccessEvent(mockOrder);
 
@@ -39,6 +46,8 @@ class PaymentSuccessEventListenerTest {
         eventListener.paymentSuccessHandle(event);
 
         verify(deliveryService, times(1)).createPendingDelivery(orderId);
+        verify(cartService, times(1))
+                .deleteUserCartItemsAfterPayment(anyLong(), anyList());
     }
 
     @Test

@@ -2,6 +2,7 @@ package com.nhnacademy.Book2OnAndOn_order_payment_service.order.dto.refund.respo
 
 import com.nhnacademy.Book2OnAndOn_order_payment_service.order.entity.refund.Refund;
 import java.util.Map;
+import lombok.Builder;
 import lombok.Getter;
 import lombok.Setter;
 import lombok.NoArgsConstructor;
@@ -16,6 +17,7 @@ import java.util.List;
 @Setter
 @NoArgsConstructor
 @AllArgsConstructor
+@Builder
 public class RefundResponseDto {
     private Long refundId;
     private Long orderId;

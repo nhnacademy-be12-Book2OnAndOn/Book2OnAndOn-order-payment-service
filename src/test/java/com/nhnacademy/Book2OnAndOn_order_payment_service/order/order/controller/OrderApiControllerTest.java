@@ -1,8 +1,6 @@
 package com.nhnacademy.Book2OnAndOn_order_payment_service.order.order.controller;
 
 import static org.hamcrest.Matchers.containsString;
-import static org.mockito.ArgumentMatchers.any;
-import static org.mockito.ArgumentMatchers.eq;
 import static org.mockito.BDDMockito.given;
 import static org.springframework.test.web.servlet.request.MockMvcRequestBuilders.get;
 import static org.springframework.test.web.servlet.result.MockMvcResultMatchers.*;
@@ -16,23 +14,23 @@ import org.junit.jupiter.api.Test;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.boot.test.autoconfigure.web.servlet.AutoConfigureMockMvc;
 import org.springframework.boot.test.autoconfigure.web.servlet.WebMvcTest;
-import org.springframework.boot.test.mock.mockito.MockBean;
-import org.springframework.http.MediaType;
+
 import org.springframework.test.context.TestPropertySource;
+import org.springframework.test.context.bean.override.mockito.MockitoBean;
 import org.springframework.test.web.servlet.MockMvc;
 
 @WebMvcTest(OrderApiController.class)
 @AutoConfigureMockMvc(addFilters = false)
 @TestPropertySource(properties = {
-    "spring.cloud.config.enabled=false",
-    "spring.config.import=optional:configserver:"
+        "spring.cloud.config.enabled=false",
+        "spring.config.import=optional:configserver:"
 })
 class OrderApiControllerTest {
 
     @Autowired
     private MockMvc mockMvc;
 
-    @MockBean
+    @MockitoBean
     private OrderApiService orderApiService;
 
     private static final String USER_ID_HEADER = "X-User-Id";
@@ -44,7 +42,8 @@ class OrderApiControllerTest {
         Long bookId = 100L;
         given(orderApiService.existsPurchase(userId, bookId)).willReturn(true);
 
-        mockMvc.perform(get("/order/check-purchase/{bookId}", bookId)
+        // [수정] URL 경로 수정: /order -> /orders
+        mockMvc.perform(get("/orders/check-purchase/{bookId}", bookId)
                         .header(USER_ID_HEADER, userId))
                 .andExpect(status().isOk())
                 .andExpect(content().string("true"));
@@ -53,7 +52,8 @@ class OrderApiControllerTest {
     @Test
     @DisplayName("도서 구매 여부 확인 실패 - 헤더 누락 (Fail Path)")
     void hasPurchasedBook_Fail_MissingHeader() throws Exception {
-        mockMvc.perform(get("/order/check-purchase/{bookId}", 100L))
+        // [수정] URL 경로 수정: /order -> /orders
+        mockMvc.perform(get("/orders/check-purchase/{bookId}", 100L))
                 .andExpect(status().isBadRequest());
     }
 

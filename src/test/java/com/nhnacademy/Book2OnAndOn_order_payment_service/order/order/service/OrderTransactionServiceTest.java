@@ -214,14 +214,9 @@ class OrderTransactionServiceTest {
     void changeStatusOrder_Success() {
         // given
         Order order = mock(Order.class);
-        given(order.getOrderId()).willReturn(1L);
-
-        // order.getOrderItems()가 호출되므로 빈 리스트 반환 설정
-        given(order.getOrderItems()).willReturn(new ArrayList<>());
-
-        // [중요] NPE 방지를 위해 OrderItemRepository Mocking 필수
         OrderItem mockItem = mock(OrderItem.class);
-        given(orderItemRepository.findByOrder_OrderId(1L)).willReturn(List.of(mockItem));
+
+        given(order.getOrderItems()).willReturn(List.of(mockItem));
 
         // when
         orderTransactionService.changeStatusOrder(order, true);

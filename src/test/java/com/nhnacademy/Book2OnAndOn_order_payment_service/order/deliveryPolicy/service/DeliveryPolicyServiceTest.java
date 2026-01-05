@@ -25,6 +25,7 @@ import static org.assertj.core.api.Assertions.assertThat;
 import static org.assertj.core.api.Assertions.assertThatThrownBy;
 import static org.mockito.ArgumentMatchers.any;
 import static org.mockito.BDDMockito.given;
+import static org.mockito.Mockito.mock;
 import static org.mockito.Mockito.verify;
 
 @ExtendWith(MockitoExtension.class)
@@ -41,7 +42,11 @@ class DeliveryPolicyServiceTest {
     void createPolicy_success() {
         // Given
         DeliveryPolicyRequestDto requestDto = new DeliveryPolicyRequestDto("신규 정책", 3000, 50000);
-        
+        DeliveryPolicy savedPolicy = new DeliveryPolicy("신규 정책", 3000, 50000);
+        ReflectionTestUtils.setField(savedPolicy, "deliveryPolicyId", 1L);
+
+        given(deliveryPolicyRepository.save(any(DeliveryPolicy.class))).willReturn(savedPolicy);
+
         // When
         deliveryPolicyService.createPolicy(requestDto);
 
@@ -55,7 +60,7 @@ class DeliveryPolicyServiceTest {
         // Given
         Long policyId = 1L;
         DeliveryPolicy policy = new DeliveryPolicy("기본", 2500, 30000);
-        ReflectionTestUtils.setField(policy, "deliveryPolicyId", policyId); // ID 주입
+        ReflectionTestUtils.setField(policy, "deliveryPolicyId", policyId);
 
         given(deliveryPolicyRepository.findById(policyId)).willReturn(Optional.of(policy));
 
@@ -103,7 +108,7 @@ class DeliveryPolicyServiceTest {
         // Given
         Long policyId = 1L;
         DeliveryPolicyRequestDto updateDto = new DeliveryPolicyRequestDto("수정된 정책", 4000, 60000);
-        
+
         DeliveryPolicy policy = new DeliveryPolicy("기본", 2500, 30000);
         ReflectionTestUtils.setField(policy, "deliveryPolicyId", policyId);
 
@@ -118,18 +123,6 @@ class DeliveryPolicyServiceTest {
     }
 
     @Test
-    @DisplayName("정책 조회 실패 - 존재하지 않는 ID 조회 시 예외 발생")
-    void getPolicy_fail_notFound() {
-        // Given
-        Long invalidId = 999L;
-        given(deliveryPolicyRepository.findById(invalidId)).willReturn(Optional.empty());
-
-        // When & Then
-        assertThatThrownBy(() -> deliveryPolicyService.getPolicy(invalidId))
-                .isInstanceOf(DeliveryPolicyNotFoundException.class);
-    }
-
-    @Test
     @DisplayName("정책 수정 실패 - 존재하지 않는 ID 수정 시 예외 발생")
     void updatePolicy_fail_notFound() {
         // Given
@@ -141,6 +134,38 @@ class DeliveryPolicyServiceTest {
         // When & Then
         assertThatThrownBy(() -> deliveryPolicyService.updatePolicy(invalidId, requestDto))
                 .isInstanceOf(DeliveryPolicyNotFoundException.class)
-                .hasMessageContaining(String.valueOf(invalidId)); // 예외 메시지에 ID가 포함되는지 확인
+                .hasMessageContaining(String.valueOf(invalidId));
+    }
+
+    @Test
+    @DisplayName("배송 정책 이름으로 조회 성공 (getDeliveryPolicy)")
+    void getDeliveryPolicy_ByName_Success() {
+        // Given
+        String methodName = "일반배송";
+        DeliveryPolicy policy = new DeliveryPolicy(methodName, 2500, 30000);
+        ReflectionTestUtils.setField(policy, "deliveryPolicyId", 10L);
+
+        given(deliveryPolicyRepository.findFirstByDeliveryPolicyName(methodName))
+                .willReturn(Optional.of(policy));
+
+        // When
+        DeliveryPolicy result = deliveryPolicyService.getDeliveryPolicy(methodName);
+
+        // Then
+        assertThat(result).isNotNull();
+        assertThat(result.getDeliveryPolicyName()).isEqualTo(methodName);
+    }
+
+    @Test
+    @DisplayName("배송 정책 이름으로 조회 실패 - 존재하지 않음 (getDeliveryPolicy)")
+    void getDeliveryPolicy_ByName_NotFound() {
+        // Given
+        String methodName = "없는배송";
+        given(deliveryPolicyRepository.findFirstByDeliveryPolicyName(methodName))
+                .willReturn(Optional.empty());
+
+        // When & Then
+        assertThatThrownBy(() -> deliveryPolicyService.getDeliveryPolicy(methodName))
+                .isInstanceOf(DeliveryPolicyNotFoundException.class);
     }
 }

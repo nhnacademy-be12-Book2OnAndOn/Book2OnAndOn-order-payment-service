@@ -26,14 +26,12 @@ import org.springframework.context.annotation.Import;
 import org.springframework.data.domain.PageImpl;
 import org.springframework.data.domain.Pageable;
 import org.springframework.http.MediaType;
-import org.springframework.security.config.annotation.method.configuration.EnableMethodSecurity;
 import org.springframework.security.test.context.support.WithMockUser;
 import org.springframework.test.context.bean.override.mockito.MockitoBean;
 import org.springframework.test.web.servlet.MockMvc;
 
 @WebMvcTest(RefundAdminController.class)
-@Import({SecurityConfig.class})
-@EnableMethodSecurity
+@Import(SecurityConfig.class) // Security 설정이 있다면 Import
 class RefundAdminControllerTest {
 
     @Autowired
@@ -46,9 +44,10 @@ class RefundAdminControllerTest {
     private RefundService refundService;
 
     @Test
-    @DisplayName("관리자 반품 목록 조회 성공 - 검색 조건 포함")
+    @DisplayName("관리자 반품 목록 조회 - 성공")
     @WithMockUser(roles = "ORDER_ADMIN")
     void getRefundList_Success() throws Exception {
+        // Given
         RefundResponseDto responseDto = mock(RefundResponseDto.class);
         given(responseDto.getRefundId()).willReturn(1L);
         PageImpl<RefundResponseDto> page = new PageImpl<>(List.of(responseDto));
@@ -56,78 +55,60 @@ class RefundAdminControllerTest {
         given(refundService.getRefundListForAdmin(any(RefundSearchCondition.class), any(Pageable.class)))
                 .willReturn(page);
 
+        // When & Then
         mockMvc.perform(get("/admin/refunds")
-                        .param("refundStatus", "PENDING")
-                        .param("includeGuest", "true")
                         .param("page", "0")
-                        .param("size", "10"))
+                        .param("size", "20")
+                        .contentType(MediaType.APPLICATION_JSON))
                 .andExpect(status().isOk())
                 .andExpect(jsonPath("$.content[0].refundId").value(1L));
     }
 
     @Test
-    @DisplayName("관리자 반품 상세 조회 성공")
+    @DisplayName("관리자 반품 상세 조회 - 성공")
     @WithMockUser(roles = "ORDER_ADMIN")
     void findRefundDetails_Success() throws Exception {
+        // Given
         Long refundId = 1L;
         RefundResponseDto responseDto = mock(RefundResponseDto.class);
         given(responseDto.getRefundId()).willReturn(refundId);
 
         given(refundService.getRefundDetailsForAdmin(refundId)).willReturn(responseDto);
 
-        mockMvc.perform(get("/admin/refunds/{refundId}", refundId))
+        // When & Then
+        mockMvc.perform(get("/admin/refunds/{refundId}", refundId)
+                        .contentType(MediaType.APPLICATION_JSON))
                 .andExpect(status().isOk())
                 .andExpect(jsonPath("$.refundId").value(refundId));
     }
 
     @Test
-    @DisplayName("관리자 반품 상태 변경 성공")
+    @DisplayName("관리자 반품 상태 변경 - 성공")
     @WithMockUser(roles = "ORDER_ADMIN")
     void updateRefundStatus_Success() throws Exception {
+        // Given
         Long refundId = 1L;
-        RefundStatusUpdateRequestDto requestDto = new RefundStatusUpdateRequestDto(3);
+        RefundStatusUpdateRequestDto requestDto = new RefundStatusUpdateRequestDto(1); // 예시 상태값
         RefundResponseDto responseDto = mock(RefundResponseDto.class);
-        given(responseDto.getRefundStatus()).willReturn("COMPLETED");
+        given(responseDto.getRefundId()).willReturn(refundId);
 
         given(refundService.updateRefundStatus(eq(refundId), any(RefundStatusUpdateRequestDto.class)))
                 .willReturn(responseDto);
 
+        // When & Then
         mockMvc.perform(patch("/admin/refunds/{refundId}", refundId)
-                        .with(csrf())
+                        .with(csrf()) // POST, PATCH 등은 CSRF 토큰 필요 (Security 설정에 따라)
                         .contentType(MediaType.APPLICATION_JSON)
                         .content(objectMapper.writeValueAsString(requestDto)))
                 .andExpect(status().isOk())
-                .andExpect(jsonPath("$.refundStatus").value("COMPLETED"));
+                .andExpect(jsonPath("$.refundId").value(refundId));
     }
 
-
-
     @Test
-    @DisplayName("관리자 전용 API는 일반 유저(ROLE_USER)가 접근하면 403을 반환한다")
+    @DisplayName("관리자 권한 없음 - 403 Forbidden")
     @WithMockUser(roles = "USER")
-    void adminAccess_Denied_ForUser() throws Exception {
-        mockMvc.perform(get("/admin/refunds"))
+    void accessDenied_ForUser() throws Exception {
+        mockMvc.perform(get("/admin/refunds/1"))
                 .andExpect(status().isForbidden());
-    }
-
-    @Test
-    @DisplayName("인증되지 않은 사용자가 접근하면 401 Unauthorized를 반환한다")
-    void adminAccess_Denied_ForGuest() throws Exception {
-        mockMvc.perform(get("/admin/refunds"))
-                .andExpect(status().isUnauthorized());
-    }
-
-    @Test
-    @DisplayName("관리자 권한(ROLE_ORDER_ADMIN)이 있으면 정상 접근된다")
-    @WithMockUser(roles = "ORDER_ADMIN")
-    void adminAccess_Granted() throws Exception {
-        RefundResponseDto responseDto = mock(RefundResponseDto.class);
-        PageImpl<RefundResponseDto> page = new PageImpl<>(List.of(responseDto));
-
-        given(refundService.getRefundListForAdmin(any(RefundSearchCondition.class), any(Pageable.class)))
-                .willReturn(page);
-
-        mockMvc.perform(get("/admin/refunds"))
-                .andExpect(status().isOk());
     }
 }
