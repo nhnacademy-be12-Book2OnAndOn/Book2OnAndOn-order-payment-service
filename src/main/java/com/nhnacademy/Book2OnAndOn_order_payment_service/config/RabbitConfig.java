@@ -26,10 +26,10 @@ public class RabbitConfig {
     public static final String ROUTING_KEY_CANCEL_POINT = "point.cancel";
 
     // 공통 EXCHANGE
-//    @Bean
-//    public DirectExchange exchange(){
-//        return new DirectExchange(EXCHANGE);
-//    }
+    @Bean
+    public DirectExchange exchange(){
+        return new DirectExchange(EXCHANGE);
+    }
 
     @Bean
     public MessageConverter jsonMessageConverter(){

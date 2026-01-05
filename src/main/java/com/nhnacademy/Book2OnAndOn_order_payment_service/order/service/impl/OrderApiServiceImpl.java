@@ -1,10 +1,13 @@
 package com.nhnacademy.Book2OnAndOn_order_payment_service.order.service.impl;
 
 import com.nhnacademy.Book2OnAndOn_order_payment_service.order.dto.order.OrderRollbackDto;
+import com.nhnacademy.Book2OnAndOn_order_payment_service.order.entity.order.GuestOrder;
 import com.nhnacademy.Book2OnAndOn_order_payment_service.order.entity.order.Order;
 import com.nhnacademy.Book2OnAndOn_order_payment_service.order.entity.order.OrderItem;
 import com.nhnacademy.Book2OnAndOn_order_payment_service.order.entity.order.OrderItemStatus;
 import com.nhnacademy.Book2OnAndOn_order_payment_service.order.entity.order.OrderStatus;
+import com.nhnacademy.Book2OnAndOn_order_payment_service.order.exception.OrderNotFoundException;
+import com.nhnacademy.Book2OnAndOn_order_payment_service.order.repository.order.GuestOrderRepository;
 import com.nhnacademy.Book2OnAndOn_order_payment_service.order.repository.order.OrderRepository;
 import com.nhnacademy.Book2OnAndOn_order_payment_service.order.service.OrderApiService;
 import com.nhnacademy.Book2OnAndOn_order_payment_service.order.service.OrderResourceManager;
@@ -28,6 +31,7 @@ public class OrderApiServiceImpl implements OrderApiService {
     private final OrderRepository orderRepository;
     private final OrderTransactionService orderTransactionService;
     private final OrderResourceManager orderResourceManager;
+    private final GuestOrderRepository guestOrderRepository;
 
     private final Pageable TOP_10 = PageRequest.of(0, 10);
     private final OrderStatus ORDER_STATUS_DELIVERED = OrderStatus.DELIVERED;
@@ -78,12 +82,16 @@ public class OrderApiServiceImpl implements OrderApiService {
 
     @Override
     @Transactional
-    public void rollback(Long userId, OrderRollbackDto req) {
-        // 회원 / 비회원 분기 처리
-        if(userId == null){
-            // TODO 비회원 작업
+    public void rollback(String orderNumber) {
+        Order order = orderRepository.findByOrderNumber(orderNumber)
+                .orElseThrow(() -> new OrderNotFoundException("Not Found Order : " + orderNumber));
+
+
+        if(order.getOrderStatus() == OrderStatus.PENDING){
+            orderResourceManager.releaseResources(orderNumber, order.getUserId(), order.getPointDiscount(), order.getOrderId());
         }
 
+        orderTransactionService.changeStatusOrder(order, false);
 //        Order order = orderTransactionService.validateOrderExistence(userId, req.orderNumber(), null);
 
 //        orderResourceManager.releaseResources(req.orderNumber(), userId, order.getPointDiscount(), order.getOrderId());
