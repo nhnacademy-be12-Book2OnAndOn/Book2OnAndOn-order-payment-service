@@ -12,5 +12,5 @@ public interface OrderApiService {
     Long calculateTotalOrderAmountForUserBetweenDates(Long userId, LocalDate fromDate, LocalDate toDate);
 
     // 자원 롤백
-    void rollback(Long userId, OrderRollbackDto req);
+    void rollback(String orderNumber);
 }

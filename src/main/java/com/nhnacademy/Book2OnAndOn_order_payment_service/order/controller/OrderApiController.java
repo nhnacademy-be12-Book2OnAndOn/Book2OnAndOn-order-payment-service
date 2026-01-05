@@ -48,13 +48,12 @@ public class OrderApiController {
     }
 
     // 주문 실패시
-    @PatchMapping("/orders/rollback")
+    @PatchMapping("/payment/{orderNumber}/rollback")
     // orderNumber, memberCouponId, userId, point, orderId
-    public ResponseEntity<Void> rollbackResource(@RequestHeader(USER_ID_HEADER) Long userId,
-                                                 @RequestBody OrderRollbackDto req){
+    public ResponseEntity<Void> rollbackResource(@PathVariable("orderNumber") String orderNumber){
 
-        log.info("PATCH /orders/rollback 유저아이디 : {}", userId);
-        orderApiService.rollback(userId, req);
+        log.info("PATCH /orders/rollback 주문번호 : {}", orderNumber);
+        orderApiService.rollback(orderNumber);
         log.info("주문 롤백 성공");
         return ResponseEntity.noContent().build();
     }
