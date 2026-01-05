@@ -448,15 +448,23 @@ public class RefundServiceImpl implements RefundService {
         Map<Long, String> titleMap = fetchBookTitleMap(bookIds);
 
         return items.stream().map(orderItem -> {
+            Long orderItemId = orderItem.getOrderItemId();
             int orderedQuantity = (orderItem.getOrderItemQuantity() == null) ? 0 : orderItem.getOrderItemQuantity();
 
             int completedReturn = snapshot.completedMap.getOrDefault(orderItem.getOrderItemId(), 0);
             int activeReturn = snapshot.activeMap.getOrDefault(orderItem.getOrderItemId(), 0);
 
             int returnable = Math.max(orderedQuantity - completedReturn - activeReturn, 0);
+            // 진행중 반품이 있으면 disable
             boolean activeRefundExists = activeReturn > 0;
 
+            // 안전장치: 주문아이템 상태가 RETURN_REQUESTED면 disable
+            if (orderItem.getOrderItemStatus() == OrderItemStatus.RETURN_REQUESTED) {
+                activeRefundExists = true;
+            }
+
             boolean refundable = returnable > 0 && isRefundableByStatusPolicy(order);
+            int unitPrice = (orderItem.getUnitPrice() == null) ? 0 : orderItem.getUnitPrice();
 
             return new RefundAvailableItemResponseDto(
                     orderItem.getOrderItemId(),
@@ -466,7 +474,8 @@ public class RefundServiceImpl implements RefundService {
                     completedReturn,
                     returnable,
                     activeRefundExists,
-                    refundable
+                    refundable,
+                    unitPrice
             );
         }).toList();
     }
@@ -849,12 +858,10 @@ public class RefundServiceImpl implements RefundService {
 
         // 비회원 검증
         if (guestToken != null) {
-
             if (order.getUserId() != null) {
                 log.debug("비회원 검증 실패");
                 throw new AccessDeniedException("회원 주문은 비회원 토큰으로 접근할 수 없습니다.");
             }
-
             Long tokenOrderId = guestTokenProvider.validateTokenAndGetOrderId(guestToken);
 
             if (!tokenOrderId.equals(targetOrderId)) {
@@ -862,7 +869,6 @@ public class RefundServiceImpl implements RefundService {
             }
             return;
         }
-
         throw new AccessDeniedException("로그인이 필요하거나 잘못된 접근입니다.");
     }
 }

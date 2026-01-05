@@ -22,7 +22,7 @@ public class RefundResponseDto {
     private String refundReason;
     private String refundReasonDetail; // 반품 사유 상세 내용
     private String refundStatus; // RefundStatus Enum의 설명 필드
-    private LocalDateTime refundDatetime;
+    private LocalDateTime refundCreatedAt;
 
     // 반품 항목 리스트
     private List<RefundItemResponseDto> refundItems;

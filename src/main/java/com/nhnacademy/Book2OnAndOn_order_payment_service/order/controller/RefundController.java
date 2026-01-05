@@ -10,8 +10,6 @@ import org.springframework.data.domain.Page;
 import org.springframework.data.domain.Pageable;
 import org.springframework.http.HttpStatus;
 import org.springframework.http.ResponseEntity;
-import org.springframework.security.access.AccessDeniedException;
-import org.springframework.security.core.Authentication;
 import org.springframework.web.bind.annotation.*;
 import jakarta.validation.Valid;
 
@@ -20,6 +18,17 @@ import jakarta.validation.Valid;
 public class RefundController {
 
     private final RefundService refundService;
+
+    // 반품 신청 폼
+    @GetMapping("/orders/{orderId}/refunds/form")
+    public ResponseEntity<List<RefundAvailableItemResponseDto>> getRefundForm(
+            @PathVariable Long orderId,
+            @RequestHeader(value = "X-User-Id", required = false) Long userId,
+            @RequestHeader(value = "X-Guest-Order-Token", required = false) String guestToken
+
+    ) {
+        return ResponseEntity.ok(refundService.getRefundableItems(orderId, userId, guestToken));
+    }
 
     // 반품 신청
     // POST /orders/{orderId}/refunds
@@ -49,7 +58,7 @@ public class RefundController {
 
     // 반품 상세 조회
     // GET /orders/{orderId}/refund/{refundId}
-    @GetMapping("/orders/{orderId}/refund/{refundId}")
+    @GetMapping("/orders/{orderId}/refunds/{refundId}")
     public ResponseEntity<RefundResponseDto> getRefundDetails(
             @PathVariable Long orderId,
             @PathVariable Long refundId,
@@ -57,17 +66,6 @@ public class RefundController {
             @RequestHeader(value = "X-Guest-Order-Token", required = false) String guestToken
     ) {
         return ResponseEntity.ok(refundService.getRefundDetails(orderId, refundId, userId, guestToken));
-    }
-
-    // 반품 신청 폼
-    @GetMapping("/orders/{orderId}/refunds/form")
-    public ResponseEntity<List<RefundAvailableItemResponseDto>> getRefundForm(
-            @PathVariable Long orderId,
-            @RequestHeader(value = "X-User-Id", required = false) Long userId,
-            @RequestHeader(value = "X-Guest-Order-Token", required = false) String guestToken
-
-    ) {
-        return ResponseEntity.ok(refundService.getRefundableItems(orderId, userId, guestToken));
     }
 
     // 회원 전체 반품 목록 조회
