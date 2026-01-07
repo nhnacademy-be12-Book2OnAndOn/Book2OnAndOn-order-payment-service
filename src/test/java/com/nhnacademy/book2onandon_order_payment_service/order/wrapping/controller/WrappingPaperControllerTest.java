@@ -1,4 +1,4 @@
-package com.nhnacademy.book2onandon_order_payment_service.order.controller;
+package com.nhnacademy.book2onandon_order_payment_service.order.wrapping.controller;
 
 import static org.assertj.core.api.Assertions.assertThatThrownBy;
 import static org.mockito.ArgumentMatchers.any;
@@ -8,6 +8,7 @@ import static org.springframework.test.web.servlet.result.MockMvcResultMatchers.
 import static org.springframework.test.web.servlet.result.MockMvcResultMatchers.status;
 
 import com.fasterxml.jackson.databind.ObjectMapper;
+import com.nhnacademy.book2onandon_order_payment_service.order.controller.WrappingPaperController;
 import com.nhnacademy.book2onandon_order_payment_service.order.dto.wrapping.WrappingPaperSimpleResponseDto;
 import com.nhnacademy.book2onandon_order_payment_service.order.service.WrappingPaperService;
 import java.util.ArrayList;

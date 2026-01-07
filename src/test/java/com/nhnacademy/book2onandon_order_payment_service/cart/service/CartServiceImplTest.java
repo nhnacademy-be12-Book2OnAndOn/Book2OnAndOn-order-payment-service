@@ -20,8 +20,13 @@ import org.junit.jupiter.api.Test;
 import org.junit.jupiter.api.extension.ExtendWith;
 import org.mockito.*;
 import org.mockito.junit.jupiter.MockitoExtension;
+import org.springframework.test.context.TestPropertySource;
 
 @ExtendWith(MockitoExtension.class)
+@TestPropertySource(properties = {
+        "spring.cloud.config.enabled=false",
+        "spring.cloud.config.import-check.enabled=false"
+})
 class CartServiceImplTest {
 
     @Mock private CartRepository cartRepository;
@@ -61,28 +66,6 @@ class CartServiceImplTest {
         s.setDeleted(deleted);
         s.setSaleEnded(saleEnded);
         return s;
-    }
-
-    private static CartCalculator.CartItemPricingResult pricing(
-            long bookId,
-            int qty,
-            boolean available,
-            CartItemUnavailableReason reason,
-            int stock
-    ) {
-        int salePrice = 1500;
-        int lineTotal = salePrice * qty;
-        return new CartCalculator.CartItemPricingResult(
-                "title-" + bookId,
-                "thumb-" + bookId,
-                2000,
-                salePrice,
-                stock,
-                stock <= 5,
-                available,
-                reason,
-                lineTotal
-        );
     }
 
     private void stubSnapshots(List<Long> bookIds, Map<Long, BookSnapshot> map) {

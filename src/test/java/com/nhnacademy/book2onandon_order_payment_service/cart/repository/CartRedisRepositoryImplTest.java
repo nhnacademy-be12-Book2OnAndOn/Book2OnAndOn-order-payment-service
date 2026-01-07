@@ -28,13 +28,19 @@ import org.junit.jupiter.api.Nested;
 import org.junit.jupiter.api.Test;
 import org.junit.jupiter.api.extension.ExtendWith;
 import org.mockito.ArgumentCaptor;
+import org.mockito.InjectMocks;
 import org.mockito.Mock;
 import org.springframework.data.redis.core.HashOperations;
 import org.springframework.data.redis.core.RedisTemplate;
 import org.springframework.data.redis.core.SetOperations;
 import org.springframework.data.redis.core.StringRedisTemplate;
+import org.springframework.test.context.TestPropertySource;
 
 @ExtendWith(org.mockito.junit.jupiter.MockitoExtension.class)
+@TestPropertySource(properties = {
+        "spring.cloud.config.enabled=false",
+        "spring.cloud.config.import-check.enabled=false"
+})
 class CartRedisRepositoryImplTest {
 
     @Mock
@@ -54,7 +60,7 @@ class CartRedisRepositoryImplTest {
     @BeforeEach
     void setup() {
         // @InjectMocks 대신 직접 생성 (주입 불확실성 제거)
-        repository = new CartRedisRepositoryImpl(redisTemplate, stringRedisTemplate);
+        repository = new CartRedisRepositoryImpl(redisTemplate, stringRedisTemplate); // CartRedisRepositoryImpl repository;에 아무 어노테이션 없을 경우에 필요함.
 
         // 어떤 테스트에서는 안 쓰일 수 있으니 lenient 처리
         lenient().doReturn(hashOps).when(redisTemplate).opsForHash();

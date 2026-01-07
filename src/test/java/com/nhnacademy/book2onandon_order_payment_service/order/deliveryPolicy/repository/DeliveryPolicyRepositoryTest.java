@@ -1,8 +1,9 @@
-package com.nhnacademy.book2onandon_order_payment_service.order.repository.delivery;
+package com.nhnacademy.book2onandon_order_payment_service.order.deliveryPolicy.repository;
 
 import static org.assertj.core.api.Assertions.assertThat;
 
 import com.nhnacademy.book2onandon_order_payment_service.order.entity.delivery.DeliveryPolicy;
+import com.nhnacademy.book2onandon_order_payment_service.order.repository.delivery.DeliveryPolicyRepository;
 import com.nhnacademy.book2onandon_order_payment_service.util.AesUtils; // AesUtils 위치 확인 필요
 import java.util.Optional;
 import org.junit.jupiter.api.DisplayName;

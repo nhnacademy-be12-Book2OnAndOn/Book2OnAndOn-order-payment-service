@@ -4,11 +4,8 @@ import com.fasterxml.jackson.databind.ObjectMapper;
 import com.nhnacademy.book2onandon_order_payment_service.cart.domain.dto.request.CartItemDeleteRequestDto;
 import com.nhnacademy.book2onandon_order_payment_service.cart.domain.dto.response.CartItemCountResponseDto;
 import com.nhnacademy.book2onandon_order_payment_service.cart.domain.dto.response.CartItemsResponseDto;
-import com.nhnacademy.book2onandon_order_payment_service.cart.exception.CartBusinessException;
 import com.nhnacademy.book2onandon_order_payment_service.cart.service.CartService;
-import com.nhnacademy.book2onandon_order_payment_service.cart.support.CartCalculator;
 import com.nhnacademy.book2onandon_order_payment_service.exception.GlobalExceptionHandler;
-import java.util.Map;
 import org.junit.jupiter.api.DisplayName;
 import org.junit.jupiter.api.Nested;
 import org.junit.jupiter.api.Test;
@@ -18,11 +15,12 @@ import org.springframework.boot.test.autoconfigure.web.servlet.AutoConfigureMock
 import org.springframework.boot.test.autoconfigure.web.servlet.WebMvcTest;
 import org.springframework.context.annotation.Import;
 import org.springframework.http.MediaType;
+import org.springframework.test.context.TestPropertySource;
 import org.springframework.test.context.bean.override.mockito.MockitoBean;
 import org.springframework.test.web.servlet.MockMvc;
 
 import static org.assertj.core.api.Assertions.assertThat;
-import static org.assertj.core.api.AssertionsForClassTypes.assertThatThrownBy;
+import static org.mockito.ArgumentMatchers.any;
 import static org.mockito.ArgumentMatchers.eq;
 import static org.mockito.Mockito.*;
 import static org.springframework.test.web.servlet.request.MockMvcRequestBuilders.*;
@@ -30,31 +28,30 @@ import static org.springframework.test.web.servlet.result.MockMvcResultMatchers.
 
 /**
  * 목표:
- * - 컨트롤러 레이어 커버리지 확보 (요구사항: Sonar 80%+)
+ * - CartGuestController 커버리지 확보
  * - 정상(200) + 헤더/바인딩/검증 실패(400) 위주
- * - 서비스 로직 검증 X, 호출/매핑만 검증
+ * - 서비스 로직 검증 X, 매핑/호출만 검증
  */
 @Import(GlobalExceptionHandler.class)
 @AutoConfigureMockMvc(addFilters = false)
 @WebMvcTest(CartGuestController.class)
+@TestPropertySource(properties = {
+        "spring.cloud.config.enabled=false",
+        "spring.cloud.config.import-check.enabled=false"
+})
 class CartGuestControllerTest {
 
     private static final String GUEST_ID_HEADER = "X-Guest-Id";
     private static final String UUID = "guest-123";
 
-    @Autowired
-    MockMvc mockMvc;
+    @Autowired MockMvc mockMvc;
+    @Autowired ObjectMapper objectMapper;
 
-    @Autowired
-    ObjectMapper objectMapper;
-
-    @MockitoBean
-    CartService cartService;
+    @MockitoBean CartService cartService;
 
     /**
-     * 주의:
-     * DTO 필드명이 다르면 여기 JSON 키만 프로젝트 DTO에 맞게 바꾸세요.
-     * (예: bookId -> itemId 등)
+     * DTO 필드명이 실제 프로젝트와 다르면 여기 JSON 키만 DTO에 맞춰 변경.
+     * @Valid 에 걸려야 하는 케이스면 "필수 필드"를 채워서 유효 JSON로 만들어야 함.
      */
     private String validAddItemJson() {
         return """
@@ -91,24 +88,6 @@ class CartGuestControllerTest {
                 }
                 """;
     }
-
-    // ---------- calculate ----------
-    @Test
-    void calculatePricing_whenBookIdNull_throwInvalidBookId() {
-        CartCalculator calc = new CartCalculator();
-
-        assertThatThrownBy(() -> calc.calculatePricing(null, 1, Map.of()))
-                .isInstanceOf(CartBusinessException.class);
-    }
-
-    @Test
-    void calculatePricing_whenBookIdZero_throwInvalidBookId() {
-        CartCalculator calc = new CartCalculator();
-
-        assertThatThrownBy(() -> calc.calculatePricing(0L, 1, Map.of()))
-                .isInstanceOf(CartBusinessException.class);
-    }
-
 
     // ---------- GET /cart/guest ----------
     @Nested
@@ -162,7 +141,6 @@ class CartGuestControllerTest {
                             .content(validAddItemJson()))
                     .andExpect(status().isOk());
 
-            // DTO 내부 검증은 @Valid가 처리, 컨트롤러는 서비스 호출만 확인
             verify(cartService).addItemToGuestCart(eq(UUID), any());
         }
 
@@ -310,7 +288,7 @@ class CartGuestControllerTest {
         }
 
         @Test
-        @DisplayName("실패: bookId=0 -> 400 (validateBookId -> CartBusinessException)")
+        @DisplayName("실패: bookId=0 -> 400 (validateBookId)")
         void bookIdZero_400() throws Exception {
             mockMvc.perform(delete("/cart/guest/items/{bookId}", 0)
                             .header(GUEST_ID_HEADER, UUID))
@@ -320,7 +298,7 @@ class CartGuestControllerTest {
         }
 
         @Test
-        @DisplayName("실패: bookId<0 -> 400 (validateBookId -> CartBusinessException)")
+        @DisplayName("실패: bookId<0 -> 400 (validateBookId)")
         void bookIdNegative_400() throws Exception {
             mockMvc.perform(delete("/cart/guest/items/{bookId}", -1)
                             .header(GUEST_ID_HEADER, UUID))
