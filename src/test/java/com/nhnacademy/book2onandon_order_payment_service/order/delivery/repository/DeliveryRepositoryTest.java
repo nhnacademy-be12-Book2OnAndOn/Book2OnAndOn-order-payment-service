@@ -1,4 +1,4 @@
-//package com.nhnacademy.book2onandon_order_payment_service.order.delivery.repository;
+//package com.nhnacademy.book2onandon_order_payment_service.order.repository.delivery;
 //
 //import com.nhnacademy.book2onandon_order_payment_service.order.entity.delivery.Delivery;
 //import com.nhnacademy.book2onandon_order_payment_service.order.entity.order.Order;
