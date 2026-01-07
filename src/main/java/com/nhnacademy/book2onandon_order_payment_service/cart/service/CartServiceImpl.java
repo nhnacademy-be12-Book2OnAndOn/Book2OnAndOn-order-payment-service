@@ -81,8 +81,8 @@ public class CartServiceImpl implements CartService {
         log.info("[Scheduler] flushDirtyUserCarts 종료");
     }
 
-    @Transactional
-    protected void flushSingleUserCart(Long userId) {
+    @Transactional // 외부 호출될 경우 1이 성공하고 2가 실패 시 1은 롤백 안되고, 나머지는 에러처리.
+    public void flushSingleUserCart(Long userId) {
         // 장바구니의 모든 아이템 불러오기
         Map<Long, CartRedisItem> redisItems = cartRedisRepository.getUserCartItems(userId);
         log.debug("[Scheduler] Redis user cart 아이템 수 - userId={}, size={}",
@@ -110,7 +110,7 @@ public class CartServiceImpl implements CartService {
         // 2) Redis에는 없고 DB에만 있는 항목 -> delete
         List<Long> toDelete = dbMap.keySet().stream()
                 .filter(bookId -> !redisItems.containsKey(bookId))
-                .collect(Collectors.toList());
+                .toList();
         if (!toDelete.isEmpty()) {
             cartItemRepository.deleteByCartAndBookIdIn(cart, toDelete);
         }
@@ -303,7 +303,6 @@ public class CartServiceImpl implements CartService {
         }
 
         item.setSelected(requestDto.isSelected());
-//        item.touchUpdatedAt();
         cartRedisRepository.putUserItem(userId, item);
         cartRedisRepository.markUserCartDirty(userId);
 
@@ -331,15 +330,11 @@ public class CartServiceImpl implements CartService {
                 cartRedisRepository.putUserItem(userId, item);
                 changed++;
             }
-//            item.setSelected(requestDto.isSelected());
-//            item.touchUpdatedAt(); // 시간 갱신
-//            cartRedisRepository.putUserItem(userId, item);
         }
 
         if (changed > 0) {
             cartRedisRepository.markUserCartDirty(userId);
         }
-//        cartRedisRepository.markUserCartDirty(userId);
 
         log.info("[UserCart] selectAllUserCartItems 완료 - userId={}, itemCount={}",
                 userId, userItems.size());
@@ -543,7 +538,6 @@ public class CartServiceImpl implements CartService {
         }
 
         // 5) 실제 Redis 반영 (quantity+selected를 함께 저장하고 TTL도 갱신)
-//        cartRedisRepository.updateGuestItemQuantity(uuid, requestDto.getBookId(), capped);
         cartRedisRepository.putGuestItem(uuid, next);
 
         log.info("[GuestCart] addItemToGuestCart 완료 - uuid={}, bookId={}, finalQuantity={}, selected={}",
@@ -560,9 +554,6 @@ public class CartServiceImpl implements CartService {
 
         Map<Long, CartRedisItem> redisItems =
                 (cartRedisRepository.getGuestCartItems(uuid) == null) ? Collections.emptyMap() : cartRedisRepository.getGuestCartItems(uuid);
-//        if (redisItems == null) {
-//            redisItems = Collections.emptyMap(); // 또는 new HashMap<>()
-//        }
 
         CartRedisItem existing = redisItems.get(requestDto.getBookId());
 
@@ -632,8 +623,6 @@ public class CartServiceImpl implements CartService {
                 cartRedisRepository.putGuestItem(uuid, item);
                 changed++;
             }
-//            item.setSelected(selected);
-//            cartRedisRepository.putGuestItem(uuid, item);
         }
 
         log.info("[GuestCart] selectAllGuestCartItems 완료 - uuid={}, itemCount={}",
@@ -1096,12 +1085,6 @@ public class CartServiceImpl implements CartService {
         }
 
         // 2) 장바구니 항목을 최근 수정일(updatedAt) 기준 내림차순 정렬
-//        List<CartItem> sortedItems = items.stream()
-//                .sorted(Comparator.comparing(
-//                        CartItem::getUpdatedAt,
-//                        Comparator.nullsLast(Comparator.naturalOrder())
-//                ).reversed())
-//                .collect(Collectors.toList());
         List<CartItem> sortedItems = items.stream()
                 .sorted(Comparator.comparing(it -> {
                     return it.getUpdatedAt();
@@ -1195,9 +1178,6 @@ public class CartServiceImpl implements CartService {
 
         // Redis Map의 Key(bookIds)를 추출하여 BookSnapshot 정보 일괄 조회
         // 1) 정렬된 리스트로 변환 (updatedAt 내림차순)
-//        List<CartRedisItem> sortedItems = redisItems.values().stream()
-//                .sorted(Comparator.comparingLong(CartRedisItem::getUpdatedAt).reversed())
-//                .collect(Collectors.toList());
         List<CartRedisItem> sortedItems = redisItems.values().stream()
                 .sorted(Comparator.comparing(it -> {
                     long cartitem = it.getCreatedAt();

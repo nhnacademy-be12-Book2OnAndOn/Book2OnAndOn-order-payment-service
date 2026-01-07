@@ -7,6 +7,8 @@ import com.nhnacademy.book2onandon_order_payment_service.cart.domain.dto.request
 import com.nhnacademy.book2onandon_order_payment_service.cart.domain.dto.request.CartItemSelectRequestDto;
 import com.nhnacademy.book2onandon_order_payment_service.cart.domain.dto.response.CartItemCountResponseDto;
 import com.nhnacademy.book2onandon_order_payment_service.cart.domain.dto.response.CartItemsResponseDto;
+import com.nhnacademy.book2onandon_order_payment_service.cart.exception.CartBusinessException;
+import com.nhnacademy.book2onandon_order_payment_service.cart.exception.CartErrorCode;
 import com.nhnacademy.book2onandon_order_payment_service.cart.service.CartService;
 import jakarta.validation.Valid;
 import lombok.RequiredArgsConstructor;
@@ -23,8 +25,16 @@ public class CartGuestController {
     private final CartService cartService;
 
     private void validateUuid(String uuid) {
-        if (uuid == null || uuid.isBlank()) {
-            throw new IllegalArgumentException("guest uuid is required");
+        if (uuid.isBlank()) {
+            throw new CartBusinessException(CartErrorCode.GUEST_ID_REQUIRED);
+        }
+    }
+
+    private void validateBookId(Long bookId) {
+        // PathVariable이 Long 변환 자체에 실패하면(예: not-a-number) 여기까지 오지 못하지만,
+        // bookId가 0 이하 같은 “논리적으로 유효하지 않은 값”은 여기서 통일 처리.
+        if (bookId <= 0) {
+            throw new CartBusinessException(CartErrorCode.INVALID_BOOK_ID);
         }
     }
 
@@ -88,13 +98,14 @@ public class CartGuestController {
     }
 
     // 6. 비회원 장바구니 단건 아이템 삭제
-    // DELETE /cart/guest/items/{bookId}
     @DeleteMapping("/items/{bookId}")
     public ResponseEntity<Void> deleteGuestCartItem(
             @RequestHeader(GUEST_ID_HEADER) String uuid,
             @PathVariable Long bookId
     ) {
         validateUuid(uuid);
+        validateBookId(bookId);
+
         CartItemDeleteRequestDto dto = new CartItemDeleteRequestDto(bookId);
         cartService.deleteGuestCartItem(uuid, dto);
         return ResponseEntity.ok().build();
@@ -122,7 +133,6 @@ public class CartGuestController {
     }
 
     // 9. 아이콘용 장바구니 개수 조회 (비회원)
-    // GET /api/cart/guest/count
     @GetMapping("/items/count")
     public ResponseEntity<CartItemCountResponseDto> getGuestCartCount(
             @RequestHeader(GUEST_ID_HEADER) String uuid
@@ -133,7 +143,6 @@ public class CartGuestController {
     }
 
     // 10. 비회원 장바구니 전체 항목 비우기
-    // DELETE /cart/guest/items
     @DeleteMapping("/items")
     public ResponseEntity<Void> clearGuestCart(
             @RequestHeader(GUEST_ID_HEADER) String uuid

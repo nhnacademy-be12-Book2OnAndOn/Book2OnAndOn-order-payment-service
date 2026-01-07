@@ -18,6 +18,7 @@ import com.nhnacademy.book2onandon_order_payment_service.order.entity.order.Orde
 import com.nhnacademy.book2onandon_order_payment_service.order.entity.refund.Refund;
 import com.nhnacademy.book2onandon_order_payment_service.order.entity.refund.RefundItem;
 import com.nhnacademy.book2onandon_order_payment_service.order.entity.refund.RefundReason;
+import com.nhnacademy.book2onandon_order_payment_service.order.entity.refund.RefundStatus;
 import com.nhnacademy.book2onandon_order_payment_service.order.listener.RefundPointProcessor;
 import com.nhnacademy.book2onandon_order_payment_service.order.repository.delivery.DeliveryRepository;
 import com.nhnacademy.book2onandon_order_payment_service.order.repository.refund.RefundRepository;
@@ -55,12 +56,12 @@ class RefundPointProcessorTest {
         given(refund.getRefundId()).willReturn(1L);
         given(order.getOrderItems()).willReturn(List.of(orderItem));
         given(refund.getRefundItems()).willReturn(List.of(refundItem));
-        
+
         given(orderItem.getUnitPrice()).willReturn(10000);
         given(orderItem.getOrderItemQuantity()).willReturn(1);
         given(refundItem.getOrderItem()).willReturn(orderItem);
         given(refundItem.getRefundQuantity()).willReturn(1);
-        
+
         given(refundRepository.findByOrderOrderId(anyLong())).willReturn(List.of(refund));
         given(deliveryRepository.findByOrder_OrderId(anyLong())).willReturn(Optional.of(delivery));
         given(order.getOrderDateTime()).willReturn(LocalDateTime.now());
@@ -72,7 +73,7 @@ class RefundPointProcessorTest {
     }
 
     @Test
-    @DisplayName("비회원 주문인 경우 포인트 환불 처리를 생략한다 ")
+    @DisplayName("비회원 주문인 경우 포인트 환불 처리를 생략한다 (Fail Path)")
     void refundAsPoint_NonMember_Skip() {
         Order order = mock(Order.class);
         Refund refund = mock(Refund.class);
@@ -106,7 +107,7 @@ class RefundPointProcessorTest {
         given(order.getDeliveryFee()).willReturn(3000);
         given(deliveryRepository.findByOrder_OrderId(any())).willReturn(Optional.of(delivery));
         given(order.getOrderDateTime()).willReturn(LocalDateTime.now());
-        
+
         given(refundRepository.existsCompletedRefundWithShippingDeduction(any(), any(), any())).willReturn(false);
 
         refundPointProcessor.refundAsPoint(refund);
@@ -129,7 +130,7 @@ class RefundPointProcessorTest {
     }
 
     @Test
-    @DisplayName("배송 정보가 없으면 IllegalStateException이 발생한다 ")
+    @DisplayName("배송 정보가 없으면 IllegalStateException이 발생한다 (Fail Path)")
     void getDaysAfterShipment_NoDelivery_ThrowsException() {
         Order order = mock(Order.class);
         Refund refund = mock(Refund.class);

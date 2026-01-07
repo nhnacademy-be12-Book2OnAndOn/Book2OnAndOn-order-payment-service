@@ -1,4 +1,4 @@
-package com.nhnacademy.book2onandon_order_payment_service.order.service;
+package com.nhnacademy.book2onandon_order_payment_service.order.order.service;
 
 import static org.mockito.ArgumentMatchers.any;
 import static org.mockito.ArgumentMatchers.anyLong;
@@ -23,6 +23,7 @@ import com.nhnacademy.book2onandon_order_payment_service.config.RabbitConfig;
 import com.nhnacademy.book2onandon_order_payment_service.order.dto.order.OrderCreateRequestDto;
 import com.nhnacademy.book2onandon_order_payment_service.order.dto.order.OrderVerificationResult;
 import com.nhnacademy.book2onandon_order_payment_service.order.dto.order.orderitem.OrderItemRequestDto;
+import com.nhnacademy.book2onandon_order_payment_service.order.service.OrderResourceManager;
 import java.util.List;
 import org.junit.jupiter.api.DisplayName;
 import org.junit.jupiter.api.Test;

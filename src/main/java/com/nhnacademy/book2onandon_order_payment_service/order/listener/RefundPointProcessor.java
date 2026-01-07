@@ -60,12 +60,12 @@ public class RefundPointProcessor {
         Order order = refund.getOrder();
         if (order == null) return new RefundCalcResult(0, 0, 0);
 
-        int usedPoint = nvl(order.getPointDiscount());
-        int couponDiscount = nvl(order.getCouponDiscount());
+        int usedPoint = nullValueCheck(order.getPointDiscount());
+        int couponDiscount = nullValueCheck(order.getCouponDiscount());
 
         int orderBase = order.getOrderItems().stream()
                 .filter(Objects::nonNull)
-                .mapToInt(oi -> nvl(oi.getUnitPrice()) * nvl(oi.getOrderItemQuantity()))
+                .mapToInt(oi -> nullValueCheck(oi.getUnitPrice()) * nullValueCheck(oi.getOrderItemQuantity()))
                 .sum();
         if (orderBase <= 0) return new RefundCalcResult(0, 0, 0);
 
@@ -74,7 +74,7 @@ public class RefundPointProcessor {
                 .mapToInt(ri -> {
                     OrderItem oi = ri.getOrderItem();
                     if (oi == null) return 0;
-                    return nvl(oi.getUnitPrice()) * nvl(ri.getRefundQuantity());
+                    return nullValueCheck(oi.getUnitPrice()) * nullValueCheck(ri.getRefundQuantity());
                 })
                 .sum();
         if (thisBase <= 0) return new RefundCalcResult(0, 0, 0);
@@ -88,7 +88,7 @@ public class RefundPointProcessor {
                 .mapToInt(ri -> {
                     OrderItem oi = ri.getOrderItem();
                     if (oi == null) return 0;
-                    return nvl(oi.getUnitPrice()) * nvl(ri.getRefundQuantity());
+                    return nullValueCheck(oi.getUnitPrice()) * nullValueCheck(ri.getRefundQuantity());
                 })
                 .sum();
 
@@ -148,7 +148,7 @@ public class RefundPointProcessor {
         return ChronoUnit.DAYS.between(baseDate, LocalDate.now());
     }
 
-    private int nvl(Integer v) {
-        return v == null ? 0 : v;
+    private int nullValueCheck(Integer value) {
+        return value == null ? 0 : value;
     }
 }

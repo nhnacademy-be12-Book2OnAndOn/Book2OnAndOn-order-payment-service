@@ -1,8 +1,8 @@
 package com.nhnacademy.book2onandon_order_payment_service.cart.support;
 
 import com.nhnacademy.book2onandon_order_payment_service.cart.domain.entity.CartItemUnavailableReason;
+import com.nhnacademy.book2onandon_order_payment_service.cart.exception.CartBusinessException;
 import com.nhnacademy.book2onandon_order_payment_service.cart.exception.CartErrorCode;
-import com.nhnacademy.book2onandon_order_payment_service.cart.exception.CartItemNotFoundException;
 import com.nhnacademy.book2onandon_order_payment_service.client.BookServiceClient.BookSnapshot;
 import lombok.Getter;
 import lombok.RequiredArgsConstructor;
@@ -14,60 +14,60 @@ import static com.nhnacademy.book2onandon_order_payment_service.cart.domain.enti
 
 @Component
 @RequiredArgsConstructor
-// 장바구니 아이템 하나”의 최종 상태/가격 정보를 만들어주는 도메인 계산 모듈
 public class CartCalculator {
 
-    // Map으로 받아서 bookId 기반으로 스냅샷을 조회하고 가격, 가용성, 재고 등의 정보를 계산해서 돌려준다.
     public CartItemPricingResult calculatePricing(
-            Long bookId, // 도서id
-            int quantity, // 수량
-            Map<Long, BookSnapshot> snapshotMap // 도서(book-service) 스냅샷 묶음
+            Long bookId,
+            int quantity,
+            Map<Long, BookSnapshot> snapshotMap
     ) {
+        // 1) 입력 검증 (커스텀 예외로 통일)
+        if (bookId == null || bookId <= 0) {
+            throw new CartBusinessException(CartErrorCode.INVALID_BOOK_ID);
+        }
+        if (quantity <= 0) {
+            throw new CartBusinessException(CartErrorCode.INVALID_QUANTITY);
+        }
+        if (snapshotMap == null) {
+            // 스냅샷 맵 자체가 null이면 시스템/연동 문제에 가까운데,
+            // 일단 BAD_REQUEST로 떨어뜨리기보다 "도서 정보를 불러올 수 없음"으로 통일.
+            throw new CartBusinessException(CartErrorCode.BOOK_SNAPSHOT_NOT_FOUND);
+        }
+
+        // 2) snapshot 조회
         BookSnapshot snapshot = snapshotMap.get(bookId);
         if (snapshot == null) {
-            throw new CartItemNotFoundException(CartErrorCode.CART_ITEM_NOT_FOUND);
+            // book-service에서 해당 bookId 스냅샷을 못 받았거나, 조회 대상에 포함되지 않음
+            throw new CartBusinessException(CartErrorCode.BOOK_SNAPSHOT_NOT_FOUND,
+                    "book snapshot을 찾을 수 없습니다. bookId=" + bookId);
         }
 
-        // 내부변수 초기화
+        // 3) 필드 채우기
+        String title = snapshot.getTitle();
+        String thumbnailUrl = snapshot.getThumbnailUrl();
+        int originalPrice = snapshot.getOriginalPrice();
+        int salePrice = snapshot.getSalePrice();
+        int stock = snapshot.getStockCount();
+        boolean lowStock = (stock > 0 && stock < LOW_STOCK_THRESHOLD);
+
+        // 4) 주문 가능 여부 판단
         boolean available = true;
         CartItemUnavailableReason reason = null;
-        int salePrice = 0;
-        int originalPrice = 0;
-        int stock = 0;
-        boolean lowStock = false;
-        String title = "";
-        String thumbnailUrl = "";
 
-        // snapshot null인 경우 (잘못된 bookId)
-        if (snapshot == null) {
+        if (snapshot.isDeleted()) {
             available = false;
-            reason = CartItemUnavailableReason.INVALID_BOOK;
-        } else { // snapshot이 존재하는 경우 — 필드 채우기
-            title = snapshot.getTitle();
-            thumbnailUrl = snapshot.getThumbnailUrl();
-            originalPrice = snapshot.getOriginalPrice();
-            salePrice = snapshot.getSalePrice();
-            stock = snapshot.getStockCount();
-            lowStock = (stock > 0 && stock < LOW_STOCK_THRESHOLD);
-
-            // “이 책을 장바구니에서 주문할 수 있는지” 판단 로직
-            if (snapshot.isDeleted()) {
-                available = false;
-                reason = CartItemUnavailableReason.BOOK_DELETED;
-            } else if (snapshot.isSaleEnded()) {
-                available = false;
-                reason = CartItemUnavailableReason.SALE_ENDED;
-//            } else if (snapshot.isHidden()) {
-//                available = false;
-//                reason = CartItemUnavailableReason.BOOK_HIDDEN;
-            } else if (stock <= 0) {
-                available = false;
-                reason = CartItemUnavailableReason.OUT_OF_STOCK;
-            }
+            reason = CartItemUnavailableReason.BOOK_DELETED;
+        } else if (snapshot.isSaleEnded()) {
+            available = false;
+            reason = CartItemUnavailableReason.SALE_ENDED;
+        } else if (stock <= 0) {
+            available = false;
+            reason = CartItemUnavailableReason.OUT_OF_STOCK;
         }
-        // 최종 금액 계산
+
+        // 5) 최종 금액
         int lineTotalPrice = salePrice * quantity;
-        // CartItemPricingResult 객체 생성 및 결과 반환
+
         return new CartItemPricingResult(
                 title,
                 thumbnailUrl,
