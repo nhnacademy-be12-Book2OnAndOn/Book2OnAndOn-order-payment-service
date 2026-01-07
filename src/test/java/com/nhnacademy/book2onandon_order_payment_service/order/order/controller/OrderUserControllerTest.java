@@ -3,7 +3,6 @@ package com.nhnacademy.book2onandon_order_payment_service.order.order.controller
 import static org.mockito.ArgumentMatchers.any;
 import static org.mockito.ArgumentMatchers.eq;
 import static org.mockito.BDDMockito.given;
-import static org.mockito.Mockito.doThrow;
 import static org.springframework.test.web.servlet.request.MockMvcRequestBuilders.*;
 import static org.springframework.test.web.servlet.result.MockMvcResultMatchers.*;
 
@@ -48,7 +47,7 @@ class OrderUserControllerTest {
     private static final String USER_ID_HEADER = "X-User-Id";
 
     @Test
-    @DisplayName("주문 준비 데이터 조회 성공 (Happy Path)")
+    @DisplayName("주문 준비 데이터 조회 성공 ")
     void getOrderPrepare_Success() throws Exception {
         Long userId = 1L;
         OrderPrepareRequestDto requestDto = new OrderPrepareRequestDto(new ArrayList<>());
@@ -66,7 +65,7 @@ class OrderUserControllerTest {
     }
 
     @Test
-    @DisplayName("사전 주문 생성 성공 (Happy Path)")
+    @DisplayName("사전 주문 생성 성공 ")
     void createPreOrder_Success() throws Exception {
         Long userId = 1L;
         OrderCreateRequestDto requestDto = new OrderCreateRequestDto(new ArrayList<>(), null, 1L, LocalDate.now().plusDays(1), null, 0);
@@ -86,7 +85,7 @@ class OrderUserControllerTest {
     }
 
     @Test
-    @DisplayName("나의 주문 리스트 조회 성공 (Happy Path)")
+    @DisplayName("나의 주문 리스트 조회 성공 ")
     void getOrderList_Success() throws Exception {
         Long userId = 1L;
         OrderSimpleDto dto = new OrderSimpleDto(1L, "ORD-100", OrderStatus.COMPLETED, LocalDateTime.now(), 10000, "제목");
@@ -100,7 +99,7 @@ class OrderUserControllerTest {
     }
 
     @Test
-    @DisplayName("주문 상세 조회 성공 (Happy Path)")
+    @DisplayName("주문 상세 조회 성공 ")
     void getOrderDetail_Success() throws Exception {
         Long userId = 1L;
         String orderNumber = "ORD-100";
@@ -113,7 +112,7 @@ class OrderUserControllerTest {
     }
 
     @Test
-    @DisplayName("주문 취소 성공 (Happy Path)")
+    @DisplayName("주문 취소 성공 ")
     void cancelOrder_Success() throws Exception {
         Long userId = 1L;
         String orderNumber = "ORD-100";
@@ -123,14 +122,14 @@ class OrderUserControllerTest {
     }
 
     @Test
-    @DisplayName("주문 리스트 조회 실패 - 인증 헤더 누락 (Fail Path)")
+    @DisplayName("주문 리스트 조회 실패 - 인증 헤더 누락 ")
     void getOrderList_Fail_MissingHeader() throws Exception {
         mockMvc.perform(get("/orders/my-order"))
                 .andExpect(status().isBadRequest());
     }
 
     @Test
-    @DisplayName("존재하지 않는 주문 상세 조회 실패 (Fail Path)")
+    @DisplayName("존재하지 않는 주문 상세 조회 실패 ")
     void getOrderDetail_Fail_NotFound() throws Exception {
         Long userId = 1L;
         String invalidOrderNumber = "INVALID";
@@ -140,7 +139,7 @@ class OrderUserControllerTest {
 
         mockMvc.perform(get("/orders/{orderNumber}", invalidOrderNumber)
                         .header(USER_ID_HEADER, userId))
-                .andExpect(status().isBadRequest()) // 500 대신 400으로 수정
+                .andExpect(status().isBadRequest())
                 .andExpect(jsonPath("$.message").value("Order not found"));
     }
 }

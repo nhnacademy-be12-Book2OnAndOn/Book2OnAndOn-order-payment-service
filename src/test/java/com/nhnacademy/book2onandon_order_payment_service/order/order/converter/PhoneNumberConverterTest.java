@@ -54,7 +54,7 @@ class PhoneNumberConverterTest {
     }
 
     @Test
-    @DisplayName("DB에서 읽어온 데이터가 null이면 null을 반환한다 (Fail Path)")
+    @DisplayName("DB에서 읽어온 데이터가 null이면 null을 반환한다")
     void convertToEntityAttribute_Null() {
         String result = converter.convertToEntityAttribute(null);
 

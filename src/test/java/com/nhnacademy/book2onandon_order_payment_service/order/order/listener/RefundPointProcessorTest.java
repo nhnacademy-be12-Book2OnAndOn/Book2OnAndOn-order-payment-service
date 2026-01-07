@@ -72,7 +72,7 @@ class RefundPointProcessorTest {
     }
 
     @Test
-    @DisplayName("비회원 주문인 경우 포인트 환불 처리를 생략한다 (Fail Path)")
+    @DisplayName("비회원 주문인 경우 포인트 환불 처리를 생략한다 ")
     void refundAsPoint_NonMember_Skip() {
         Order order = mock(Order.class);
         Refund refund = mock(Refund.class);
@@ -129,7 +129,7 @@ class RefundPointProcessorTest {
     }
 
     @Test
-    @DisplayName("배송 정보가 없으면 IllegalStateException이 발생한다 (Fail Path)")
+    @DisplayName("배송 정보가 없으면 IllegalStateException이 발생한다 ")
     void getDaysAfterShipment_NoDelivery_ThrowsException() {
         Order order = mock(Order.class);
         Refund refund = mock(Refund.class);

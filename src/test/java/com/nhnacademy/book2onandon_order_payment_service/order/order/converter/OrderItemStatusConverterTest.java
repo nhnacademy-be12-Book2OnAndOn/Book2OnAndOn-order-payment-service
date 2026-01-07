@@ -51,7 +51,7 @@ class OrderItemStatusConverterTest {
     }
 
     @Test
-    @DisplayName("존재하지 않는 코드가 들어올 경우 예외가 발생해야 한다 (Fail Path)")
+    @DisplayName("존재하지 않는 코드가 들어올 경우 예외가 발생해야 한다")
     void convertToEntityAttribute_InvalidCodeTest() {
         Integer invalidCode = -999;
 

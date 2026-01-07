@@ -51,7 +51,7 @@ class OrderStatusConverterTest {
     }
 
     @Test
-    @DisplayName("DB에 정의되지 않은 잘못된 코드가 들어올 경우 예외가 발생한다 (Fail Path)")
+    @DisplayName("DB에 정의되지 않은 잘못된 코드가 들어올 경우 예외가 발생한다")
     void convertToEntityAttribute_Fail_InvalidCode() {
         Integer invalidCode = 9999;
 
