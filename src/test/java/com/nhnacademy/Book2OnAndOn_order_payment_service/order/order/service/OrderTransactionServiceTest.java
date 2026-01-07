@@ -4,9 +4,11 @@ import static org.assertj.core.api.Assertions.assertThat;
 import static org.assertj.core.api.Assertions.assertThatCode;
 import static org.assertj.core.api.Assertions.assertThatThrownBy;
 import static org.mockito.ArgumentMatchers.any;
+import static org.mockito.ArgumentMatchers.anyLong;
 import static org.mockito.BDDMockito.given;
 import static org.mockito.Mockito.mock;
 import static org.mockito.Mockito.never;
+import static org.mockito.Mockito.times;
 import static org.mockito.Mockito.verify;
 
 import com.nhnacademy.Book2OnAndOn_order_payment_service.exception.OrderVerificationException;
@@ -210,25 +212,24 @@ class OrderTransactionServiceTest {
     }
 
     @Test
-    @DisplayName("주문 상태 변경 - 결제 성공 (COMPLETED)")
+    @DisplayName("주문 상태 변경 - 결제 성공")
     void changeStatusOrder_Success() {
-        // given
+        // Given
         Order order = mock(Order.class);
-        given(order.getOrderId()).willReturn(1L);
-
-        // order.getOrderItems()가 호출되므로 빈 리스트 반환 설정
-        given(order.getOrderItems()).willReturn(new ArrayList<>());
-
-        // [중요] NPE 방지를 위해 OrderItemRepository Mocking 필수
         OrderItem mockItem = mock(OrderItem.class);
-        given(orderItemRepository.findByOrder_OrderId(1L)).willReturn(List.of(mockItem));
 
-        // when
+        // 서비스 로직에서 order.getOrderItems()만 사용하므로 이것만 설정함
+        given(order.getOrderItems()).willReturn(List.of(mockItem));
+
+        // When
         orderTransactionService.changeStatusOrder(order, true);
 
-        // then
+        // Then
         verify(order).updateStatus(OrderStatus.COMPLETED);
-        verify(mockItem).updateStatus(OrderItemStatus.ORDER_COMPLETE);
+        verify(mockItem, times(1)).updateStatus(OrderItemStatus.ORDER_COMPLETE);
+
+        // 레포지토리는 사용되지 않아야 함
+        verify(orderItemRepository, never()).findByOrder_OrderId(anyLong());
     }
 
     @Test

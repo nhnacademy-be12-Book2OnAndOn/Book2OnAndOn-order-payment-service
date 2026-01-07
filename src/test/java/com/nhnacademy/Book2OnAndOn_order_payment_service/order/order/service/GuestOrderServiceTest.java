@@ -2,6 +2,7 @@ package com.nhnacademy.Book2OnAndOn_order_payment_service.order.order.service;
 
 import static org.assertj.core.api.Assertions.assertThat;
 import static org.assertj.core.api.Assertions.assertThatThrownBy;
+import static org.mockito.ArgumentMatchers.anyLong;
 import static org.mockito.BDDMockito.given;
 import static org.mockito.Mockito.mock;
 
@@ -51,8 +52,7 @@ class GuestOrderServiceTest {
                 .willReturn(true);
         given(guestOrder.getOrder()).willReturn(order);
         given(order.getOrderNumber()).willReturn("ORD-100");
-        given(tokenProvider.createToken(1L)).willReturn("guest-jwt-token");
-
+        given(tokenProvider.createToken(anyLong())).willReturn("guest-jwt-token");
         GuestLoginResponseDto result = guestOrderService.loginGuest(request);
 
         assertThat(result.getAccessToken()).isEqualTo("guest-jwt-token");
