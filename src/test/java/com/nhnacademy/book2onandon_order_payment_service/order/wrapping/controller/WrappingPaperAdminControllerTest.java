@@ -1,4 +1,4 @@
-package com.nhnacademy.Book2OnAndOn_order_payment_service.order.wrapping.controller;
+package com.nhnacademy.book2onandon_order_payment_service.order.wrapping.controller;
 
 import static org.assertj.core.api.Assertions.assertThatThrownBy;
 import static org.mockito.ArgumentMatchers.any;
@@ -11,12 +11,10 @@ import static org.springframework.test.web.servlet.request.MockMvcRequestBuilder
 import static org.springframework.test.web.servlet.result.MockMvcResultMatchers.*;
 
 import com.fasterxml.jackson.databind.ObjectMapper;
-import com.nhnacademy.Book2OnAndOn_order_payment_service.order.controller.WrappingPaperAdminController;
-import com.nhnacademy.Book2OnAndOn_order_payment_service.order.dto.refund.response.RefundResponseDto;
-import com.nhnacademy.Book2OnAndOn_order_payment_service.order.dto.wrapping.WrappingPaperRequestDto;
-import com.nhnacademy.Book2OnAndOn_order_payment_service.order.dto.wrapping.WrappingPaperResponseDto;
-import com.nhnacademy.Book2OnAndOn_order_payment_service.order.dto.wrapping.WrappingPaperUpdateRequestDto;
-import com.nhnacademy.Book2OnAndOn_order_payment_service.order.service.WrappingPaperService;
+import com.nhnacademy.book2onandon_order_payment_service.order.controller.WrappingPaperAdminController;
+import com.nhnacademy.book2onandon_order_payment_service.order.dto.wrapping.WrappingPaperRequestDto;
+import com.nhnacademy.book2onandon_order_payment_service.order.dto.wrapping.WrappingPaperResponseDto;
+import com.nhnacademy.book2onandon_order_payment_service.order.service.WrappingPaperService;
 import java.util.List;
 import org.junit.jupiter.api.BeforeEach;
 import org.junit.jupiter.api.DisplayName;

@@ -1,10 +1,10 @@
-package com.nhnacademy.Book2OnAndOn_order_payment_service.delivery.repository;
+package com.nhnacademy.book2onandon_order_payment_service.order.delivery.repository;
 
-import com.nhnacademy.Book2OnAndOn_order_payment_service.order.entity.delivery.Delivery;
-import com.nhnacademy.Book2OnAndOn_order_payment_service.order.entity.order.Order;
-import com.nhnacademy.Book2OnAndOn_order_payment_service.order.entity.order.OrderStatus;
-import com.nhnacademy.Book2OnAndOn_order_payment_service.order.repository.delivery.DeliveryRepository;
-import com.nhnacademy.Book2OnAndOn_order_payment_service.order.repository.order.OrderRepository;
+import com.nhnacademy.book2onandon_order_payment_service.order.entity.delivery.Delivery;
+import com.nhnacademy.book2onandon_order_payment_service.order.entity.order.Order;
+import com.nhnacademy.book2onandon_order_payment_service.order.entity.order.OrderStatus;
+import com.nhnacademy.book2onandon_order_payment_service.order.repository.delivery.DeliveryRepository;
+import com.nhnacademy.book2onandon_order_payment_service.order.repository.order.OrderRepository;
 import jakarta.validation.ConstraintViolationException;
 import org.junit.jupiter.api.DisplayName;
 import org.junit.jupiter.api.Test;

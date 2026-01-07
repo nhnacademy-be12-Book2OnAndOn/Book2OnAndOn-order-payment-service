@@ -1,4 +1,4 @@
-package com.nhnacademy.Book2OnAndOn_order_payment_service.order.refund.controller;
+package com.nhnacademy.book2onandon_order_payment_service.order.refund.controller;
 
 import static org.mockito.ArgumentMatchers.any;
 import static org.mockito.ArgumentMatchers.eq;
@@ -9,11 +9,11 @@ import static org.springframework.test.web.servlet.result.MockMvcResultMatchers.
 import static org.springframework.test.web.servlet.result.MockMvcResultMatchers.status;
 
 import com.fasterxml.jackson.databind.ObjectMapper;
-import com.nhnacademy.Book2OnAndOn_order_payment_service.order.controller.RefundAdminController;
-import com.nhnacademy.Book2OnAndOn_order_payment_service.order.dto.refund.request.RefundSearchCondition;
-import com.nhnacademy.Book2OnAndOn_order_payment_service.order.dto.refund.request.RefundStatusUpdateRequestDto;
-import com.nhnacademy.Book2OnAndOn_order_payment_service.order.dto.refund.response.RefundResponseDto;
-import com.nhnacademy.Book2OnAndOn_order_payment_service.order.service.RefundService;
+import com.nhnacademy.book2onandon_order_payment_service.order.controller.RefundAdminController;
+import com.nhnacademy.book2onandon_order_payment_service.order.dto.refund.request.RefundSearchCondition;
+import com.nhnacademy.book2onandon_order_payment_service.order.dto.refund.request.RefundStatusUpdateRequestDto;
+import com.nhnacademy.book2onandon_order_payment_service.order.dto.refund.response.RefundResponseDto;
+import com.nhnacademy.book2onandon_order_payment_service.order.service.RefundService;
 import java.util.ArrayList;
 import java.util.List;
 import org.junit.jupiter.api.BeforeEach;

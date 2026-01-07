@@ -1,4 +1,4 @@
-package com.nhnacademy.Book2OnAndOn_order_payment_service.order.order.controller;
+package com.nhnacademy.book2onandon_order_payment_service.order.order.controller;
 
 import static org.mockito.ArgumentMatchers.any;
 import static org.mockito.ArgumentMatchers.eq;
@@ -6,8 +6,8 @@ import static org.mockito.BDDMockito.given;
 import static org.springframework.test.web.servlet.request.MockMvcRequestBuilders.get;
 import static org.springframework.test.web.servlet.result.MockMvcResultMatchers.*;
 
-import com.nhnacademy.Book2OnAndOn_order_payment_service.order.controller.OrderApiController;
-import com.nhnacademy.Book2OnAndOn_order_payment_service.order.service.OrderApiService;
+import com.nhnacademy.book2onandon_order_payment_service.order.controller.OrderApiController;
+import com.nhnacademy.book2onandon_order_payment_service.order.service.OrderApiService;
 import java.time.LocalDate;
 import java.util.List;
 import org.junit.jupiter.api.BeforeEach;

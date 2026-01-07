@@ -1,4 +1,4 @@
-package com.nhnacademy.Book2OnAndOn_order_payment_service.order.controller;
+package com.nhnacademy.book2onandon_order_payment_service.order.controller;
 
 import static org.mockito.ArgumentMatchers.any;
 import static org.mockito.ArgumentMatchers.eq;
@@ -12,9 +12,9 @@ import static org.springframework.test.web.servlet.result.MockMvcResultMatchers.
 import static org.springframework.test.web.servlet.result.MockMvcResultMatchers.status;
 
 import com.fasterxml.jackson.databind.ObjectMapper;
-import com.nhnacademy.Book2OnAndOn_order_payment_service.order.dto.delivery.DeliveryPolicyRequestDto;
-import com.nhnacademy.Book2OnAndOn_order_payment_service.order.dto.delivery.DeliveryPolicyResponseDto;
-import com.nhnacademy.Book2OnAndOn_order_payment_service.order.service.DeliveryPolicyService;
+import com.nhnacademy.book2onandon_order_payment_service.order.dto.delivery.DeliveryPolicyRequestDto;
+import com.nhnacademy.book2onandon_order_payment_service.order.dto.delivery.DeliveryPolicyResponseDto;
+import com.nhnacademy.book2onandon_order_payment_service.order.service.DeliveryPolicyService;
 import java.util.List;
 import org.junit.jupiter.api.BeforeEach;
 import org.junit.jupiter.api.DisplayName;

@@ -1,4 +1,4 @@
-package com.nhnacademy.Book2OnAndOn_order_payment_service.order.order.listener;
+package com.nhnacademy.book2onandon_order_payment_service.order.order.listener;
 
 import static org.mockito.ArgumentMatchers.any;
 import static org.mockito.ArgumentMatchers.anyList;
@@ -8,13 +8,12 @@ import static org.mockito.Mockito.mock;
 import static org.mockito.Mockito.times;
 import static org.mockito.Mockito.verify;
 
-import com.nhnacademy.Book2OnAndOn_order_payment_service.cart.service.CartService;
-import com.nhnacademy.Book2OnAndOn_order_payment_service.order.entity.order.Order;
-import com.nhnacademy.Book2OnAndOn_order_payment_service.order.entity.order.OrderItem;
-import com.nhnacademy.Book2OnAndOn_order_payment_service.order.listener.PaymentSuccessEventListener;
-import com.nhnacademy.Book2OnAndOn_order_payment_service.order.repository.order.OrderRepository;
-import com.nhnacademy.Book2OnAndOn_order_payment_service.order.service.DeliveryService;
-import com.nhnacademy.Book2OnAndOn_order_payment_service.payment.domain.dto.event.PaymentSuccessEvent;
+import com.nhnacademy.book2onandon_order_payment_service.cart.service.CartService;
+import com.nhnacademy.book2onandon_order_payment_service.order.entity.order.Order;
+import com.nhnacademy.book2onandon_order_payment_service.order.entity.order.OrderItem;
+import com.nhnacademy.book2onandon_order_payment_service.order.listener.PaymentSuccessEventListener;
+import com.nhnacademy.book2onandon_order_payment_service.order.service.DeliveryService;
+import com.nhnacademy.book2onandon_order_payment_service.payment.domain.dto.event.PaymentSuccessEvent;
 import java.util.List;
 import org.junit.jupiter.api.DisplayName;
 import org.junit.jupiter.api.Test;

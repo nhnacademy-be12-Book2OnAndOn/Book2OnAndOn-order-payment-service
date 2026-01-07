@@ -1,4 +1,4 @@
-package com.nhnacademy.Book2OnAndOn_order_payment_service.order.order.service.impl;
+package com.nhnacademy.book2onandon_order_payment_service.order.order.service.impl;
 
 import static org.assertj.core.api.Assertions.assertThat;
 import static org.assertj.core.api.Assertions.assertThatThrownBy;
@@ -10,24 +10,21 @@ import static org.mockito.ArgumentMatchers.eq;
 import static org.mockito.BDDMockito.given;
 import static org.mockito.Mockito.*;
 
-import com.nhnacademy.Book2OnAndOn_order_payment_service.client.*;
-import com.nhnacademy.Book2OnAndOn_order_payment_service.client.dto.*;
-import com.nhnacademy.Book2OnAndOn_order_payment_service.order.assembler.OrderViewAssembler;
-import com.nhnacademy.Book2OnAndOn_order_payment_service.order.dto.order.*;
-import com.nhnacademy.Book2OnAndOn_order_payment_service.order.dto.order.orderitem.BookInfoDto;
-import com.nhnacademy.Book2OnAndOn_order_payment_service.order.entity.delivery.DeliveryPolicy;
-import com.nhnacademy.Book2OnAndOn_order_payment_service.order.entity.order.*;
-import com.nhnacademy.Book2OnAndOn_order_payment_service.order.exception.*;
-import com.nhnacademy.Book2OnAndOn_order_payment_service.order.provider.OrderNumberProvider;
-import com.nhnacademy.Book2OnAndOn_order_payment_service.order.repository.delivery.DeliveryPolicyRepository;
-import com.nhnacademy.Book2OnAndOn_order_payment_service.order.repository.order.*;
-import com.nhnacademy.Book2OnAndOn_order_payment_service.order.service.*;
-import com.nhnacademy.Book2OnAndOn_order_payment_service.order.service.impl.OrderServiceImpl;
-import com.nhnacademy.Book2OnAndOn_order_payment_service.payment.domain.dto.request.PaymentRequest;
-import com.nhnacademy.Book2OnAndOn_order_payment_service.payment.domain.dto.response.PaymentResponse;
-import com.nhnacademy.Book2OnAndOn_order_payment_service.payment.service.PaymentService;
-import java.time.LocalDate;
-import java.time.LocalDateTime;
+import com.nhnacademy.book2onandon_order_payment_service.client.*;
+import com.nhnacademy.book2onandon_order_payment_service.client.dto.*;
+import com.nhnacademy.book2onandon_order_payment_service.order.assembler.OrderViewAssembler;
+import com.nhnacademy.book2onandon_order_payment_service.order.dto.order.*;
+import com.nhnacademy.book2onandon_order_payment_service.order.dto.order.orderitem.BookInfoDto;
+import com.nhnacademy.book2onandon_order_payment_service.order.entity.order.*;
+import com.nhnacademy.book2onandon_order_payment_service.order.exception.*;
+import com.nhnacademy.book2onandon_order_payment_service.order.provider.OrderNumberProvider;
+import com.nhnacademy.book2onandon_order_payment_service.order.repository.delivery.DeliveryPolicyRepository;
+import com.nhnacademy.book2onandon_order_payment_service.order.repository.order.*;
+import com.nhnacademy.book2onandon_order_payment_service.order.service.*;
+import com.nhnacademy.book2onandon_order_payment_service.order.service.impl.OrderServiceImpl;
+import com.nhnacademy.book2onandon_order_payment_service.payment.domain.dto.request.PaymentRequest;
+import com.nhnacademy.book2onandon_order_payment_service.payment.domain.dto.response.PaymentResponse;
+import com.nhnacademy.book2onandon_order_payment_service.payment.service.PaymentService;
 import java.util.*;
 import org.junit.jupiter.api.DisplayName;
 import org.junit.jupiter.api.Test;
@@ -165,7 +162,7 @@ class OrderServiceImplTest {
         given(mockOrder.getOrderItems()).willReturn(List.of(mockItem));
         given(orderRepository.findByOrderNumber(orderNumber)).willReturn(Optional.of(mockOrder));
 
-        orderService.setOrderItemStatus(orderNumber, new com.nhnacademy.Book2OnAndOn_order_payment_service.order.dto.order.orderitem.OrderItemStatusUpdateDto(10L, OrderItemStatus.ORDER_COMPLETE));
+        orderService.setOrderItemStatus(orderNumber, new com.nhnacademy.book2onandon_order_payment_service.order.dto.order.orderitem.OrderItemStatusUpdateDto(10L, OrderItemStatus.ORDER_COMPLETE));
 
         verify(mockItem).setOrderItemStatus(OrderItemStatus.ORDER_COMPLETE);
     }

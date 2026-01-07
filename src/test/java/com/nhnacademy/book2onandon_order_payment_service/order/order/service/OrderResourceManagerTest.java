@@ -1,4 +1,4 @@
-package com.nhnacademy.Book2OnAndOn_order_payment_service.order.service;
+package com.nhnacademy.book2onandon_order_payment_service.order.service;
 
 import static org.mockito.ArgumentMatchers.any;
 import static org.mockito.ArgumentMatchers.anyLong;
@@ -11,18 +11,18 @@ import static org.mockito.Mockito.verify;
 import static org.mockito.Mockito.verifyNoInteractions;
 import static org.mockito.Mockito.when;
 
-import com.nhnacademy.Book2OnAndOn_order_payment_service.client.BookServiceClient;
-import com.nhnacademy.Book2OnAndOn_order_payment_service.client.CouponServiceClient;
-import com.nhnacademy.Book2OnAndOn_order_payment_service.client.UserServiceClient;
-import com.nhnacademy.Book2OnAndOn_order_payment_service.client.dto.EarnOrderPointRequestDto;
-import com.nhnacademy.Book2OnAndOn_order_payment_service.client.dto.OrderCanceledEvent;
-import com.nhnacademy.Book2OnAndOn_order_payment_service.client.dto.ReserveBookRequestDto;
-import com.nhnacademy.Book2OnAndOn_order_payment_service.client.dto.UseCouponRequestDto;
-import com.nhnacademy.Book2OnAndOn_order_payment_service.client.dto.UsePointInternalRequestDto;
-import com.nhnacademy.Book2OnAndOn_order_payment_service.config.RabbitConfig;
-import com.nhnacademy.Book2OnAndOn_order_payment_service.order.dto.order.OrderCreateRequestDto;
-import com.nhnacademy.Book2OnAndOn_order_payment_service.order.dto.order.OrderVerificationResult;
-import com.nhnacademy.Book2OnAndOn_order_payment_service.order.dto.order.orderitem.OrderItemRequestDto;
+import com.nhnacademy.book2onandon_order_payment_service.client.BookServiceClient;
+import com.nhnacademy.book2onandon_order_payment_service.client.CouponServiceClient;
+import com.nhnacademy.book2onandon_order_payment_service.client.UserServiceClient;
+import com.nhnacademy.book2onandon_order_payment_service.client.dto.EarnOrderPointRequestDto;
+import com.nhnacademy.book2onandon_order_payment_service.client.dto.OrderCanceledEvent;
+import com.nhnacademy.book2onandon_order_payment_service.client.dto.ReserveBookRequestDto;
+import com.nhnacademy.book2onandon_order_payment_service.client.dto.UseCouponRequestDto;
+import com.nhnacademy.book2onandon_order_payment_service.client.dto.UsePointInternalRequestDto;
+import com.nhnacademy.book2onandon_order_payment_service.config.RabbitConfig;
+import com.nhnacademy.book2onandon_order_payment_service.order.dto.order.OrderCreateRequestDto;
+import com.nhnacademy.book2onandon_order_payment_service.order.dto.order.OrderVerificationResult;
+import com.nhnacademy.book2onandon_order_payment_service.order.dto.order.orderitem.OrderItemRequestDto;
 import java.util.List;
 import org.junit.jupiter.api.DisplayName;
 import org.junit.jupiter.api.Test;

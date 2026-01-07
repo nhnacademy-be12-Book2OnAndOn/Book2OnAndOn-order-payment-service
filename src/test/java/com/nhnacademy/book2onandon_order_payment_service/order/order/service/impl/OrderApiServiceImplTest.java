@@ -1,4 +1,4 @@
-package com.nhnacademy.Book2OnAndOn_order_payment_service.order.order.service.impl;
+package com.nhnacademy.book2onandon_order_payment_service.order.order.service.impl;
 
 import static org.assertj.core.api.Assertions.assertThat;
 import static org.mockito.ArgumentMatchers.any;
@@ -6,10 +6,10 @@ import static org.mockito.ArgumentMatchers.eq;
 import static org.mockito.BDDMockito.given;
 import static org.mockito.Mockito.verify;
 
-import com.nhnacademy.Book2OnAndOn_order_payment_service.order.entity.order.OrderItemStatus;
-import com.nhnacademy.Book2OnAndOn_order_payment_service.order.entity.order.OrderStatus;
-import com.nhnacademy.Book2OnAndOn_order_payment_service.order.repository.order.OrderRepository;
-import com.nhnacademy.Book2OnAndOn_order_payment_service.order.service.impl.OrderApiServiceImpl;
+import com.nhnacademy.book2onandon_order_payment_service.order.entity.order.OrderItemStatus;
+import com.nhnacademy.book2onandon_order_payment_service.order.entity.order.OrderStatus;
+import com.nhnacademy.book2onandon_order_payment_service.order.repository.order.OrderRepository;
+import com.nhnacademy.book2onandon_order_payment_service.order.service.impl.OrderApiServiceImpl;
 import java.time.LocalDate;
 import java.time.LocalDateTime;
 import java.util.List;

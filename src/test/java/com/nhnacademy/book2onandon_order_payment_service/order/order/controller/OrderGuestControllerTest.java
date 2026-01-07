@@ -1,4 +1,4 @@
-package com.nhnacademy.Book2OnAndOn_order_payment_service.order.order.controller;
+package com.nhnacademy.book2onandon_order_payment_service.order.order.controller;
 
 import static org.assertj.core.api.Assertions.assertThatThrownBy;
 import static org.mockito.ArgumentMatchers.any;
@@ -12,15 +12,14 @@ import static org.springframework.test.web.servlet.result.MockMvcResultMatchers.
 import static org.springframework.test.web.servlet.result.MockMvcResultMatchers.status;
 
 import com.fasterxml.jackson.databind.ObjectMapper;
-import com.nhnacademy.Book2OnAndOn_order_payment_service.order.controller.OrderGuestController;
-import com.nhnacademy.Book2OnAndOn_order_payment_service.order.dto.order.OrderCreateResponseDto;
-import com.nhnacademy.Book2OnAndOn_order_payment_service.order.dto.order.OrderPrepareRequestDto;
-import com.nhnacademy.Book2OnAndOn_order_payment_service.order.dto.order.OrderPrepareResponseDto;
-import com.nhnacademy.Book2OnAndOn_order_payment_service.order.dto.order.guest.GuestLoginRequestDto;
-import com.nhnacademy.Book2OnAndOn_order_payment_service.order.dto.order.guest.GuestLoginResponseDto;
-import com.nhnacademy.Book2OnAndOn_order_payment_service.order.dto.order.guest.GuestOrderCreateRequestDto;
-import com.nhnacademy.Book2OnAndOn_order_payment_service.order.service.GuestOrderService;
-import com.nhnacademy.Book2OnAndOn_order_payment_service.order.service.OrderService;
+import com.nhnacademy.book2onandon_order_payment_service.order.controller.OrderGuestController;
+import com.nhnacademy.book2onandon_order_payment_service.order.dto.order.OrderCreateResponseDto;
+import com.nhnacademy.book2onandon_order_payment_service.order.dto.order.OrderPrepareRequestDto;
+import com.nhnacademy.book2onandon_order_payment_service.order.dto.order.OrderPrepareResponseDto;
+import com.nhnacademy.book2onandon_order_payment_service.order.dto.order.guest.GuestLoginRequestDto;
+import com.nhnacademy.book2onandon_order_payment_service.order.dto.order.guest.GuestLoginResponseDto;
+import com.nhnacademy.book2onandon_order_payment_service.order.service.GuestOrderService;
+import com.nhnacademy.book2onandon_order_payment_service.order.service.OrderService;
 import java.util.ArrayList;
 import org.junit.jupiter.api.BeforeEach;
 import org.junit.jupiter.api.DisplayName;
