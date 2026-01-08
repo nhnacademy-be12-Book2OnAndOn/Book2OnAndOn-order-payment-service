@@ -26,7 +26,7 @@ class TossPaymentsApiClientTest {
         TossConfirmRequest request = mock(TossConfirmRequest.class);
         TossResponse expectedResponse = mock(TossResponse.class);
 
-        given(apiClient.confirmPayment(eq(auth), eq(idempotencyKey), eq(request)))
+        given(apiClient.confirmPayment(auth, idempotencyKey, request))
                 .willReturn(expectedResponse);
 
         TossResponse actualResponse = apiClient.confirmPayment(auth, idempotencyKey, request);
@@ -42,7 +42,7 @@ class TossPaymentsApiClientTest {
         TossCancelRequest request = mock(TossCancelRequest.class);
         TossCancelResponse expectedResponse = mock(TossCancelResponse.class);
 
-        given(apiClient.cancelPayment(eq(auth), eq(idempotencyKey), eq(paymentKey), eq(request)))
+        given(apiClient.cancelPayment(auth, idempotencyKey, paymentKey, request))
                 .willReturn(expectedResponse);
 
         TossCancelResponse actualResponse = apiClient.cancelPayment(auth, idempotencyKey, paymentKey, request);
@@ -57,7 +57,7 @@ class TossPaymentsApiClientTest {
         String orderId = "ORD-2025-001";
         TossResponse expectedResponse = mock(TossResponse.class);
 
-        given(apiClient.findPayment(eq(auth), eq(orderId)))
+        given(apiClient.findPayment(auth, orderId))
                 .willReturn(expectedResponse);
 
         TossResponse actualResponse = apiClient.findPayment(auth, orderId);

@@ -86,8 +86,6 @@ class OrderApiControllerTest {
     @DisplayName("특정 기간 유저 순수 주문액 조회 성공")
     void getNetOrderAmount_Success() throws Exception {
         Long userId = 1L;
-        LocalDate from = LocalDate.of(2025, 1, 1);
-        LocalDate to = LocalDate.of(2025, 12, 31);
         given(orderApiService.calculateTotalOrderAmountForUserBetweenDates(eq(userId), any(LocalDate.class), any(LocalDate.class)))
                 .willReturn(150000L);
 

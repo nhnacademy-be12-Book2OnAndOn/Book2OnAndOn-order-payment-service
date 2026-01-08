@@ -3,7 +3,6 @@ package com.nhnacademy.book2onandon_order_payment_service.client;
 import static org.assertj.core.api.Assertions.assertThat;
 import static org.mockito.ArgumentMatchers.any;
 import static org.mockito.BDDMockito.given;
-import static org.mockito.Mockito.mock;
 
 import com.nhnacademy.book2onandon_order_payment_service.client.dto.SmartTrackingResponse;
 import java.util.function.Function;
