@@ -308,10 +308,13 @@ class RefundServiceImplTest {
         given(refundRepository.findByIdForUpdate(refundId)).willReturn(refund);
 
         assertThatThrownBy(() -> refundService.cancelRefund(orderId, refundId, userId, null))
+                // [수정] 정확히 발생한 예외 클래스를 지정합니다.
                 .isInstanceOf(RefundNotCancelableException.class)
+                // [수정] 실제 로그에 찍힌 메시지와 일치하도록 검증 문구를 보강합니다.
                 .hasMessageContaining("현재 상태에서는 반품 취소가 불가합니다.")
                 .hasMessageContaining("refundId=" + refundId)
-                .hasMessageContaining("status=" + RefundStatus.APPROVED);
+                .hasMessageContaining("status=" + RefundStatus.APPROVED)
+                .hasMessageContaining("cancelable=REQUESTED,IN_INSPECTION");
     }
 
     @Test
