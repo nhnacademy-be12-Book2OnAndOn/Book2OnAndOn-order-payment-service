@@ -4,7 +4,6 @@ import static org.mockito.ArgumentMatchers.any;
 import static org.mockito.ArgumentMatchers.eq;
 import static org.mockito.BDDMockito.given;
 import static org.mockito.Mockito.doNothing;
-import static org.mockito.Mockito.doThrow;
 import static org.springframework.test.web.servlet.request.MockMvcRequestBuilders.get;
 import static org.springframework.test.web.servlet.request.MockMvcRequestBuilders.post;
 import static org.springframework.test.web.servlet.request.MockMvcRequestBuilders.put;
@@ -44,7 +43,7 @@ class DeliveryPolicyControllerTest {
     private DeliveryPolicyController deliveryPolicyController;
 
     private final ObjectMapper objectMapper = new ObjectMapper();
-    private final String BASE_URL = "/admin/delivery-policies";
+    private final String baseUrl = "/admin/delivery-policies";
 
     @BeforeEach
     void setUp() {
@@ -61,7 +60,7 @@ class DeliveryPolicyControllerTest {
 
         given(deliveryPolicyService.getPolicies(any(Pageable.class))).willReturn(page);
 
-        mockMvc.perform(get(BASE_URL)
+        mockMvc.perform(get(baseUrl)
                         .param("page", "0")
                         .param("size", "10"))
                 .andExpect(status().isOk())
@@ -75,7 +74,7 @@ class DeliveryPolicyControllerTest {
 
         given(deliveryPolicyService.getPolicy(1L)).willReturn(response);
 
-        mockMvc.perform(get(BASE_URL + "/1"))
+        mockMvc.perform(get(baseUrl + "/1"))
                 .andExpect(status().isOk())
                 .andExpect(jsonPath("$.deliveryPolicyName").value("기본"));
     }
@@ -87,7 +86,7 @@ class DeliveryPolicyControllerTest {
 
         doNothing().when(deliveryPolicyService).createPolicy(any(DeliveryPolicyRequestDto.class));
 
-        mockMvc.perform(post(BASE_URL)
+        mockMvc.perform(post(baseUrl)
                         .contentType(MediaType.APPLICATION_JSON)
                         .content(objectMapper.writeValueAsString(request)))
                 .andExpect(status().isCreated());
@@ -100,7 +99,7 @@ class DeliveryPolicyControllerTest {
 
         doNothing().when(deliveryPolicyService).updatePolicy(eq(1L), any(DeliveryPolicyRequestDto.class));
 
-        mockMvc.perform(put(BASE_URL + "/1")
+        mockMvc.perform(put(baseUrl + "/1")
                         .contentType(MediaType.APPLICATION_JSON)
                         .content(objectMapper.writeValueAsString(request)))
                 .andExpect(status().isNoContent());
@@ -112,7 +111,7 @@ class DeliveryPolicyControllerTest {
         given(deliveryPolicyService.getPolicy(99L)).willThrow(new RuntimeException("Not Found"));
 
         org.assertj.core.api.Assertions.assertThatThrownBy(() ->
-                        mockMvc.perform(get(BASE_URL + "/99")))
+                        mockMvc.perform(get(baseUrl + "/99")))
                 .hasCauseInstanceOf(RuntimeException.class)
                 .hasMessageContaining("Not Found");
     }
@@ -120,7 +119,7 @@ class DeliveryPolicyControllerTest {
     @Test
     @DisplayName("유효하지 않은 데이터로 정책 생성 실패 ")
     void createPolicy_Fail_InvalidRequest() throws Exception {
-        mockMvc.perform(post(BASE_URL)
+        mockMvc.perform(post(baseUrl)
                         .contentType(MediaType.APPLICATION_JSON)
                         .content("{\"deliveryPolicyName\":\"\"}"))
                 .andExpect(status().isBadRequest());
