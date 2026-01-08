@@ -310,7 +310,7 @@ class OrderServiceImplTest {
         given(deliveryPolicyRepository.findById(anyLong())).willReturn(Optional.of(mock(DeliveryPolicy.class)));
 
         // [해결] NPE 방지를 위해 빈 객체가 아닌 포인트 정보 리턴
-        given(userServiceClient.getUserPoint(anyLong())).willReturn(new CurrentPointResponseDto(1000));
+//        given(userServiceClient.getUserPoint(anyLong())).willReturn(new CurrentPointResponseDto(1000));
         given(orderTransactionService.createPendingOrder(any(), any())).willReturn(mock(OrderCreateResponseDto.class));
 
         CouponTargetResponseDto coupon = new CouponTargetResponseDto(2L, null, List.of(1L), 0, 3000, CouponPolicyDiscountType.PERCENT, 10);

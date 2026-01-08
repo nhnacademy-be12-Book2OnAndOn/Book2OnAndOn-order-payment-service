@@ -255,6 +255,7 @@ public class OrderServiceImpl implements OrderService {
 
         if(totalAmount < 100){
             log.error("최소 결제 금액 100원 이상 결제해야합니다 (현재 주문 금액 : {}원)", totalAmount);
+            throw new OrderVerificationException("최소 결제 금액 100원 이상이어야 함");
         }
 
         LocalDate wantDeliveryDate = createWantDeliveryDate(req.getWantDeliveryDate());
@@ -515,7 +516,7 @@ public class OrderServiceImpl implements OrderService {
      * @return 포인트로 할인된 금액
      */
     private int createPointDiscount(Long userId, Integer currentAmount, Integer point){
-        if(point == null || userId == null){
+        if(point == null || point == 0 || userId == null){
             return 0;
         }
         CurrentPointResponseDto currentPointResponseDto = userServiceClient.getUserPoint(userId);
@@ -703,19 +704,14 @@ public class OrderServiceImpl implements OrderService {
     public OrderDetailResponseDto getOrderDetailWithAdmin(String orderNumber) {
 
         Order order = orderRepository.findByOrderNumber(orderNumber).orElseThrow(() -> new OrderNotFoundException("Not Found Order : " + orderNumber));
-
         List<Long> bookIds = order.getOrderItems().stream()
                         .map(OrderItem::getBookId)
                         .toList();
 
         List<BookOrderResponse> bookOrderResponseList = fetchBookInfo(bookIds);
-
         OrderDetailResponseDto orderDetailResponseDto = orderViewAssembler.toOrderDetailView(order, bookOrderResponseList);
-
         PaymentResponse paymentResponse = getPaymentInfo(orderNumber);
-
         orderDetailResponseDto.setPaymentResponse(paymentResponse);
-
         return orderDetailResponseDto;
     }
 
@@ -731,7 +727,6 @@ public class OrderServiceImpl implements OrderService {
         processCancelOrder(order);
         // 상태 변경
         orderTransactionService.changeStatusOrder(order, false);
-
         resourceManager.releaseResources(orderNumber, order.getUserId(), order.getPointDiscount(), order.getOrderId());
     }
 
@@ -781,9 +776,7 @@ public class OrderServiceImpl implements OrderService {
             log.warn("주문 취소를 할 수 없는 상태입니다 (현재 상태 : {})", order.getOrderStatus().name());
             throw new OrderNotCancellableException("주문 취소를 할 수 없는 상태입니다 : " + order.getOrderStatus().name());
         }
-
         paymentService.cancelPayment(new PaymentCancelRequest(order.getOrderNumber(), "사용자 주문 취소", null));
-
         orderTransactionService.changeStatusOrder(order, false);
     }
 }

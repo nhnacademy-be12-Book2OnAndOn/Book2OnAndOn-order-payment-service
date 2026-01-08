@@ -4,6 +4,7 @@ import static org.assertj.core.api.Assertions.assertThat;
 import com.nhnacademy.book2onandon_order_payment_service.payment.domain.dto.api.*;
 import com.nhnacademy.book2onandon_order_payment_service.payment.domain.dto.request.PaymentCreateRequest;
 import com.nhnacademy.book2onandon_order_payment_service.payment.domain.dto.request.PaymentCancelCreateRequest;
+import com.nhnacademy.book2onandon_order_payment_service.payment.domain.dto.request.PaymentUpdateRefundAmountRequest;
 import com.nhnacademy.book2onandon_order_payment_service.payment.domain.dto.response.PaymentCancelResponse;
 import com.nhnacademy.book2onandon_order_payment_service.payment.domain.dto.response.PaymentResponse;
 import java.time.LocalDateTime;
@@ -121,5 +122,20 @@ public class PaymentDtoTest {
         assertThat(response.orderNumber()).isEqualTo("ORD-1");
         assertThat(response.totalAmount()).isEqualTo(1000);
         assertThat(response.paymentCancelResponseList()).hasSize(1);
+    }
+
+    @Test
+    @DisplayName("PaymentUpdateRefundAmountRequest 생성 및 값 확인")
+    void paymentUpdateRefundAmountRequest_values() {
+        // given
+        String orderNumber = "ORD-001";
+        String paymentKey = "PAY-12345";
+
+        // when
+        PaymentUpdateRefundAmountRequest request = new PaymentUpdateRefundAmountRequest(orderNumber, paymentKey);
+
+        // then
+        assertThat(request.orderNumber()).isEqualTo(orderNumber);
+        assertThat(request.paymentKey()).isEqualTo(paymentKey);
     }
 }
