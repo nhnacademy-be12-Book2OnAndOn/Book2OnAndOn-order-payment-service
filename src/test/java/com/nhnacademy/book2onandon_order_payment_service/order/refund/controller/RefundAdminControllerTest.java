@@ -104,7 +104,6 @@ class RefundAdminControllerTest {
 
         given(refundService.getRefundDetailsForAdmin(refundId)).willReturn(responseDto);
 
-        // 컨트롤러 매핑: GET /admin/refunds/{refundId}
         mockMvc.perform(get("/admin/refunds/{refundId}", refundId))
                 .andExpect(status().isOk())
                 .andExpect(jsonPath("$.refundId").value(refundId));
@@ -123,7 +122,6 @@ class RefundAdminControllerTest {
         given(refundService.updateRefundStatus(eq(refundId), any(RefundStatusUpdateRequestDto.class)))
                 .willReturn(responseDto);
 
-        // 컨트롤러 매핑: PATCH /admin/refunds/{refundId}
         mockMvc.perform(patch("/admin/refunds/{refundId}", refundId)
                         .with(csrf())
                         .contentType(MediaType.APPLICATION_JSON)

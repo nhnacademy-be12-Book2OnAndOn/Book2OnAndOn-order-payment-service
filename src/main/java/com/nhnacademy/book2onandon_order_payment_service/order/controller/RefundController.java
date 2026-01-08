@@ -57,7 +57,6 @@ public class RefundController {
     }
 
     // 반품 상세 조회
-    // GET /orders/{orderId}/refund/{refundId}
     @GetMapping("/orders/{orderId}/refunds/{refundId}")
     public ResponseEntity<RefundResponseDto> getRefundDetails(
             @PathVariable Long orderId,

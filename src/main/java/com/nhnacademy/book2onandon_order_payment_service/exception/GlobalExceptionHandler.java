@@ -3,6 +3,8 @@ package com.nhnacademy.book2onandon_order_payment_service.exception;
 import com.nhnacademy.book2onandon_order_payment_service.cart.exception.CartBusinessException;
 import com.nhnacademy.book2onandon_order_payment_service.cart.exception.CartErrorCode;
 import com.nhnacademy.book2onandon_order_payment_service.cart.exception.CartException;
+import com.nhnacademy.book2onandon_order_payment_service.order.exception.RefundNotCancelableException;
+import com.nhnacademy.book2onandon_order_payment_service.order.exception.RefundOrderMismatchException;
 import com.nhnacademy.book2onandon_order_payment_service.payment.exception.AmountMismatchException;
 import feign.FeignException;
 import jakarta.persistence.OptimisticLockException;
@@ -111,6 +113,16 @@ public class GlobalExceptionHandler {
         HttpStatus status = HttpStatus.FORBIDDEN;
         return ResponseEntity.status(status)
                 .body(buildErrorResponse(status, "FORBIDDEN", "접근 권한이 없습니다: " + e.getMessage()));
+    }
+
+    @ExceptionHandler({
+            RefundOrderMismatchException.class,
+            RefundNotCancelableException.class
+    })
+    public ResponseEntity<ErrorResponse> handleRefundBusinessBadRequest(RuntimeException e) {
+        HttpStatus status = HttpStatus.BAD_REQUEST;
+        return ResponseEntity.status(status)
+                .body(buildErrorResponse(status, "BAD_REQUEST", e.getMessage()));
     }
 
     // ==========================
