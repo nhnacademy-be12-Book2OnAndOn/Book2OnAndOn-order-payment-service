@@ -3,9 +3,11 @@ package com.nhnacademy.book2onandon_order_payment_service.client.dto;
 import com.fasterxml.jackson.annotation.JsonProperty;
 import lombok.Getter;
 import lombok.NoArgsConstructor;
+import lombok.Setter;
 
 // BookOrderResponse DTO (Book Service로부터 받을 응답)
 @Getter
+@Setter
 @NoArgsConstructor
 public class BookOrderResponse {
     private Long bookId;
