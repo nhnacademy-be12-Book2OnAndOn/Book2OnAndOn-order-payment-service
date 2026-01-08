@@ -11,7 +11,6 @@ import com.nhnacademy.book2onandon_order_payment_service.client.dto.*;
 import com.nhnacademy.book2onandon_order_payment_service.exception.OrderVerificationException;
 import com.nhnacademy.book2onandon_order_payment_service.order.assembler.OrderViewAssembler;
 import com.nhnacademy.book2onandon_order_payment_service.order.dto.order.*;
-import com.nhnacademy.book2onandon_order_payment_service.order.dto.order.guest.GuestOrderCreateRequestDto;
 import com.nhnacademy.book2onandon_order_payment_service.order.dto.order.orderitem.BookInfoDto;
 import com.nhnacademy.book2onandon_order_payment_service.order.dto.order.orderitem.OrderItemRequestDto;
 import com.nhnacademy.book2onandon_order_payment_service.order.dto.order.orderitem.OrderItemStatusUpdateDto;
@@ -28,7 +27,6 @@ import com.nhnacademy.book2onandon_order_payment_service.order.service.WrappingP
 import com.nhnacademy.book2onandon_order_payment_service.order.service.impl.OrderServiceImpl;
 import com.nhnacademy.book2onandon_order_payment_service.payment.domain.dto.response.PaymentResponse;
 import com.nhnacademy.book2onandon_order_payment_service.payment.service.PaymentService;
-import java.math.BigDecimal;
 import java.time.LocalDate;
 import java.util.ArrayList;
 import java.util.List;
@@ -310,7 +308,6 @@ class OrderServiceImplTest {
         given(deliveryPolicyRepository.findById(anyLong())).willReturn(Optional.of(mock(DeliveryPolicy.class)));
 
         // [해결] NPE 방지를 위해 빈 객체가 아닌 포인트 정보 리턴
-//        given(userServiceClient.getUserPoint(anyLong())).willReturn(new CurrentPointResponseDto(1000));
         given(orderTransactionService.createPendingOrder(any(), any())).willReturn(mock(OrderCreateResponseDto.class));
 
         CouponTargetResponseDto coupon = new CouponTargetResponseDto(2L, null, List.of(1L), 0, 3000, CouponPolicyDiscountType.PERCENT, 10);

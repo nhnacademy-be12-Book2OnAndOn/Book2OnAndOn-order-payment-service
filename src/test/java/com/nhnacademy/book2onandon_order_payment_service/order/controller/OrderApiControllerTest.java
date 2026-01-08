@@ -6,7 +6,6 @@ import static org.mockito.BDDMockito.given;
 import static org.springframework.test.web.servlet.request.MockMvcRequestBuilders.get;
 import static org.springframework.test.web.servlet.result.MockMvcResultMatchers.*;
 
-import com.nhnacademy.book2onandon_order_payment_service.order.controller.OrderApiController;
 import com.nhnacademy.book2onandon_order_payment_service.order.service.OrderApiService;
 import java.time.LocalDate;
 import java.util.List;

@@ -12,7 +12,6 @@ import static org.springframework.test.web.servlet.result.MockMvcResultMatchers.
 import static org.springframework.test.web.servlet.result.MockMvcResultMatchers.status;
 
 import com.fasterxml.jackson.databind.ObjectMapper;
-import com.nhnacademy.book2onandon_order_payment_service.order.controller.OrderGuestController;
 import com.nhnacademy.book2onandon_order_payment_service.order.dto.order.OrderCreateResponseDto;
 import com.nhnacademy.book2onandon_order_payment_service.order.dto.order.OrderPrepareRequestDto;
 import com.nhnacademy.book2onandon_order_payment_service.order.dto.order.OrderPrepareResponseDto;

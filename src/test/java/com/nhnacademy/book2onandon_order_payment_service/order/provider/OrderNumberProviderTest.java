@@ -7,7 +7,6 @@ import static org.mockito.BDDMockito.given;
 import static org.mockito.Mockito.mock;
 
 import com.nhnacademy.book2onandon_order_payment_service.order.exception.OrderNumberProvisionException;
-import com.nhnacademy.book2onandon_order_payment_service.order.provider.OrderNumberProvider;
 import org.junit.jupiter.api.DisplayName;
 import org.junit.jupiter.api.Test;
 import org.junit.jupiter.api.extension.ExtendWith;

@@ -7,7 +7,6 @@ import static org.springframework.test.web.servlet.request.MockMvcRequestBuilder
 import static org.springframework.test.web.servlet.result.MockMvcResultMatchers.*;
 
 import com.fasterxml.jackson.databind.ObjectMapper;
-import com.nhnacademy.book2onandon_order_payment_service.order.controller.OrderUserController;
 import com.nhnacademy.book2onandon_order_payment_service.order.dto.order.*;
 import com.nhnacademy.book2onandon_order_payment_service.order.entity.order.OrderStatus;
 import com.nhnacademy.book2onandon_order_payment_service.order.service.OrderService;

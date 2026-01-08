@@ -27,7 +27,8 @@ class WebClientConfigTest {
         
         WebClient webClient = config.webClient();
 
-        assertThat(webClient).isNotNull();
-        assertThat(webClient).isInstanceOf(WebClient.class);
+        assertThat(webClient)
+                .isNotNull()
+                .isInstanceOf(WebClient.class);
     }
 }

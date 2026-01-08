@@ -3,7 +3,6 @@ package com.nhnacademy.book2onandon_order_payment_service.order.converter;
 import static org.assertj.core.api.Assertions.assertThat;
 import static org.assertj.core.api.Assertions.assertThatThrownBy;
 
-import com.nhnacademy.book2onandon_order_payment_service.order.converter.RefundStatusConverter;
 import com.nhnacademy.book2onandon_order_payment_service.order.entity.refund.RefundStatus;
 import org.junit.jupiter.api.DisplayName;
 import org.junit.jupiter.api.Test;

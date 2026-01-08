@@ -74,7 +74,8 @@ class OrderViewAssemblerImplTest {
         given(order.getOrderItems()).willReturn(List.of(item));
         given(item.getBookId()).willReturn(1L);
 
-        assertThatThrownBy(() -> assembler.toOrderDetailView(order, List.of()))
+        List<BookOrderResponse> emptyList = List.of();
+        assertThatThrownBy(() -> assembler.toOrderDetailView(order, emptyList))
                 .isInstanceOf(OrderVerificationException.class)
                 .hasMessageContaining("책 정보가 일치하지 않습니다");
     }

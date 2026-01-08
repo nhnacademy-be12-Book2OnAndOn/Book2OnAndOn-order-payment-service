@@ -46,7 +46,7 @@ class SnowflakeTest {
         Snowflake snowflake = new Snowflake(1, 1);
         long id = snowflake.nextId();
         
-        assertThat(id).isGreaterThan(0L);
+        assertThat(id).isPositive();
     }
 
     @Test

@@ -4,7 +4,6 @@ import static org.assertj.core.api.Assertions.assertThat;
 import static org.mockito.BDDMockito.given;
 import static org.mockito.Mockito.mock;
 
-import com.nhnacademy.book2onandon_order_payment_service.order.converter.PhoneNumberConverter;
 import com.nhnacademy.book2onandon_order_payment_service.util.AesUtils;
 import org.junit.jupiter.api.BeforeEach;
 import org.junit.jupiter.api.DisplayName;

@@ -12,8 +12,6 @@ import com.nhnacademy.book2onandon_order_payment_service.order.dto.refund.Refund
 import com.nhnacademy.book2onandon_order_payment_service.order.entity.refund.Refund;
 import com.nhnacademy.book2onandon_order_payment_service.order.entity.refund.RefundStatus;
 import com.nhnacademy.book2onandon_order_payment_service.order.exception.RefundNotFoundException;
-import com.nhnacademy.book2onandon_order_payment_service.order.listener.RefundCompletedEventListener;
-import com.nhnacademy.book2onandon_order_payment_service.order.listener.RefundPointProcessor;
 import com.nhnacademy.book2onandon_order_payment_service.order.repository.refund.RefundRepository;
 import feign.FeignException;
 import java.util.Optional;

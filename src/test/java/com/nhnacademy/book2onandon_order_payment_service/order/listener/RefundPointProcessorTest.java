@@ -1,6 +1,5 @@
 package com.nhnacademy.book2onandon_order_payment_service.order.listener;
 
-import static org.assertj.core.api.Assertions.assertThat;
 import static org.mockito.ArgumentMatchers.any;
 import static org.mockito.ArgumentMatchers.anyLong;
 import static org.mockito.ArgumentMatchers.eq;
@@ -18,8 +17,6 @@ import com.nhnacademy.book2onandon_order_payment_service.order.entity.order.Orde
 import com.nhnacademy.book2onandon_order_payment_service.order.entity.refund.Refund;
 import com.nhnacademy.book2onandon_order_payment_service.order.entity.refund.RefundItem;
 import com.nhnacademy.book2onandon_order_payment_service.order.entity.refund.RefundReason;
-import com.nhnacademy.book2onandon_order_payment_service.order.entity.refund.RefundStatus;
-import com.nhnacademy.book2onandon_order_payment_service.order.listener.RefundPointProcessor;
 import com.nhnacademy.book2onandon_order_payment_service.order.repository.delivery.DeliveryRepository;
 import com.nhnacademy.book2onandon_order_payment_service.order.repository.refund.RefundRepository;
 import java.time.LocalDateTime;

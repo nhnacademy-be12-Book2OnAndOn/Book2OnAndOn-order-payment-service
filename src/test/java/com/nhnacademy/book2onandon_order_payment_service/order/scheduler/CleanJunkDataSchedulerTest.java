@@ -7,7 +7,6 @@ import static org.mockito.BDDMockito.given;
 import static org.mockito.Mockito.times;
 import static org.mockito.Mockito.verify;
 
-import com.nhnacademy.book2onandon_order_payment_service.order.scheduler.CleanJunkDataScheduler;
 import com.nhnacademy.book2onandon_order_payment_service.order.service.OrderService;
 import java.util.Collections;
 import java.util.List;

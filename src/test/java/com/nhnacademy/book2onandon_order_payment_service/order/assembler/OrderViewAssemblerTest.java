@@ -4,7 +4,6 @@ import static org.assertj.core.api.Assertions.assertThat;
 import static org.mockito.BDDMockito.given;
 import static org.mockito.Mockito.mock;
 
-import com.nhnacademy.book2onandon_order_payment_service.order.assembler.OrderViewAssembler;
 import com.nhnacademy.book2onandon_order_payment_service.order.assembler.impl.OrderViewAssemblerImpl;
 import com.nhnacademy.book2onandon_order_payment_service.order.dto.order.DeliveryAddressResponseDto;
 import com.nhnacademy.book2onandon_order_payment_service.order.entity.delivery.DeliveryAddress;

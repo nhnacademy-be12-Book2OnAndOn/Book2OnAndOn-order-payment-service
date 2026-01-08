@@ -5,7 +5,6 @@ import static org.mockito.BDDMockito.given;
 import static org.mockito.Mockito.mock;
 
 import com.nhnacademy.book2onandon_order_payment_service.config.Snowflake;
-import com.nhnacademy.book2onandon_order_payment_service.order.generator.OrderNumberGenerator;
 import org.junit.jupiter.api.BeforeEach;
 import org.junit.jupiter.api.DisplayName;
 import org.junit.jupiter.api.Test;
@@ -29,9 +28,10 @@ class OrderNumberGeneratorTest {
 
         String result = generator.generate();
 
-        assertThat(result).startsWith("B2-");
-        assertThat(result).hasSize(15);
-        assertThat(result).isEqualTo("B2-000123456789");
+        assertThat(result)
+                .startsWith("B2-")
+                .hasSize(15)
+                .isEqualTo("B2-000123456789");
     }
 
     @Test
