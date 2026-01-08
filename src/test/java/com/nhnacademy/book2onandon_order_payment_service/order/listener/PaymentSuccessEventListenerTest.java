@@ -14,7 +14,7 @@ import java.util.List;
 
 import static org.mockito.Mockito.*;
 
-public class PaymentSuccessEventListenerTest {
+class PaymentSuccessEventListenerTest {
 
     private DeliveryService deliveryService;
     private CartService cartService;

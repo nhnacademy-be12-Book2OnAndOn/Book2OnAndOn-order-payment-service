@@ -19,6 +19,7 @@ import org.springframework.transaction.annotation.Transactional;
 public class WrappingPaperServiceImpl implements WrappingPaperService {
     
     private final WrappingPaperRepository wrappingPaperRepository;
+    private static final String WRAPPING_PAPER_NOT_FOUND = "WrappingPaper not found: ";
 
     // 포장지 생성
     @Override
@@ -37,7 +38,7 @@ public class WrappingPaperServiceImpl implements WrappingPaperService {
     @Transactional(readOnly = true)
     public WrappingPaperResponseDto getWrappingPaper(Long wrappingPaperId) {
         WrappingPaper entity = wrappingPaperRepository.findById(wrappingPaperId)
-            .orElseThrow(() -> new NotFoundException("WrappingPaper not found: " + wrappingPaperId));
+            .orElseThrow(() -> new NotFoundException(WRAPPING_PAPER_NOT_FOUND + wrappingPaperId));
         return entity.toResponseDto();
     }
 
@@ -67,7 +68,7 @@ public class WrappingPaperServiceImpl implements WrappingPaperService {
     @Transactional
     public WrappingPaperResponseDto updateWrappingPaper(Long wrappingPaperId, WrappingPaperUpdateRequestDto requestDto) {
         WrappingPaper entity = wrappingPaperRepository.findById(wrappingPaperId)
-            .orElseThrow(() -> new NotFoundException("WrappingPaper not found: " + wrappingPaperId));
+            .orElseThrow(() -> new NotFoundException(WRAPPING_PAPER_NOT_FOUND + wrappingPaperId));
         
         entity.update(requestDto.getWrappingPaperName(),
                       requestDto.getWrappingPaperPrice(),
@@ -88,6 +89,6 @@ public class WrappingPaperServiceImpl implements WrappingPaperService {
     @Transactional(readOnly = true)
     public WrappingPaper getWrappingPaperEntity(Long wrappingPaperId) {
         return wrappingPaperRepository.findById(wrappingPaperId)
-                .orElseThrow(() -> new NotFoundException("WrappingPaper not found: " + wrappingPaperId));
+                .orElseThrow(() -> new NotFoundException(WRAPPING_PAPER_NOT_FOUND + wrappingPaperId));
     }
 }
