@@ -1,7 +1,7 @@
 package com.nhnacademy.book2onandon_order_payment_service.order.entity.order;
 
 import com.nhnacademy.book2onandon_order_payment_service.order.entity.refund.RefundItem;
-import com.nhnacademy.book2onandon_order_payment_service.order.entity.wrappingpaper.WrappingPaper;
+import com.nhnacademy.book2onandon_order_payment_service.order.entity.wrappingpaper.*;
 import jakarta.persistence.CascadeType;
 import jakarta.persistence.Column;
 import jakarta.persistence.Entity;
