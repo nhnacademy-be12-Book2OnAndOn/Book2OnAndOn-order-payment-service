@@ -1,5 +1,6 @@
 package com.nhnacademy.book2onandon_order_payment_service.util;
 
+import com.nhnacademy.book2onandon_order_payment_service.exception.EncryptionException;
 import java.util.Base64;
 import javax.crypto.Cipher;
 import javax.crypto.spec.SecretKeySpec;
@@ -21,7 +22,7 @@ public class AesUtils {
             cipher.init(Cipher.ENCRYPT_MODE, keySpec);
             return Base64.getEncoder().encodeToString(cipher.doFinal(plainText.getBytes()));
         } catch (Exception e) {
-            throw new RuntimeException("암호화 실패", e);
+            throw new EncryptionException("암호화 실패", e);
         }
     }
 
@@ -32,7 +33,7 @@ public class AesUtils {
             cipher.init(Cipher.DECRYPT_MODE, keySpec);
             return new String(cipher.doFinal(Base64.getDecoder().decode(cipherText)));
         } catch (Exception e) {
-            throw new RuntimeException(e);
+            throw new EncryptionException(e);
         }
     }
 }
