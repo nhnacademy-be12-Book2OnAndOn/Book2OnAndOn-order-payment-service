@@ -1,8 +1,4 @@
-<<<<<<<< Updated upstream:src/test/java/com/nhnacademy/book2onandon_order_payment_service/order/refund/listener/RefundCompletedEventListenerTest.java
-package com.nhnacademy.book2onandon_order_payment_service.order.refund.listener;
-========
 package com.nhnacademy.book2onandon_order_payment_service.order.listener;
->>>>>>>> Stashed changes:src/test/java/com/nhnacademy/book2onandon_order_payment_service/order/listener/RefundCompletedEventListenerTest.java
 
 import static org.assertj.core.api.Assertions.assertThatThrownBy;
 import static org.mockito.BDDMockito.given;
