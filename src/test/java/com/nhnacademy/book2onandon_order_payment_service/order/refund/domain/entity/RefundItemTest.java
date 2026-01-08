@@ -29,6 +29,8 @@ class RefundItemTest {
         assertThat(ri.getRefund()).isSameAs(refund);
         assertThat(ri.getOrderItem()).isSameAs(orderItem);
         assertThat(ri.getRefundQuantity()).isEqualTo(2);
+
+        // else 분기( fromCode 호출 ) 커버
         assertThat(ri.getOriginalStatus()).isEqualTo(OrderItemStatus.ORDER_COMPLETE);
     }
 
@@ -38,7 +40,8 @@ class RefundItemTest {
         OrderItem orderItem = mock(OrderItem.class);
 
         assertThatThrownBy(() -> RefundItem.create(null, orderItem, 1))
-                .isInstanceOf(IllegalArgumentException.class);
+                .isInstanceOf(IllegalArgumentException.class)
+                .hasMessageContaining("refund는 필수");
     }
 
     @Test
@@ -47,7 +50,8 @@ class RefundItemTest {
         Refund refund = mock(Refund.class);
 
         assertThatThrownBy(() -> RefundItem.create(refund, null, 1))
-                .isInstanceOf(IllegalArgumentException.class);
+                .isInstanceOf(IllegalArgumentException.class)
+                .hasMessageContaining("orderItem은 필수");
     }
 
     @Test
@@ -57,7 +61,8 @@ class RefundItemTest {
         OrderItem orderItem = mock(OrderItem.class);
 
         assertThatThrownBy(() -> RefundItem.create(refund, orderItem, 0))
-                .isInstanceOf(IllegalArgumentException.class);
+                .isInstanceOf(IllegalArgumentException.class)
+                .hasMessageContaining("quantity는 1 이상");
     }
 
     @Test
@@ -68,6 +73,29 @@ class RefundItemTest {
         given(orderItem.getOrderItemStatus()).willReturn(null);
 
         assertThatThrownBy(() -> RefundItem.create(refund, orderItem, 1))
-                .isInstanceOf(IllegalStateException.class);
+                .isInstanceOf(IllegalStateException.class)
+                .hasMessageContaining("orderItemStatus가 null");
+    }
+
+    @Test
+    @DisplayName("getOriginalStatus: originalOrderItemStatus가 null이면 null 반환")
+    void getOriginalStatus_null_returnsNull() {
+        // mock 쓰면 메서드 본문이 실행되지 않아서 커버가 안 됨 -> 실객체 사용
+        RefundItem ri = mock(RefundItem.class);
+        ri.setOriginalOrderItemStatus(null);
+
+        assertThat(ri.getOriginalStatus()).isNull();
+    }
+
+    @Test
+    @DisplayName("getOriginalStatus: originalOrderItemStatus가 있으면 fromCode 결과 반환")
+    void getOriginalStatus_nonNull_returnsEnum() {
+        Refund refund = mock(Refund.class);
+        OrderItem orderItem = mock(OrderItem.class);
+        given(orderItem.getOrderItemStatus()).willReturn(OrderItemStatus.ORDER_COMPLETE);
+
+        RefundItem ri = RefundItem.create(refund, orderItem, 1);
+
+        assertThat(ri.getOriginalStatus()).isEqualTo(OrderItemStatus.ORDER_COMPLETE);
     }
 }

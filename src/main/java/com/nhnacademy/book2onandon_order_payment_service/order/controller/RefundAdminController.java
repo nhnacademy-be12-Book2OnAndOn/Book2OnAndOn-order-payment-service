@@ -34,7 +34,6 @@ public class RefundAdminController {
     }
 
     // 관리자 반품 상세 조회
-    // GET /admin/refund/{refundId}
     @GetMapping("/admin/refunds/{refundId}")
     public ResponseEntity<RefundResponseDto> findRefundDetails(@PathVariable Long refundId) {
         RefundResponseDto response = refundService.getRefundDetailsForAdmin(refundId);
@@ -42,7 +41,6 @@ public class RefundAdminController {
     }
 
     // 관리자 반품 상태 변경
-    // PATCH /admin/refund/{refundId}
     @PatchMapping("/admin/refunds/{refundId}")
     public ResponseEntity<RefundResponseDto> updateRefundStatus(
             @PathVariable Long refundId,

@@ -24,6 +24,7 @@ import com.nhnacademy.book2onandon_order_payment_service.order.entity.refund.Ref
 import com.nhnacademy.book2onandon_order_payment_service.order.entity.refund.RefundReason;
 import com.nhnacademy.book2onandon_order_payment_service.order.entity.refund.RefundStatus;
 import com.nhnacademy.book2onandon_order_payment_service.order.exception.OrderNotFoundException;
+import com.nhnacademy.book2onandon_order_payment_service.order.exception.RefundNotCancelableException;
 import com.nhnacademy.book2onandon_order_payment_service.order.exception.RefundNotFoundException;
 import com.nhnacademy.book2onandon_order_payment_service.order.provider.GuestTokenProvider;
 import com.nhnacademy.book2onandon_order_payment_service.order.repository.delivery.DeliveryRepository;
@@ -196,7 +197,7 @@ class RefundServiceImplTest {
                 .willReturn(List.of(oi));
 
         // snapshot: 완료/진행중 없음
-        given(refundItemRepository.sumByOrderIdAndStatus(eq(orderId), eq(RefundStatus.REFUND_COMPLETED)))
+        given(refundItemRepository.sumByOrderIdAndStatus(orderId, RefundStatus.REFUND_COMPLETED))
                 .willReturn(List.of());
         given(refundItemRepository.sumByOrderIdAndStatuses(eq(orderId), anyList()))
                 .willReturn(List.of());
@@ -290,7 +291,7 @@ class RefundServiceImplTest {
     }
 
     @Test
-    @DisplayName("cancelRefund: 상태가 취소불가(APPROVED 등)이면 IllegalStateException")
+    @DisplayName("cancelRefund: 상태가 취소불가(APPROVED 등)이면 RefundNotCancelableException")
     void cancelRefund_notCancelableStatus() {
         Long refundId = 1L;
         Long orderId = 10L;
@@ -307,7 +308,10 @@ class RefundServiceImplTest {
         given(refundRepository.findByIdForUpdate(refundId)).willReturn(refund);
 
         assertThatThrownBy(() -> refundService.cancelRefund(orderId, refundId, userId, null))
-                .isInstanceOf(IllegalStateException.class);
+                .isInstanceOf(RefundNotCancelableException.class)
+                .hasMessageContaining("현재 상태에서는 반품 취소가 불가합니다.")
+                .hasMessageContaining("refundId=" + refundId)
+                .hasMessageContaining("status=" + RefundStatus.APPROVED);
     }
 
     @Test
@@ -471,7 +475,7 @@ class RefundServiceImplTest {
 
         verify(applicationEventPublisher, times(1)).publishEvent(any(Object.class));
         assertThat(refund.getShippingDeductionAmount()).isNotNull();
-        assertThat(refund.getShippingDeductionAmount()).isGreaterThanOrEqualTo(0);
+        assertThat(refund.getShippingDeductionAmount()).isNotNegative();
     }
 
 
@@ -505,8 +509,10 @@ class RefundServiceImplTest {
         given(deliveryRepository.findByOrder_OrderId(orderId)).willReturn(Optional.of(delivery));
 
         // snapshot: 완료/진행중 없음
-        given(refundItemRepository.sumByOrderIdAndStatus(eq(orderId), eq(RefundStatus.REFUND_COMPLETED)))
-                .willReturn(List.of());
+        given(refundItemRepository.sumByOrderIdAndStatus(
+                orderId,
+                RefundStatus.REFUND_COMPLETED
+        )).willReturn(List.of());
         given(refundItemRepository.sumByOrderIdAndStatuses(eq(orderId), anyList()))
                 .willReturn(List.of());
 
@@ -517,8 +523,9 @@ class RefundServiceImplTest {
 
         List<RefundAvailableItemResponseDto> result = refundService.getRefundableItems(orderId, userId, null);
 
-        assertThat(result).isNotNull();
-        assertThat(result).hasSize(1);
+        assertThat(result)
+                .isNotNull()
+                .hasSize(1);
     }
 
     @Test

@@ -1,4 +1,4 @@
-package com.nhnacademy.book2onandon_order_payment_service.order.order.listener;
+package com.nhnacademy.book2onandon_order_payment_service.order.refund.listener;
 
 import static org.assertj.core.api.Assertions.assertThatThrownBy;
 import static org.mockito.BDDMockito.given;

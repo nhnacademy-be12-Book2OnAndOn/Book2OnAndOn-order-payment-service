@@ -4,7 +4,6 @@ import com.nhnacademy.book2onandon_order_payment_service.cart.domain.entity.Cart
 import com.nhnacademy.book2onandon_order_payment_service.cart.exception.CartBusinessException;
 import com.nhnacademy.book2onandon_order_payment_service.cart.exception.CartErrorCode;
 import com.nhnacademy.book2onandon_order_payment_service.client.BookServiceClient.BookSnapshot;
-import lombok.Getter;
 import lombok.RequiredArgsConstructor;
 import org.springframework.stereotype.Component;
 
@@ -81,19 +80,19 @@ public class CartCalculator {
         );
     }
 
-    @Getter
-    public static class CartItemPricingResult {
-        private final String title;
-        private final String thumbnailUrl;
-        private final int originalPrice;
-        private final int salePrice;
-        private final int stockCount;
-        private final boolean lowStock;
-        private final boolean available;
-        private final CartItemUnavailableReason unavailableReason;
-        private final int lineTotalPrice;
-
-        public CartItemPricingResult(
+    public record CartItemPricingResult(
+            String title,
+            String thumbnailUrl,
+            int originalPrice,
+            int salePrice,
+            int stockCount,
+            boolean lowStock,
+            boolean available,
+            CartItemUnavailableReason unavailableReason,
+            int lineTotalPrice
+    ) {
+        // 정적 팩토리로 의미 부여 + 추후 파라미터 순서 실수 방지에 유리
+        public static CartItemPricingResult of(
                 String title,
                 String thumbnailUrl,
                 int originalPrice,
@@ -104,15 +103,17 @@ public class CartCalculator {
                 CartItemUnavailableReason unavailableReason,
                 int lineTotalPrice
         ) {
-            this.title = title;
-            this.thumbnailUrl = thumbnailUrl;
-            this.originalPrice = originalPrice;
-            this.salePrice = salePrice;
-            this.stockCount = stockCount;
-            this.lowStock = lowStock;
-            this.available = available;
-            this.unavailableReason = unavailableReason;
-            this.lineTotalPrice = lineTotalPrice;
+            return new CartItemPricingResult(
+                    title,
+                    thumbnailUrl,
+                    originalPrice,
+                    salePrice,
+                    stockCount,
+                    lowStock,
+                    available,
+                    unavailableReason,
+                    lineTotalPrice
+            );
         }
     }
 }

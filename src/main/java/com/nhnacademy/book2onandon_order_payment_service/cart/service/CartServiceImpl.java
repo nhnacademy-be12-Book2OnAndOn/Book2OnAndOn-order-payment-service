@@ -40,6 +40,8 @@ import java.util.stream.Collectors;
 import lombok.RequiredArgsConstructor;
 import lombok.extern.slf4j.Slf4j;
 import net.javacrumbs.shedlock.spring.annotation.SchedulerLock;
+import org.springframework.beans.factory.annotation.Autowired;
+import org.springframework.context.annotation.Lazy;
 import org.springframework.scheduling.annotation.Scheduled;
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
@@ -55,6 +57,15 @@ public class CartServiceImpl implements CartService {
     private final CartRedisRepository cartRedisRepository;
     private final BookServiceClient bookServiceClient;
     private final CartCalculator cartCalculator;
+    private final CartFlushService cartFlushService;
+
+    // 자기 자신(프록시)을 주입받기 위한 필드
+    private CartService self;
+
+    @Autowired
+    public void setSelf(@Lazy CartService self) {
+        this.self = self;
+    }
 
     // ==========================
     // Scheduler
@@ -75,73 +86,10 @@ public class CartServiceImpl implements CartService {
 
         for (Long userId : dirtyUserIds) {
             log.info("[Scheduler] userId={} flushSingleUserCart 실행", userId);
-            flushSingleUserCart(userId);
+            cartFlushService.flushSingleUserCart(userId);
         }
 
         log.info("[Scheduler] flushDirtyUserCarts 종료");
-    }
-
-    @Transactional // 외부 호출될 경우 1이 성공하고 2가 실패 시 1은 롤백 안되고, 나머지는 에러처리.
-    public void flushSingleUserCart(Long userId) {
-        // 장바구니의 모든 아이템 불러오기
-        Map<Long, CartRedisItem> redisItems = cartRedisRepository.getUserCartItems(userId);
-        log.debug("[Scheduler] Redis user cart 아이템 수 - userId={}, size={}",
-                userId, redisItems != null ? redisItems.size() : 0);
-
-        // Cart 엔티티 확보 또는 생성
-        Cart cart = cartRepository.findByUserId(userId)
-                .orElseGet(() -> cartRepository.save(Cart.builder().userId(userId).build()));
-
-        // DB의 기존 CartItem 전부 삭제 -> 트랜잭션에 의해 삭제와 삽입 사이에 데이터 유실의 위험은 없다.
-        List<CartItem> dbItems = cartItemRepository.findByCart(cart);
-        Map<Long, CartItem> dbMap = dbItems.stream()
-                .collect(Collectors.toMap(CartItem::getBookId, it -> it));
-
-        // Redis가 비어있다면, DB도 비운 상태로 끝 (DB Flush 과정을 안전하게 종료하는 논리)
-        if (redisItems == null || redisItems.isEmpty()) {
-            log.info("[Scheduler] Redis cart 비어 있음 -> DB 빈 상태 유지 후 dirty 플래그 해제 - userId={}", userId);
-            if (!dbItems.isEmpty()) {
-                cartItemRepository.deleteAllInBatch(dbItems);
-            }
-            cartRedisRepository.clearUserCartDirty(userId);
-            return;
-        }
-
-        // 2) Redis에는 없고 DB에만 있는 항목 -> delete
-        List<Long> toDelete = dbMap.keySet().stream()
-                .filter(bookId -> !redisItems.containsKey(bookId))
-                .toList();
-        if (!toDelete.isEmpty()) {
-            cartItemRepository.deleteByCartAndBookIdIn(cart, toDelete);
-        }
-
-        // Redis 내용을 기준으로 DB CartItem 재구성
-        // 3) Redis에 있는 항목 -> DB upsert(변경된 것만 update, 없는 것은 insert)
-        List<CartItem> toSave = new ArrayList<>();
-        for (CartRedisItem ri : redisItems.values()) {
-            CartItem existing = dbMap.get(ri.getBookId());
-            if (existing == null) {
-                toSave.add(CartItem.builder()
-                        .cart(cart)
-                        .bookId(ri.getBookId())
-                        .quantity(ri.getQuantity())
-                        .selected(ri.isSelected())
-                        .build());
-            } else {
-                boolean changed = (existing.getQuantity() != ri.getQuantity()) || (existing.isSelected() != ri.isSelected());
-                if (changed) {
-                    existing.updateQuantity(ri.getQuantity());
-                    existing.setSelected(ri.isSelected());
-                    toSave.add(existing);
-                }
-            }
-        }
-        if (!toSave.isEmpty()) {
-            cartItemRepository.saveAll(toSave);
-        }
-        cartRedisRepository.clearUserCartDirty(userId);
-
-        log.info("[Scheduler] flushSingleUserCart 완료 - userId={}, newItemCount={}", userId, toSave.size());
     }
 
 
@@ -401,7 +349,7 @@ public class CartServiceImpl implements CartService {
         log.info("[UserCart] getUserSelectedCart 호출 - userId={}", userId);
 
         // 1) 회원용 전체 장바구니 먼저 조회 (캐시/DB 로직 재사용)
-        CartItemsResponseDto full = getUserCart(userId);
+        CartItemsResponseDto full = self.getUserCart(userId);
         // 2) 선택된 항목만 필터링해서 새 DTO 생성
         CartItemsResponseDto filtered = filterSelectedOnly(full);
 
@@ -615,13 +563,11 @@ public class CartServiceImpl implements CartService {
         }
 
         boolean selected = requestDto.isSelected();
-        int changed = 0;
 
         for (CartRedisItem item : redisItems.values()) {
             if (item.isSelected() != selected) {
                 item.setSelected(selected);
                 cartRedisRepository.putGuestItem(uuid, item);
-                changed++;
             }
         }
 
@@ -669,7 +615,7 @@ public class CartServiceImpl implements CartService {
     public CartItemsResponseDto getGuestSelectedCart(String uuid) {
         log.info("[GuestCart] getGuestSelectedCart 호출 - uuid={}", uuid);
 
-        CartItemsResponseDto full = getGuestCart(uuid);
+        CartItemsResponseDto full = self.getGuestCart(uuid);
         CartItemsResponseDto filtered = filterSelectedOnly(full);
 
         log.info("[GuestCart] getGuestSelectedCart 완료 - uuid={}, selectedItemCount={}",
@@ -721,120 +667,178 @@ public class CartServiceImpl implements CartService {
     public CartMergeResultResponseDto mergeGuestCartToUserCart(Long userId, String uuid) {
         log.info("[Merge] mergeGuestCartToUserCart 호출 - userId={}, uuid={}", userId, uuid);
 
-        // 1) 비회원 장바구니 조회 및 예외 처리
         Map<Long, CartRedisItem> guestItems = cartRedisRepository.getGuestCartItems(uuid);
-
-        if (guestItems == null || guestItems.isEmpty()) {
-            return new CartMergeResultResponseDto(
-                    Collections.emptyList(), // mergedItems
-                    Collections.emptyList(), // failedToMergeItems
-                    Collections.emptyList(), // exceededMaxQuantityItems
-                    Collections.emptyList(), // unavailableItems
-                    true // mergeSucceeded
-            );
+        if (isEmpty(guestItems)) {
+            return emptyMergeResult();
         }
 
-        // 2) user cart는 Redis가 최신 권위. 캐시가 비어있다면 DB에서 warm-up 후 Redis로 기준을 맞춤.
-        Map<Long, CartRedisItem> userItems = cartRedisRepository.getUserCartItems(userId);
-        if (userItems == null || userItems.isEmpty()) {
-            Cart cart = cartRepository.findByUserId(userId).orElse(null);
-            if (cart != null) {
-                List<CartItem> dbItems = cartItemRepository.findByCart(cart);
-                syncUserCartCache(userId, dbItems);
-                userItems = cartRedisRepository.getUserCartItems(userId);
-            } else {
-                userItems = Collections.emptyMap();
-            }
-        }
+        Map<Long, CartRedisItem> userItems = loadUserCartAuthority(userId);
 
-        int currentDistinctCount = userItems.size();
+        MergeContext ctx = MergeContext.create(
+                userId,
+                userItems,
+                safeGetBookSnapshots(new ArrayList<>(guestItems.keySet()))
+        );
 
-        log.debug("[Merge] 기존 user cart 상태 - userId={}, distinctCount={}", userId, currentDistinctCount);
+        guestItems.forEach((bookId, guestItem) -> processOneGuestItem(ctx, bookId, guestItem));
 
-        List<Long> guestBookIds = new ArrayList<>(guestItems.keySet());
-        Map<Long, BookSnapshot> guestSnapshotMap = safeGetBookSnapshots(guestBookIds);
-
-        List<MergeIssueItemDto> exceededMaxQuantityItems = new ArrayList<>();
-        List<MergeIssueItemDto> unavailableItems = new ArrayList<>();
-        List<MergeIssueItemDto> failedToMergeItems = new ArrayList<>();
-
-        // 3) Redis 기준으로 merge 결과를 user Redis cart에 직접 반영 + dirty 마킹
-        for (Map.Entry<Long, CartRedisItem> entry : guestItems.entrySet()) {
-            Long bookId = entry.getKey();
-            CartRedisItem guestItem = entry.getValue();
-
-            CartRedisItem userItem = userItems.get(bookId);
-            int originalUserQuantity = (userItem != null) ? userItem.getQuantity() : 0;
-            int guestQuantity = guestItem.getQuantity();
-
-            boolean isNewItem = (userItem == null);
-            if (isNewItem && currentDistinctCount >= MAX_CART_SIZE) {
-                failedToMergeItems.add(new MergeIssueItemDto(
-                        bookId, guestQuantity, originalUserQuantity, originalUserQuantity,
-                        MergeIssueReason.CART_SIZE_LIMIT_EXCEEDED
-                ));
-                continue;
-            }
-
-            int requestedMergedQuantity = originalUserQuantity + guestQuantity;
-            int finalMergedQuantity = Math.min(requestedMergedQuantity, MAX_QUANTITY);
-
-            BookSnapshot snapshot = guestSnapshotMap.get(bookId);
-            boolean isUnavailable = isBookUnavailable(snapshot);
-
-            MergeIssueReason quantityIssueReason = null;
-            if (snapshot != null && snapshot.getStockCount() > 0) {
-                int stock = snapshot.getStockCount();
-                if (finalMergedQuantity > stock) {
-                    finalMergedQuantity = stock;
-                    quantityIssueReason = MergeIssueReason.STOCK_LIMIT_EXCEEDED;
-                } else if (requestedMergedQuantity > MAX_QUANTITY) {
-                    quantityIssueReason = MergeIssueReason.EXCEEDED_MAX_QUANTITY;
-                }
-            } else {
-                if (requestedMergedQuantity > MAX_QUANTITY) {
-                    quantityIssueReason = MergeIssueReason.EXCEEDED_MAX_QUANTITY;
-                }
-            }
-            if (quantityIssueReason != null) {
-                exceededMaxQuantityItems.add(new MergeIssueItemDto(
-                        bookId, guestQuantity, originalUserQuantity, finalMergedQuantity, quantityIssueReason
-                ));
-            }
-
-            if (isUnavailable) {
-                unavailableItems.add(new MergeIssueItemDto(
-                        bookId, guestQuantity, originalUserQuantity, finalMergedQuantity, MergeIssueReason.UNAVAILABLE
-                ));
-            }
-
-            boolean mergedSelected = true; // 정책: merge된 항목은 기본 선택 (원하면 userItem/guestItem selected OR로 바꿔도 됨)
-            CartRedisItem merged = (userItem == null)
-                    ? CartRedisItem.newItem(bookId, finalMergedQuantity, mergedSelected)
-                    : userItem;
-
-            merged.setQuantity(finalMergedQuantity);
-            merged.setSelected(mergedSelected);
-            merged.touchUpdatedAt();
-
-            cartRedisRepository.putUserItem(userId, merged);
-            cartRedisRepository.markUserCartDirty(userId);
-
-            if (isNewItem) currentDistinctCount++;
-        }
-
-        // 5) guest cart 삭제
         cartRedisRepository.clearGuestCart(uuid);
         log.info("[Merge] guest cart 삭제 완료 - uuid={}", uuid);
 
-        Map<Long, CartRedisItem> mergedUserItems = cartRedisRepository.getUserCartItems(userId);
-        CartItemsResponseDto mergedDto = buildCartItemsResponseFromRedis(mergedUserItems);
+        CartItemsResponseDto mergedDto =
+                buildCartItemsResponseFromRedis(cartRedisRepository.getUserCartItems(userId));
 
         return new CartMergeResultResponseDto(
                 mergedDto.getItems(),
-                failedToMergeItems,
-                exceededMaxQuantityItems,
-                unavailableItems,
+                ctx.failedToMergeItems,
+                ctx.exceededMaxQuantityItems,
+                ctx.unavailableItems,
+                true
+        );
+    }
+
+    // --------------------
+    // 1) Context
+    // --------------------
+    private static class MergeContext {
+        private final Long userId;
+        private final Map<Long, CartRedisItem> userItems;
+        private final Map<Long, BookSnapshot> snapshotMap;
+
+        private int distinctCount;
+
+        private final List<MergeIssueItemDto> exceededMaxQuantityItems = new ArrayList<>();
+        private final List<MergeIssueItemDto> unavailableItems = new ArrayList<>();
+        private final List<MergeIssueItemDto> failedToMergeItems = new ArrayList<>();
+
+        private MergeContext(Long userId,
+                             Map<Long, CartRedisItem> userItems,
+                             Map<Long, BookSnapshot> snapshotMap) {
+            this.userId = userId;
+            this.userItems = (userItems != null) ? userItems : Collections.emptyMap();
+            this.snapshotMap = (snapshotMap != null) ? snapshotMap : Collections.emptyMap();
+            this.distinctCount = this.userItems.size();
+        }
+
+        static MergeContext create(Long userId,
+                                   Map<Long, CartRedisItem> userItems,
+                                   Map<Long, BookSnapshot> snapshotMap) {
+            return new MergeContext(userId, userItems, snapshotMap);
+        }
+    }
+
+    // --------------------
+    // 2) One item 처리
+    // --------------------
+    private void processOneGuestItem(MergeContext ctx, Long bookId, CartRedisItem guestItem) {
+        CartRedisItem userItem = ctx.userItems.get(bookId);
+
+        int originalUserQty = (userItem != null) ? userItem.getQuantity() : 0;
+        int guestQty = guestItem.getQuantity();
+
+        boolean isNewItem = (userItem == null);
+        if (isNewItem && isCartSizeLimitExceeded(ctx.distinctCount)) {
+            ctx.failedToMergeItems.add(issue(bookId, guestQty, originalUserQty, originalUserQty,
+                    MergeIssueReason.CART_SIZE_LIMIT_EXCEEDED));
+            return;
+        }
+
+        BookSnapshot snapshot = ctx.snapshotMap.get(bookId);
+
+        MergeQuantityResult q = calculateMergedQuantity(snapshot, originalUserQty, guestQty);
+        if (q.reason != null) {
+            ctx.exceededMaxQuantityItems.add(issue(bookId, guestQty, originalUserQty, q.finalQty, q.reason));
+        }
+
+        if (isBookUnavailable(snapshot)) {
+            ctx.unavailableItems.add(issue(bookId, guestQty, originalUserQty, q.finalQty, MergeIssueReason.UNAVAILABLE));
+        }
+
+        upsertUserCartItem(ctx.userId, userItem, bookId, q.finalQty);
+
+        if (isNewItem) ctx.distinctCount++;
+    }
+
+    // --------------------
+    // 3) 계산/저장 헬퍼
+    // --------------------
+    private record MergeQuantityResult(int finalQty, MergeIssueReason reason) {}
+
+    private MergeQuantityResult calculateMergedQuantity(BookSnapshot snapshot, int originalUserQty, int guestQty) {
+        int requested = originalUserQty + guestQty;
+        int cappedByMax = Math.min(requested, MAX_QUANTITY);
+
+        // 기본: MAX_QUANTITY 초과 이슈 여부
+        MergeIssueReason reason = (requested > MAX_QUANTITY)
+                ? MergeIssueReason.EXCEEDED_MAX_QUANTITY
+                : null;
+
+        // 재고가 “유효한 경우”에만 재고 상한 적용
+        if (snapshot != null && snapshot.getStockCount() > 0) {
+            int stock = snapshot.getStockCount();
+            if (cappedByMax > stock) {
+                return new MergeQuantityResult(stock, MergeIssueReason.STOCK_LIMIT_EXCEEDED);
+            }
+        }
+        return new MergeQuantityResult(cappedByMax, reason);
+    }
+
+    private void upsertUserCartItem(Long userId, CartRedisItem userItem, Long bookId, int finalQty) {
+        boolean mergedSelected = true; // 정책 유지
+
+        CartRedisItem merged = (userItem == null)
+                ? CartRedisItem.newItem(bookId, finalQty, mergedSelected)
+                : userItem;
+
+        merged.setQuantity(finalQty);
+        merged.setSelected(mergedSelected);
+        merged.touchUpdatedAt();
+
+        cartRedisRepository.putUserItem(userId, merged);
+        cartRedisRepository.markUserCartDirty(userId);
+    }
+
+    private boolean isCartSizeLimitExceeded(int distinctCount) {
+        return distinctCount >= MAX_CART_SIZE;
+    }
+
+    private MergeIssueItemDto issue(Long bookId, int guestQty, int originalUserQty, int finalQty, MergeIssueReason reason) {
+        return new MergeIssueItemDto(bookId, guestQty, originalUserQty, finalQty, reason);
+    }
+
+    // --------------------
+    // 4) user cart 로딩 (Redis 권위 + warm-up)
+    // --------------------
+    private Map<Long, CartRedisItem> loadUserCartAuthority(Long userId) {
+        Map<Long, CartRedisItem> userItems = cartRedisRepository.getUserCartItems(userId);
+        if (!isEmpty(userItems)) {
+            return userItems;
+        }
+
+        Cart cart = cartRepository.findByUserId(userId).orElse(null);
+        if (cart == null) {
+            return Collections.emptyMap();
+        }
+
+        List<CartItem> dbItems = cartItemRepository.findByCart(cart);
+        syncUserCartCache(userId, dbItems);
+        Map<Long, CartRedisItem> warmed = cartRedisRepository.getUserCartItems(userId);
+        return (warmed != null) ? warmed : Collections.emptyMap();
+    }
+
+    // --------------------
+    // 5) 공통
+    // --------------------
+    private boolean isEmpty(Map<?, ?> map) {
+        return map == null || map.isEmpty();
+    }
+
+    private CartMergeResultResponseDto emptyMergeResult() {
+        return new CartMergeResultResponseDto(
+                Collections.emptyList(),
+                Collections.emptyList(),
+                Collections.emptyList(),
+                Collections.emptyList(),
                 true
         );
     }
@@ -934,23 +938,6 @@ public class CartServiceImpl implements CartService {
                 userId, cartItems.size());
     }
 
-    // 3. 장바구니 엔티티 관리
-    private Cart getOrCreateCart(Long userId) {
-        log.debug("[Util] getOrCreateCart 호출 - userId={}", userId);
-
-        // 해당 userId의 Cart 엔티티를 조회하거나, 없으면 새로 생성하여 반환
-        return cartRepository.findByUserId(userId)
-                .orElseGet(() -> {
-                    log.debug("[Util] Cart 엔티티 미존재 -> 신규 생성 - userId={}", userId);
-                    Cart newCart = Cart.builder() // builder 사용은 “필수 필드만 세팅하고 나머지는 안정적으로 초기화”하기 위한 실무적 패턴
-                            .userId(userId)
-                            .build();
-                    // 새로 생성된 Cart를 DB에 저장
-                    log.debug("[Util] Cart 엔티티 저장 완료 - userId={}", userId);
-                    return cartRepository.save(newCart);
-                });
-    }
-
     // 4. 유효성 검사 및 수량 처리
     // 4-1. 요청 수량이 최소/최대 허용 범위를 벗어나는지 검증
     private void validateQuantity(int quantity) {
@@ -968,7 +955,7 @@ public class CartServiceImpl implements CartService {
 
     // 4-2. 요청 수량을 MIN_QUANTITY와 MAX_QUANTITY 범위 내로 "강제" 조정하여 반환
     private int capQuantity(int quantity) {
-        return Math.max(MIN_QUANTITY, Math.min(quantity, MAX_QUANTITY));
+        return Math.clamp(quantity, MIN_QUANTITY, MAX_QUANTITY);
     }
 
     // 4-3. 도서 ID에 대한 최신 스냅샷(가격, 재고 등)을 조회하고 반환
@@ -986,7 +973,8 @@ public class CartServiceImpl implements CartService {
                 );
             }
             return snapshot;
-
+        } catch (CartBusinessException e) {
+            throw e;
         } catch (FeignException e) {
             // 외부 연동 장애는 invalid book과 분리
             throw new CartBusinessException(
@@ -1033,16 +1021,9 @@ public class CartServiceImpl implements CartService {
 
     // 4-6. 상품 스냅샷의 여러 상태(삭제됨, 판매 종료, 숨김, 재고 0)를 확인하여 구매 불가 상태인지 종합적으로 판단
     private boolean isBookUnavailable(BookSnapshot snapshot) {
-        if (snapshot == null) {
-            return true;
-        }
-        if (snapshot.isDeleted()) {
-            return true;
-        }
-        if (snapshot.isSaleEnded()) {
-            return true;
-        }
-        return snapshot.getStockCount() <= 0;
+        return snapshot == null
+                || snapshot.isDeleted()
+                || snapshot.isSaleEnded();
     }
 
     // 4-7. 스냅샷 safe-get
@@ -1086,16 +1067,17 @@ public class CartServiceImpl implements CartService {
 
         // 2) 장바구니 항목을 최근 수정일(updatedAt) 기준 내림차순 정렬
         List<CartItem> sortedItems = items.stream()
-                .sorted(Comparator.comparing(it -> {
-                    return it.getUpdatedAt();
-                }, Comparator.nullsLast(Comparator.naturalOrder())))
-                .collect(Collectors.toList());
+                .sorted(Comparator.comparing(
+                        CartItem::getUpdatedAt, // 메서드 참조를 사용하여 더 간결하게 표현
+                        Comparator.nullsLast(Comparator.naturalOrder())
+                ))
+                .toList();
 
         // 3) 외부 상품 서비스에서 필요한 모든 BookSnapshot 정보를 일괄 조회
         List<Long> bookIds = sortedItems.stream()
                 .map(CartItem::getBookId)
                 .distinct()
-                .collect(Collectors.toList());
+                .toList();
 
         log.debug("[Builder] buildCartItemsResponse - bookIds={}", bookIds);
 
@@ -1121,25 +1103,25 @@ public class CartServiceImpl implements CartService {
                     cartCalculator.calculatePricing(bookId, lineQuantity, bookSnapshotMap);
 
             totalQuantity += lineQuantity;
-            totalPrice += pricing.getLineTotalPrice();
+            totalPrice += pricing.lineTotalPrice();
 
-            if (selected && pricing.isAvailable()) {
+            if (selected && pricing.available()) {
                 selectedQuantity += lineQuantity;
-                selectedTotalPrice += pricing.getLineTotalPrice();
+                selectedTotalPrice += pricing.lineTotalPrice();
             }
 
             CartItemResponseDto dto = new CartItemResponseDto(
                     bookId,
-                    pricing.getTitle(),
-                    pricing.getThumbnailUrl(),
-                    pricing.getOriginalPrice(),
-                    pricing.getSalePrice(),
+                    pricing.title(),
+                    pricing.thumbnailUrl(),
+                    pricing.originalPrice(),
+                    pricing.salePrice(),
                     lineQuantity,
                     selected,
-                    pricing.isAvailable(),
-                    pricing.getUnavailableReason(),
-                    pricing.getStockCount(),
-                    pricing.isLowStock()
+                    pricing.available(),
+                    pricing.unavailableReason(),
+                    pricing.stockCount(),
+                    pricing.lowStock()
             );
 
             itemDtos.add(dto);
@@ -1180,16 +1162,16 @@ public class CartServiceImpl implements CartService {
         // 1) 정렬된 리스트로 변환 (updatedAt 내림차순)
         List<CartRedisItem> sortedItems = redisItems.values().stream()
                 .sorted(Comparator.comparing(it -> {
-                    long cartitem = it.getCreatedAt();
-                    return (cartitem > 0) ? cartitem : it.getUpdatedAt();
+                    long createdAt = it.getCreatedAt();
+                    return (createdAt > 0) ? createdAt : it.getUpdatedAt();
                 }))
-                .collect(Collectors.toList());
+                .toList(); // collect(Collectors.toList())를 toList()로 변경 (Unmodifiable)
 
         // 2) BookSnapshot 조회용 bookId 목록
         List<Long> bookIds = sortedItems.stream()
                 .map(CartRedisItem::getBookId)
                 .distinct()
-                .collect(Collectors.toList());
+                .toList();
         log.debug("[Builder] buildCartItemsResponseFromRedis - bookIds={}", bookIds);
 
         Map<Long, BookSnapshot> bookSnapshotMap = safeGetBookSnapshots(bookIds);
@@ -1213,25 +1195,25 @@ public class CartServiceImpl implements CartService {
                     cartCalculator.calculatePricing(bookId, lineQuantity, bookSnapshotMap);
 
             totalQuantity += lineQuantity;
-            totalPrice += pricing.getLineTotalPrice();
+            totalPrice += pricing.lineTotalPrice();
 
-            if (selected && pricing.isAvailable()) {
+            if (selected && pricing.available()) {
                 selectedQuantity += lineQuantity;
-                selectedTotalPrice += pricing.getLineTotalPrice();
+                selectedTotalPrice += pricing.lineTotalPrice();
             }
 
             CartItemResponseDto dto = new CartItemResponseDto(
                     bookId,
-                    pricing.getTitle(),
-                    pricing.getThumbnailUrl(),
-                    pricing.getOriginalPrice(),
-                    pricing.getSalePrice(),
+                    pricing.title(),
+                    pricing.thumbnailUrl(),
+                    pricing.originalPrice(),
+                    pricing.salePrice(),
                     lineQuantity,
                     selected,
-                    pricing.isAvailable(),
-                    pricing.getUnavailableReason(),
-                    pricing.getStockCount(),
-                    pricing.isLowStock()
+                    pricing.available(),
+                    pricing.unavailableReason(),
+                    pricing.stockCount(),
+                    pricing.lowStock()
             );
 
             itemDtos.add(dto);

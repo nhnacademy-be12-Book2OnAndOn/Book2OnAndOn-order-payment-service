@@ -22,7 +22,9 @@ import com.nhnacademy.book2onandon_order_payment_service.order.entity.refund.Ref
 import com.nhnacademy.book2onandon_order_payment_service.order.entity.refund.RefundReason;
 import com.nhnacademy.book2onandon_order_payment_service.order.entity.refund.RefundStatus;
 import com.nhnacademy.book2onandon_order_payment_service.order.exception.OrderNotFoundException;
+import com.nhnacademy.book2onandon_order_payment_service.order.exception.RefundNotCancelableException;
 import com.nhnacademy.book2onandon_order_payment_service.order.exception.RefundNotFoundException;
+import com.nhnacademy.book2onandon_order_payment_service.order.exception.RefundOrderMismatchException;
 import com.nhnacademy.book2onandon_order_payment_service.order.provider.GuestTokenProvider;
 import com.nhnacademy.book2onandon_order_payment_service.order.repository.delivery.DeliveryRepository;
 import com.nhnacademy.book2onandon_order_payment_service.order.repository.order.OrderItemRepository;
@@ -263,19 +265,20 @@ public class RefundServiceImpl implements RefundService {
     public RefundResponseDto cancelRefund(Long orderId, Long refundId, Long userId, String guestToken) {
         Refund refund = refundRepository.findByIdForUpdate(refundId);
         if (refund == null) {
-            throw new RefundNotFoundException("반품 내역을 찾을 수 없습니다. id=" + refundId);
+            throw new RefundNotFoundException(refundId);
         }
 
         Order order = refund.getOrder();
         if (order == null || !orderId.equals(order.getOrderId())) {
-            throw new IllegalArgumentException("orderId가 반품 내역의 주문과 일치하지 않습니다.");
+            throw new RefundOrderMismatchException(orderId, refundId,
+                    (order != null ? order.getOrderId() : null));
         }
 
         validateOrderAuthority(order, userId, guestToken);
 
         RefundStatus status = refund.getRefundStatus();
         if (!CANCELABLE_STATUSES.contains(status)) {
-            throw new IllegalStateException("현재 상태에서는 반품 취소가 불가합니다. status=" + status);
+            throw new RefundNotCancelableException(refundId, status, CANCELABLE_STATUSES);
         }
 
         refund.setRefundStatus(RefundStatus.REQUEST_CANCELED);
@@ -296,7 +299,7 @@ public class RefundServiceImpl implements RefundService {
     @Transactional(readOnly = true)
     public RefundResponseDto getRefundDetails(Long orderId, Long refundId, Long userId, String guestToken) {
         Refund refund = refundRepository.findById(refundId)
-                .orElseThrow(() -> new RefundNotFoundException("반품 내역을 찾을 수 없습니다. id=" + refundId));
+                .orElseThrow(() -> new RefundNotFoundException(refundId));
 
         Order order = refund.getOrder();
 
@@ -447,7 +450,6 @@ public class RefundServiceImpl implements RefundService {
         Map<Long, String> titleMap = fetchBookTitleMap(bookIds);
 
         return items.stream().map(orderItem -> {
-            Long orderItemId = orderItem.getOrderItemId();
             int orderedQuantity = (orderItem.getOrderItemQuantity() == null) ? 0 : orderItem.getOrderItemQuantity();
 
             int completedReturn = snapshot.completedMap.getOrDefault(orderItem.getOrderItemId(), 0);
@@ -615,13 +617,6 @@ public class RefundServiceImpl implements RefundService {
         Order order = refund.getOrder();
         if (order == null) return;
 
-        List<StockDecreaseRequest> restoreRequests = refund.getRefundItems().stream()
-                .filter(ri -> ri.getOrderItem() != null && ri.getOrderItem().getBookId() != null)
-                .map(ri -> new StockDecreaseRequest(ri.getOrderItem().getBookId(), ri.getRefundQuantity()))
-                .toList();
-
-//        bookServiceClient.increaseStock(restoreRequests);
-
         for (RefundItem ri : refund.getRefundItems()) {
             OrderItem oi = ri.getOrderItem();
             if (oi != null) {
@@ -639,27 +634,6 @@ public class RefundServiceImpl implements RefundService {
         }
     }
 
-
-    /**
-     * 포인트 환불 (AFTER_COMMIT)
-     */
-    private void refundAsPoint(Refund refund) {
-        Order order = refund.getOrder();
-        if (order == null) return;
-        if (order.getUserId() == null) return;
-
-        RefundCalcResult r = calculateRefundPointAmountProRate(refund);
-
-        userServiceClient.refundPoint(
-                order.getUserId(),
-                new RefundPointInternalRequestDto(
-                        order.getOrderId(),
-                        refund.getRefundId(), // 멱등 키로 사용(권장)
-                        r.restoreUsedPoint(),
-                        r.refundPayAsPoint()
-                )
-        );
-    }
 
     /**
      * 취소/거절 롤백 로직 교체: “DELIVERED 고정 복구” 제거
@@ -693,28 +667,6 @@ public class RefundServiceImpl implements RefundService {
         OrderStatus original = (refund != null) ? refund.getOriginalOrderStatusEnum() : null;
         order.updateStatus(original != null ? original : OrderStatus.DELIVERED);
     }
-
-
-//    @TransactionalEventListener(phase = TransactionPhase.AFTER_COMMIT)
-//    public void handleRefundCompletedEvent(RefundCompletedEvent event) {
-//        Refund refund = refundRepository.findById(event.refundId())
-//                .orElseThrow(() -> new RefundNotFoundException(
-//                        "환불 완료 이벤트 처리 중 반품 내역을 찾을 수 없습니다. id=" + event.refundId()
-//                ));
-//
-//        if (refund.getRefundStatus() != RefundStatus.REFUND_COMPLETED) {
-//            return;
-//        }
-//
-//        try {
-//            refundAsPoint(refund);
-//            log.info("포인트 환불 성공: refundId={}", refund.getRefundId());
-//        } catch (FeignException ex) {
-//            // AFTER_COMMIT 이후이므로 예외를 던져도 DB 롤백 불가. 로그/모니터링 대상으로 남김.
-//            log.error("포인트 환불 실패: refundId={}, message={}", refund.getRefundId(), ex.getMessage(), ex);
-//        }
-//    }
-
 
     // =========================
     // DTO 변환

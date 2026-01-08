@@ -153,9 +153,10 @@ class CartUserControllerTest {
         }
 
         @Test
-        @DisplayName("실패: X-User-Id 헤더 누락 -> 400 (validateUserId -> USER_ID_REQUIRED)")
-        void missingHeader_hitsValidateUserIdNull_400() throws Exception {
-            mockMvc.perform(get("/cart/user"))
+        @DisplayName("실패: X-User-Id 헤더 공백 -> 400 (validateUserId -> USER_ID_REQUIRED/INVALID)")
+        void missingHeader_hitsValidateUserIdBlank_400() throws Exception {
+            mockMvc.perform(get("/cart/user")
+                            .header(USER_ID_HEADER, "   ")) // blank
                     .andExpect(status().isBadRequest());
 
             verifyNoInteractions(cartService, cartRedisRepository);
@@ -237,7 +238,7 @@ class CartUserControllerTest {
     }
 
     // -------------------------------------------------------
-    // 4) DELETE /cart/user/items/{bookId}
+    // 4) DELETE
     // -------------------------------------------------------
     @Nested
     @DisplayName("DELETE /cart/user/items/{bookId}")
@@ -458,10 +459,11 @@ class CartUserControllerTest {
         }
 
         @Test
-        @DisplayName("실패: GUEST 헤더 누락 -> 400 (validateGuestUuidRequired: uuid==null 분기 커버)")
-        void missingGuestHeader_hitsValidateGuestUuidRequiredNull_400() throws Exception {
+        @DisplayName("실패: GUEST 헤더가 공백 -> 400 (validateGuestUuidRequired: blank uuid 분기)")
+        void blankGuestHeader_hitsValidateGuestUuidRequiredBlank_400() throws Exception {
             mockMvc.perform(post("/cart/user/merge")
-                            .header(USER_ID_HEADER, USER_ID)) // guest header intentionally missing
+                            .header(USER_ID_HEADER, USER_ID)
+                            .header(GUEST_ID_HEADER, "   ")) // blank
                     .andExpect(status().isBadRequest());
 
             verifyNoInteractions(cartService, cartRedisRepository);

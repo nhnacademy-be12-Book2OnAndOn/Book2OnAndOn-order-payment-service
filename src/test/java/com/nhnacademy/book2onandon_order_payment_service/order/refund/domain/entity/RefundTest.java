@@ -48,7 +48,7 @@ class RefundTest {
 
         // 엔티티 필드 기본값
         assertThat(refund.getShippingDeductionAmount()).isNotNull();
-        assertThat(refund.getShippingDeductionAmount()).isEqualTo(0);
+        assertThat(refund.getShippingDeductionAmount()).isZero();
         assertThat(refund.getRefundItems()).isNotNull();
     }
 
