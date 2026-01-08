@@ -23,7 +23,6 @@ import com.nhnacademy.book2onandon_order_payment_service.config.RabbitConfig;
 import com.nhnacademy.book2onandon_order_payment_service.order.dto.order.OrderCreateRequestDto;
 import com.nhnacademy.book2onandon_order_payment_service.order.dto.order.OrderVerificationResult;
 import com.nhnacademy.book2onandon_order_payment_service.order.dto.order.orderitem.OrderItemRequestDto;
-import com.nhnacademy.book2onandon_order_payment_service.order.service.OrderResourceManager;
 import java.util.List;
 import org.junit.jupiter.api.DisplayName;
 import org.junit.jupiter.api.Test;
@@ -89,8 +88,8 @@ class OrderResourceManagerTest {
     void releaseResources_Member_Success() {
         resourceManager.releaseResources("ORD-001", 1L, 1000, 10L);
 
-        verify(rabbitTemplate).convertAndSend(eq(RabbitConfig.EXCHANGE), eq(RabbitConfig.ROUTING_KEY_CANCEL_BOOK), eq("ORD-001"));
-        verify(rabbitTemplate).convertAndSend(eq(RabbitConfig.EXCHANGE), eq(RabbitConfig.ROUTING_KEY_CANCEL_COUPON), eq("ORD-001"));
+        verify(rabbitTemplate).convertAndSend((RabbitConfig.EXCHANGE), (RabbitConfig.ROUTING_KEY_CANCEL_BOOK), ("ORD-001"));
+        verify(rabbitTemplate).convertAndSend((RabbitConfig.EXCHANGE), (RabbitConfig.ROUTING_KEY_CANCEL_COUPON), ("ORD-001"));
         verify(rabbitTemplate).convertAndSend(eq(RabbitConfig.EXCHANGE), eq(RabbitConfig.ROUTING_KEY_CANCEL_POINT), any(OrderCanceledEvent.class));
     }
 
@@ -108,7 +107,7 @@ class OrderResourceManagerTest {
     void completeOrder_Member_Success() {
         resourceManager.completeOrder(1L, "ORD-001", 10L, 50000);
 
-        verify(rabbitTemplate).convertAndSend(eq(RabbitConfig.EXCHANGE), eq(RabbitConfig.ROUTING_KEY_CONFIRM_BOOK), eq("ORD-001"));
+        verify(rabbitTemplate).convertAndSend((RabbitConfig.EXCHANGE), (RabbitConfig.ROUTING_KEY_CONFIRM_BOOK), ("ORD-001"));
         verify(userServiceClient).earnOrderPoint(eq(1L), any(EarnOrderPointRequestDto.class));
     }
 

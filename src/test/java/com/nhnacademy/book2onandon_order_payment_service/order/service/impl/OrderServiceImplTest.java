@@ -11,7 +11,6 @@ import com.nhnacademy.book2onandon_order_payment_service.order.dto.order.guest.G
 import com.nhnacademy.book2onandon_order_payment_service.order.dto.order.orderitem.BookInfoDto;
 import com.nhnacademy.book2onandon_order_payment_service.order.dto.order.orderitem.OrderItemRequestDto;
 import com.nhnacademy.book2onandon_order_payment_service.order.dto.order.orderitem.OrderItemStatusUpdateDto;
-import com.nhnacademy.book2onandon_order_payment_service.order.entity.delivery.DeliveryAddress;
 import com.nhnacademy.book2onandon_order_payment_service.order.entity.delivery.DeliveryPolicy;
 import com.nhnacademy.book2onandon_order_payment_service.order.entity.order.GuestOrder;
 import com.nhnacademy.book2onandon_order_payment_service.order.entity.order.Order;
@@ -29,11 +28,9 @@ import com.nhnacademy.book2onandon_order_payment_service.order.service.OrderTran
 import com.nhnacademy.book2onandon_order_payment_service.order.service.WrappingPaperService;
 import com.nhnacademy.book2onandon_order_payment_service.order.service.impl.OrderServiceImpl;
 import com.nhnacademy.book2onandon_order_payment_service.payment.domain.dto.request.PaymentCancelRequest;
-import com.nhnacademy.book2onandon_order_payment_service.payment.domain.dto.response.PaymentCancelResponse;
 import com.nhnacademy.book2onandon_order_payment_service.payment.domain.dto.response.PaymentResponse;
 import com.nhnacademy.book2onandon_order_payment_service.payment.service.PaymentService;
 import java.time.LocalDateTime;
-import org.junit.jupiter.api.BeforeEach;
 import org.junit.jupiter.api.DisplayName;
 import org.junit.jupiter.api.Test;
 import org.junit.jupiter.api.extension.ExtendWith;
@@ -44,7 +41,6 @@ import org.springframework.data.domain.Page;
 import org.springframework.data.domain.Pageable;
 import org.springframework.security.crypto.password.PasswordEncoder;
 
-import java.math.BigDecimal;
 import java.time.LocalDate;
 import java.util.List;
 import java.util.Optional;
@@ -809,7 +805,6 @@ public class OrderServiceImplTest {
         given(deliveryPolicyRepository.findById(any())).willReturn(Optional.of(DeliveryPolicy.builder().freeDeliveryThreshold(0).deliveryFee(0).build()));
         given(bookServiceClient.getBooksForOrder(any())).willReturn(List.of(book1, book2));
         given(couponServiceClient.getCouponTargets(1L)).willReturn(couponTarget);
-//        given(userServiceClient.getUserPoint(userId)).willReturn(new CurrentPointResponseDto(0));
 
         OrderCreateResponseDto mockResponse = new OrderCreateResponseDto();
         mockResponse.setOrderId(123L);
@@ -869,7 +864,6 @@ public class OrderServiceImplTest {
         given(deliveryPolicyRepository.findById(any())).willReturn(Optional.of(DeliveryPolicy.builder().freeDeliveryThreshold(0).deliveryFee(0).build()));
         given(bookServiceClient.getBooksForOrder(any())).willReturn(List.of(book));
         given(couponServiceClient.getCouponTargets(1L)).willReturn(couponTarget);
-//        given(userServiceClient.getUserPoint(userId)).willReturn(new CurrentPointResponseDto(0));
 
         // When & Then
         assertThatThrownBy(() -> orderService.createPreOrder(userId, null, req))
@@ -902,7 +896,6 @@ public class OrderServiceImplTest {
 
         given(deliveryPolicyRepository.findById(any())).willReturn(Optional.of(DeliveryPolicy.builder().freeDeliveryThreshold(0).deliveryFee(0).build()));
         given(bookServiceClient.getBooksForOrder(any())).willReturn(List.of(book));
-//        given(userServiceClient.getUserPoint(userId)).willReturn(new CurrentPointResponseDto(0));
 
         // When & Then
         assertThatThrownBy(() -> orderService.createPreOrder(userId, null, req))

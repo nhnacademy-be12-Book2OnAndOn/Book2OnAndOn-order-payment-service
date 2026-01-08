@@ -7,7 +7,7 @@ import java.time.LocalDateTime;
 import org.junit.jupiter.api.DisplayName;
 import org.junit.jupiter.api.Test;
 
-public class PaymentCancelEntityTest {
+class PaymentCancelEntityTest {
 
     // =========================
     // 1. 생성자 테스트 (정상 값)

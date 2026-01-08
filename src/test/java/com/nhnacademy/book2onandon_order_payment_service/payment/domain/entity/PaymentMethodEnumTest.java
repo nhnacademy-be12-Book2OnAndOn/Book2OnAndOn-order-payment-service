@@ -6,7 +6,7 @@ import static org.assertj.core.api.Assertions.assertThatThrownBy;
 import org.junit.jupiter.api.DisplayName;
 import org.junit.jupiter.api.Test;
 
-public class PaymentMethodEnumTest {
+class PaymentMethodEnumTest {
 
     // =========================
     // 1. 영문 값 변환

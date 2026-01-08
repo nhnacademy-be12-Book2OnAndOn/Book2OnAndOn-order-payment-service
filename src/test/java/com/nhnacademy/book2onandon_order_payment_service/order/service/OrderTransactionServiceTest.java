@@ -24,7 +24,6 @@ import com.nhnacademy.book2onandon_order_payment_service.order.exception.OrderNo
 import com.nhnacademy.book2onandon_order_payment_service.order.provider.GuestTokenProvider;
 import com.nhnacademy.book2onandon_order_payment_service.order.repository.order.OrderItemRepository;
 import com.nhnacademy.book2onandon_order_payment_service.order.repository.order.OrderRepository;
-import com.nhnacademy.book2onandon_order_payment_service.order.service.OrderTransactionService;
 import com.nhnacademy.book2onandon_order_payment_service.payment.domain.dto.CommonConfirmRequest;
 import java.time.LocalDate;
 import java.util.ArrayList;

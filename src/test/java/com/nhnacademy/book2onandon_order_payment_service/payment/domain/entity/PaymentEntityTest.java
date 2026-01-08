@@ -10,7 +10,7 @@ import org.junit.jupiter.api.extension.ExtendWith;
 import org.mockito.junit.jupiter.MockitoExtension;
 
 @ExtendWith(MockitoExtension.class)
-public class PaymentEntityTest {
+class PaymentEntityTest {
 
     @Test
     void PaymentCreateRequest로_엔티티_생성_성공() {
@@ -40,7 +40,7 @@ public class PaymentEntityTest {
         assertThat(payment.getPaymentStatus()).isEqualTo(PaymentStatus.SUCCESS);
         assertThat(payment.getPaymentCreatedAt()).isEqualTo(now);
         assertThat(payment.getPaymentReceiptUrl()).isEqualTo("receipt-url");
-        assertThat(payment.getRefundAmount()).isEqualTo(0);
+        assertThat(payment.getRefundAmount()).isZero();
     }
 
     // =========================
@@ -66,7 +66,7 @@ public class PaymentEntityTest {
         Payment payment = new Payment(req);
 
         // then
-        assertThat(payment.getRefundAmount()).isEqualTo(0);
+        assertThat(payment.getRefundAmount()).isZero();
     }
 
     // =========================

@@ -9,7 +9,6 @@ import static org.mockito.Mockito.verify;
 import com.nhnacademy.book2onandon_order_payment_service.order.entity.order.OrderItemStatus;
 import com.nhnacademy.book2onandon_order_payment_service.order.entity.order.OrderStatus;
 import com.nhnacademy.book2onandon_order_payment_service.order.repository.order.OrderRepository;
-import com.nhnacademy.book2onandon_order_payment_service.order.service.impl.OrderApiServiceImpl;
 import java.time.LocalDate;
 import java.time.LocalDateTime;
 import java.util.List;
@@ -36,7 +35,7 @@ class OrderApiServiceImplTest {
     void existsPurchase_Success() {
         Long userId = 1L;
         Long bookId = 100L;
-        given(orderRepository.existsPurchase(eq(userId), eq(bookId), eq(OrderItemStatus.DELIVERED)))
+        given(orderRepository.existsPurchase((userId), (bookId), (OrderItemStatus.DELIVERED)))
                 .willReturn(true);
 
         Boolean result = orderApiService.existsPurchase(userId, bookId);

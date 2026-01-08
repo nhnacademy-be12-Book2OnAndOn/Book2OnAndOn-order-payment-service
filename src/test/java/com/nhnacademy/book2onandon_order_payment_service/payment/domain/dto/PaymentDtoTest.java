@@ -12,7 +12,7 @@ import java.util.List;
 import org.junit.jupiter.api.DisplayName;
 import org.junit.jupiter.api.Test;
 
-public class PaymentDtoTest {
+class PaymentDtoTest {
 
     @Test
     @DisplayName("TossResponse -> CommonResponse 변환")

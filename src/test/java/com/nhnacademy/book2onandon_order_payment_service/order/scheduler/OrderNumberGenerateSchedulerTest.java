@@ -9,7 +9,6 @@ import static org.mockito.Mockito.verify;
 
 import com.nhnacademy.book2onandon_order_payment_service.order.exception.OrderNumberGenerateException;
 import com.nhnacademy.book2onandon_order_payment_service.order.generator.OrderNumberGenerator;
-import com.nhnacademy.book2onandon_order_payment_service.order.scheduler.OrderNumberGenerateScheduler;
 import org.junit.jupiter.api.DisplayName;
 import org.junit.jupiter.api.Test;
 import org.junit.jupiter.api.extension.ExtendWith;

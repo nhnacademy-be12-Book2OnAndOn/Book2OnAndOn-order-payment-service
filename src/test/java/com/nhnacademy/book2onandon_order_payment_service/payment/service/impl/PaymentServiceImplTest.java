@@ -75,8 +75,9 @@ class PaymentServiceImplTest {
         given(paymentRepository.findByOrderNumber("ORD-1"))
                 .willReturn(Optional.empty());
 
-        assertThatThrownBy(() ->
-                paymentService.getPayment(new PaymentRequest("ORD-1")))
+        PaymentRequest request = new PaymentRequest("ORD-1");
+
+        assertThatThrownBy(() -> paymentService.getPayment(request))
                 .isInstanceOf(NotFoundPaymentException.class);
     }
 
@@ -186,19 +187,6 @@ class PaymentServiceImplTest {
 
     @Test
     void 결제_삭제_성공() {
-        Payment payment = mock(Payment.class);
-
-        given(paymentRepository.findByOrderNumber("ORD-1"))
-                .willReturn(Optional.of(payment));
-
-        paymentService.deletePayment(
-                new PaymentDeleteRequest("ORD-1"));
-
-        verify(paymentRepository).delete(payment);
-    }
-
-    @Test
-    void 결제_삭제_실패() {
         Payment payment = mock(Payment.class);
 
         given(paymentRepository.findByOrderNumber("ORD-1"))

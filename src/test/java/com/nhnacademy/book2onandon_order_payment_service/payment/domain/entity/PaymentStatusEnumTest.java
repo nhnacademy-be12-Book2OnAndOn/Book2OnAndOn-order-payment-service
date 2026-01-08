@@ -6,7 +6,7 @@ import static org.assertj.core.api.Assertions.assertThatThrownBy;
 import org.junit.jupiter.api.DisplayName;
 import org.junit.jupiter.api.Test;
 
-public class PaymentStatusEnumTest {
+class PaymentStatusEnumTest {
     /* ================= getEnum(code) ================= */
 
     @Test
@@ -93,7 +93,7 @@ public class PaymentStatusEnumTest {
     @Test
     @DisplayName("결제 상태 코드(code) 및 설명(description) 값 확인")
     void description_and_code_test() {
-        assertThat(PaymentStatus.SUCCESS.getCode()).isEqualTo(0);
+        assertThat(PaymentStatus.SUCCESS.getCode()).isZero();
         assertThat(PaymentStatus.SUCCESS.getDescription()).isEqualTo("결제 성공");
 
         assertThat(PaymentStatus.FAILURE.getCode()).isEqualTo(-1);

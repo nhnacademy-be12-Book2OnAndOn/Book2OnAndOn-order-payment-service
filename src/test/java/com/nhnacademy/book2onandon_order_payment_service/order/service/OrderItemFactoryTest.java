@@ -8,7 +8,6 @@ import com.nhnacademy.book2onandon_order_payment_service.client.dto.BookOrderRes
 import com.nhnacademy.book2onandon_order_payment_service.order.dto.order.BookOrderContext;
 import com.nhnacademy.book2onandon_order_payment_service.order.dto.order.orderitem.OrderItemRequestDto;
 import com.nhnacademy.book2onandon_order_payment_service.order.entity.order.OrderItem;
-import com.nhnacademy.book2onandon_order_payment_service.order.service.OrderItemFactory;
 import java.util.List;
 import org.junit.jupiter.api.DisplayName;
 import org.junit.jupiter.api.Test;

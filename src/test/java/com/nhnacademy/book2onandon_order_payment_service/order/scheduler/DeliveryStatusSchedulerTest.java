@@ -13,7 +13,6 @@ import com.nhnacademy.book2onandon_order_payment_service.order.entity.delivery.D
 import com.nhnacademy.book2onandon_order_payment_service.order.entity.order.Order;
 import com.nhnacademy.book2onandon_order_payment_service.order.entity.order.OrderStatus;
 import com.nhnacademy.book2onandon_order_payment_service.order.repository.delivery.DeliveryRepository;
-import com.nhnacademy.book2onandon_order_payment_service.order.scheduler.DeliveryStatusScheduler;
 import java.util.Collections;
 import java.util.List;
 import org.junit.jupiter.api.DisplayName;

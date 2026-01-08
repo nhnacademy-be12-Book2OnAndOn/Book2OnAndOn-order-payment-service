@@ -10,7 +10,7 @@ import org.junit.jupiter.api.extension.ExtendWith;
 import org.mockito.junit.jupiter.MockitoExtension;
 
 @ExtendWith(MockitoExtension.class)
-public class PaymentStatusConverterTest {
+class PaymentStatusConverterTest {
 
     private final PaymentStatusConverter converter =
             new PaymentStatusConverter();
@@ -19,7 +19,7 @@ public class PaymentStatusConverterTest {
     @DisplayName("PaymentStatus → DB 컬럼(code) 변환")
     void convertToDatabaseColumn_success() {
         assertThat(converter.convertToDatabaseColumn(PaymentStatus.SUCCESS))
-                .isEqualTo(0);
+                .isZero();
 
         assertThat(converter.convertToDatabaseColumn(PaymentStatus.FAILURE))
                 .isEqualTo(-1);
