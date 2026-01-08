@@ -11,7 +11,6 @@ import static org.springframework.test.web.servlet.result.MockMvcResultMatchers.
 import static org.springframework.test.web.servlet.result.MockMvcResultMatchers.status;
 
 import com.fasterxml.jackson.databind.ObjectMapper;
-import com.nhnacademy.book2onandon_order_payment_service.order.controller.OrderAdminController;
 import com.nhnacademy.book2onandon_order_payment_service.order.dto.order.*;
 import com.nhnacademy.book2onandon_order_payment_service.order.dto.order.orderitem.OrderItemStatusUpdateDto;
 import com.nhnacademy.book2onandon_order_payment_service.order.entity.order.OrderItemStatus;
@@ -45,7 +44,7 @@ class OrderAdminControllerTest {
     private OrderAdminController orderAdminController;
 
     private final ObjectMapper objectMapper = new ObjectMapper();
-    private final String BASE_URL = "/admin/orders";
+    private final String baseUrl = "/admin/orders";
 
     @BeforeEach
     void setUp() {
@@ -62,7 +61,7 @@ class OrderAdminControllerTest {
 
         given(orderService.getOrderListWithAdmin(any(Pageable.class))).willReturn(page);
 
-        mockMvc.perform(get(BASE_URL)
+        mockMvc.perform(get(baseUrl)
                         .param("page", "0")
                         .param("size", "10")
                         .accept(MediaType.APPLICATION_JSON))
@@ -77,7 +76,7 @@ class OrderAdminControllerTest {
         OrderDetailResponseDto response = new OrderDetailResponseDto();
         given(orderService.getOrderDetailWithAdmin("ORD-001")).willReturn(response);
 
-        mockMvc.perform(get(BASE_URL + "/ORD-001"))
+        mockMvc.perform(get(baseUrl + "/ORD-001"))
                 .andExpect(status().isOk());
     }
 
@@ -88,7 +87,7 @@ class OrderAdminControllerTest {
 
         doNothing().when(orderService).setOrderStatus(eq("ORD-001"), any(OrderStatusUpdateDto.class));
 
-        mockMvc.perform(patch(BASE_URL + "/ORD-001")
+        mockMvc.perform(patch(baseUrl + "/ORD-001")
                         .contentType(MediaType.APPLICATION_JSON)
                         .content(objectMapper.writeValueAsString(req)))
                 .andExpect(status().isNoContent());
@@ -101,7 +100,7 @@ class OrderAdminControllerTest {
 
         doNothing().when(orderService).setOrderItemStatus(eq("ORD-001"), any(OrderItemStatusUpdateDto.class));
 
-        mockMvc.perform(patch(BASE_URL + "/ORD-001/order-items")
+        mockMvc.perform(patch(baseUrl + "/ORD-001/order-items")
                         .contentType(MediaType.APPLICATION_JSON)
                         .content(objectMapper.writeValueAsString(req)))
                 .andExpect(status().isNoContent());
@@ -112,7 +111,7 @@ class OrderAdminControllerTest {
     void cancelOrderByAdmin_Success() throws Exception {
         doNothing().when(orderService).cancelOrderByAdmin("ORD-001");
 
-        mockMvc.perform(patch(BASE_URL + "/ORD-001/cancel"))
+        mockMvc.perform(patch(baseUrl + "/ORD-001/cancel"))
                 .andExpect(status().isNoContent());
     }
 
@@ -125,7 +124,7 @@ class OrderAdminControllerTest {
 
         // [수정] MockMvc가 던지는 ServletException 내부의 원인 예외를 검증합니다.
         org.assertj.core.api.Assertions.assertThatThrownBy(() ->
-                        mockMvc.perform(get(BASE_URL + "/NOT-FOUND")))
+                        mockMvc.perform(get(baseUrl + "/NOT-FOUND")))
                 .hasCauseInstanceOf(RuntimeException.class)
                 .hasStackTraceContaining("Order Not Found");
     }
@@ -142,7 +141,7 @@ class OrderAdminControllerTest {
 
         // [수정] MockMvc가 던지는 예외를 직접 검증합니다.
         org.assertj.core.api.Assertions.assertThatThrownBy(() ->
-                        mockMvc.perform(patch(BASE_URL + "/ORD-001")
+                        mockMvc.perform(patch(baseUrl + "/ORD-001")
                                 .contentType(MediaType.APPLICATION_JSON)
                                 .content(jsonRequest)))
                 .hasCauseInstanceOf(RuntimeException.class)

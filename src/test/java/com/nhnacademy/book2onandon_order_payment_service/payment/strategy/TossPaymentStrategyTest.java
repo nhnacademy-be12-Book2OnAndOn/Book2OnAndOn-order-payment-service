@@ -3,7 +3,6 @@ package com.nhnacademy.book2onandon_order_payment_service.payment.strategy;
 import static org.assertj.core.api.Assertions.assertThat;
 import static org.mockito.ArgumentMatchers.any;
 import static org.mockito.ArgumentMatchers.anyString;
-import static org.mockito.ArgumentMatchers.eq;
 import static org.mockito.BDDMockito.given;
 import static org.mockito.BDDMockito.lenient;
 import static org.mockito.Mockito.mock;
@@ -40,13 +39,13 @@ class TossPaymentStrategyTest {
     @InjectMocks
     private TossPaymentStrategy tossPaymentStrategy;
 
-    private final String SECRET_KEY = "test_secret_key";
     private String expectedAuthHeader;
 
     @BeforeEach
     void setUp() {
-        lenient().when(properties.getSecretKey()).thenReturn(SECRET_KEY);
-        String encoded = Base64.getEncoder().encodeToString((SECRET_KEY + ":").getBytes());
+        String secretKey = "test_secret_key";
+        lenient().when(properties.getSecretKey()).thenReturn(secretKey);
+        String encoded = Base64.getEncoder().encodeToString((secretKey + ":").getBytes());
         expectedAuthHeader = "Basic " + encoded;
     }
 
@@ -66,7 +65,7 @@ class TossPaymentStrategyTest {
         String idempotencyKey = "uuid-key";
 
         given(req.toTossConfirmRequest()).willReturn(tossReq);
-        given(tossPaymentsApiClient.confirmPayment(eq(expectedAuthHeader), eq(idempotencyKey), eq(tossReq)))
+        given(tossPaymentsApiClient.confirmPayment(expectedAuthHeader, idempotencyKey, tossReq))
                 .willReturn(tossRes);
         given(tossRes.toCommonConfirmResponse()).willReturn(commonRes);
 
@@ -87,7 +86,7 @@ class TossPaymentStrategyTest {
 
         given(req.paymentKey()).willReturn("pk_123");
         given(req.toTossCancelRequest()).willReturn(tossReq);
-        given(tossPaymentsApiClient.cancelPayment(eq(expectedAuthHeader), eq(idempotencyKey), eq("pk_123"), eq(tossReq)))
+        given(tossPaymentsApiClient.cancelPayment(expectedAuthHeader, idempotencyKey, "pk_123", tossReq))
                 .willReturn(tossRes);
         given(tossRes.toCommonCancelResponse()).willReturn(commonRes);
 

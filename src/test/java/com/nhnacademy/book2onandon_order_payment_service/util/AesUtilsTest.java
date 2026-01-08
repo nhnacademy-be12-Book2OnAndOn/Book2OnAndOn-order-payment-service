@@ -25,8 +25,9 @@ class AesUtilsTest {
 
         String encryptedText = aesUtils.encrypt(plainText);
 
-        assertThat(encryptedText).isNotBlank();
-        assertThat(encryptedText).isNotEqualTo(plainText);
+        assertThat(encryptedText)
+                .isNotBlank()
+                .isNotEqualTo(plainText);
     }
 
     @Test

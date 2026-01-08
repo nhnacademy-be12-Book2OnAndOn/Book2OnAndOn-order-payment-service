@@ -16,7 +16,7 @@ import org.springframework.stereotype.Component;
 public class CleanJunkDataScheduler {
 
     private final OrderService orderService;
-    private final int DELETE_SIZE = 1000;
+    private static final int DELETE_SIZE = 1000;
 
     /*
         매일 정각에 발생하는 주문 정크 데이터들을 삭제합니다

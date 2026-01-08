@@ -17,14 +17,12 @@ public class OrderItemFactory {
                 .map(req -> {
                     BookOrderResponse book = bookContext.get(req.getBookId());
 
-                    OrderItem item = OrderItem.builder()
+                    return OrderItem.builder()
                             .bookId(book.getBookId())
                             .unitPrice(book.getPriceSales().intValue())
                             .orderItemQuantity(req.getQuantity())
                             .isWrapped(req.isWrapped())
                             .build();
-
-                    return item;
                 })
                 .toList();
     }
