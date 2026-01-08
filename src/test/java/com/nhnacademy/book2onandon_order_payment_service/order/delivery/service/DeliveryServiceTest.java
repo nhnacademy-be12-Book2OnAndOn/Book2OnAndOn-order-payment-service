@@ -173,7 +173,7 @@ class DeliveryServiceTest {
         given(order.getUserId()).willReturn(otherUser); // 다른 유저
 
         // when & then
-        assertThatThrownBy(() -> deliveryService.getDelivery(orderId, userId, isNull()))
+        assertThatThrownBy(() -> deliveryService.getDelivery(orderId, userId, null))
                 .isInstanceOf(AccessDeniedException.class);
     }
 

@@ -48,8 +48,8 @@ class OrderGuestControllerTest {
     private OrderGuestController orderGuestController;
 
     private final ObjectMapper objectMapper = new ObjectMapper();
-    private final String BASE_URL = "/guest/orders";
-    private final String GUEST_ID_HEADER = "X-Guest-Id";
+    private final String baseUrl = "/guest/orders";
+    private final String guestIdHeader = "X-Guest-Id";
 
     @BeforeEach
     void setUp() {
@@ -65,7 +65,7 @@ class OrderGuestControllerTest {
 
         given(guestOrderService.loginGuest(any())).willReturn(response);
 
-        mockMvc.perform(post(BASE_URL + "/login")
+        mockMvc.perform(post(baseUrl + "/login")
                         .contentType(MediaType.APPLICATION_JSON)
                         .content(objectMapper.writeValueAsString(request)))
                 .andExpect(status().isOk())
@@ -80,8 +80,8 @@ class OrderGuestControllerTest {
 
         given(orderService.prepareGuestOrder(anyString(), any())).willReturn(response);
 
-        mockMvc.perform(post(BASE_URL + "/prepare")
-                        .header(GUEST_ID_HEADER, "guest-id")
+        mockMvc.perform(post(baseUrl + "/prepare")
+                        .header(guestIdHeader, "guest-id")
                         .contentType(MediaType.APPLICATION_JSON)
                         .content(objectMapper.writeValueAsString(request)))
                 .andExpect(status().isOk());
@@ -95,8 +95,8 @@ class OrderGuestControllerTest {
 
         given(orderService.createGuestPreOrder(anyString(), any())).willReturn(response);
 
-        mockMvc.perform(post(BASE_URL)
-                        .header(GUEST_ID_HEADER, "guest-id")
+        mockMvc.perform(post(baseUrl)
+                        .header(guestIdHeader, "guest-id")
                         .contentType(MediaType.APPLICATION_JSON)
                         .content("{\"guestName\":\"홍길동\"}"))
                 .andExpect(status().isCreated())
@@ -108,7 +108,7 @@ class OrderGuestControllerTest {
     void cancelOrder_Success() throws Exception {
         doNothing().when(orderService).cancelGuestOrder(anyString(), anyString());
 
-        mockMvc.perform(patch(BASE_URL + "/ORD-001/cancel")
+        mockMvc.perform(patch(baseUrl + "/ORD-001/cancel")
                         .header("X-Guest-Order-Token", "valid-token"))
                 .andExpect(status().isNoContent());
     }
@@ -116,14 +116,14 @@ class OrderGuestControllerTest {
     @Test
     @DisplayName("비회원 주문 취소 실패 - 토큰 누락 ")
     void cancelOrder_Fail_NoToken() {
-        assertThatThrownBy(() -> mockMvc.perform(patch(BASE_URL + "/ORD-001/cancel")))
+        assertThatThrownBy(() -> mockMvc.perform(patch(baseUrl + "/ORD-001/cancel")))
                 .hasCauseInstanceOf(AccessDeniedException.class);
     }
 
     @Test
     @DisplayName("비회원 주문 준비 실패 - 헤더 누락 ")
     void prepareGuestOrder_Fail_NoHeader() throws Exception {
-        mockMvc.perform(post(BASE_URL + "/prepare")
+        mockMvc.perform(post(baseUrl + "/prepare")
                         .contentType(MediaType.APPLICATION_JSON)
                         .content("{}"))
                 .andExpect(status().isBadRequest());
