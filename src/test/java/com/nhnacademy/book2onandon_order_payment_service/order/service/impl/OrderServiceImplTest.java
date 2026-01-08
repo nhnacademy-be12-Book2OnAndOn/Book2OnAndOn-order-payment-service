@@ -651,8 +651,6 @@ public class OrderServiceImplTest {
         // validateOrderExistence mock (예외 없이 정상)
         doNothing().when(orderTransactionService).validateOrderExistence(order, null, guestToken);
 
-        // processCancelOrder는 private이므로 내부 로직은 예외 발생 없이 실행되었다고 가정
-
         // When
         orderService.cancelGuestOrder(orderNumber, guestToken);
 

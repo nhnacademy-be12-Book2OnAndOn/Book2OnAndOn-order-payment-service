@@ -10,6 +10,7 @@ import static org.mockito.Mockito.mock;
 import static org.mockito.Mockito.never;
 import static org.mockito.Mockito.times;
 import static org.mockito.Mockito.verify;
+import static org.mockito.Mockito.when;
 
 import com.nhnacademy.book2onandon_order_payment_service.exception.PaymentException;
 import com.nhnacademy.book2onandon_order_payment_service.order.entity.order.Order;
@@ -34,6 +35,7 @@ import com.nhnacademy.book2onandon_order_payment_service.payment.strategy.Paymen
 import com.nhnacademy.book2onandon_order_payment_service.payment.strategy.PaymentStrategyFactory;
 import java.util.List;
 import java.util.Optional;
+import org.junit.jupiter.api.DisplayName;
 import org.junit.jupiter.api.Test;
 import org.junit.jupiter.api.extension.ExtendWith;
 import org.mockito.InjectMocks;
@@ -198,6 +200,26 @@ class PaymentServiceImplTest {
         verify(paymentRepository).delete(payment);
     }
 
+    @Test
+    @DisplayName("결제 삭제 실패 - 결제 존재하지 않음")
+    void 결제_삭제_실패() {
+        // given
+        String orderNumber = "ORD-999"; // 존재하지 않는 결제 번호
+        PaymentDeleteRequest request = new PaymentDeleteRequest(orderNumber);
+
+        // findByOrderNumber 호출 시 NotFoundPaymentException 발생하도록 설정
+        when(paymentRepository.findByOrderNumber(orderNumber))
+                .thenReturn(Optional.empty());
+
+        // when & then
+        assertThatThrownBy(() -> paymentService.deletePayment(request))
+                .isInstanceOf(NotFoundPaymentException.class)
+                .hasMessageContaining("Not Found Payment");
+
+        // delete는 호출되지 않아야 함
+        verify(paymentRepository, never()).delete(any());
+    }
+
     /* ================= 결제 취소 ================= */
 
     @Test
@@ -231,7 +253,9 @@ class PaymentServiceImplTest {
     }
 
     @Test
+    @DisplayName("결제 취소 재시도 초과 시 PaymentException 발생")
     void 결제_취소_재시도_초과시_예외발생() {
+        // given
         Payment payment = mock(Payment.class);
         PaymentStrategy strategy = mock(PaymentStrategy.class);
 
@@ -239,21 +263,23 @@ class PaymentServiceImplTest {
                 .willReturn(Optional.of(payment));
         given(payment.getPaymentProvider())
                 .willReturn(PaymentProvider.TOSS);
-        given(payment.getPaymentKey()).willReturn("pk");
-
+        given(payment.getPaymentKey())
+                .willReturn("pk");
         given(factory.getStrategy("TOSS"))
                 .willReturn(strategy);
 
+        // cancelPayment가 항상 RuntimeException 발생
         given(strategy.cancelPayment(any(), anyString()))
                 .willThrow(new RuntimeException("API ERROR"));
 
-        assertThatThrownBy(() ->
-                paymentService.cancelPayment(
-                        new PaymentCancelRequest("ORD-1", "취소", 1000)))
+        PaymentCancelRequest request = new PaymentCancelRequest("ORD-1", "취소", 1000);
+
+        // when & then
+        assertThatThrownBy(() -> paymentService.cancelPayment(request))
                 .isInstanceOf(PaymentException.class);
 
-        verify(strategy, times(5))
-                .cancelPayment(any(), anyString());
+        // 재시도 횟수 검증 (5회 시도)
+        verify(strategy, times(5)).cancelPayment(any(), anyString());
     }
 
 }

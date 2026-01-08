@@ -1,5 +1,6 @@
 package com.nhnacademy.book2onandon_order_payment_service.config;
 
+import com.nhnacademy.book2onandon_order_payment_service.exception.ClockMovedBackwardsException;
 import java.time.LocalDateTime;
 import java.time.ZoneId;
 import org.springframework.stereotype.Component;
@@ -10,20 +11,20 @@ public class Snowflake {
     private final long workerId;
     private final long datacenterId;
 
-    private final static long twepoch = LocalDateTime.of(2025, 12, 5, 0, 0, 0)
+    private final static long TWEPOCH = LocalDateTime.of(2025, 12, 5, 0, 0, 0)
             .atZone(ZoneId.systemDefault()).toInstant().toEpochMilli();
 
-    private final static long workerIdBits = 5L;
-    private final static long datacenterIdBits = 5L;
-    private final static long maxWorkerId = -1L ^ (-1L << workerIdBits);
-    private final static long maxDatacenterId = -1L ^ (-1L << datacenterIdBits);
+    private final static long WORKER_ID_BITS = 5L;
+    private final static long DATACENTER_ID_BITS = 5L;
+    private final static long MAX_WORKER_ID = -1L ^ (-1L << WORKER_ID_BITS);
+    private final static long MAX_DATACENTER_ID = -1L ^ (-1L << DATACENTER_ID_BITS);
 
-    private final static long sequenceBits = 12L;
+    private final static long SEQUENCE_BITS = 12L;
 
-    private final static long workerIdShift = sequenceBits;
-    private final static long datacenterIdShift = sequenceBits + workerIdBits;
-    private final static long timestampLeftShift = sequenceBits + workerIdBits + datacenterIdBits;
-    private final static long sequenceMask = -1L ^ (-1L << sequenceBits);
+    private final static long WORKER_ID_SHIFT = SEQUENCE_BITS;
+    private final static long DATACENTER_ID_SHIFT = SEQUENCE_BITS + WORKER_ID_BITS;
+    private final static long TIME_STAMP_LEFT_SHIFT = SEQUENCE_BITS + WORKER_ID_BITS + DATACENTER_ID_BITS;
+    private final static long SEQUENCE_MASK = -1L ^ (-1L << SEQUENCE_BITS);
 
     private long sequence = 0L;
     private long lastTimestamp = -1L;
@@ -33,12 +34,13 @@ public class Snowflake {
     }
 
     public Snowflake(long workerId, long datacenterId) {
-        if (workerId > maxWorkerId || workerId < 0)
-            throw new IllegalArgumentException(String.format("worker Id can't be greater than %d or less than 0", maxWorkerId));
+        if (workerId > MAX_WORKER_ID || workerId < 0)
+            throw new IllegalArgumentException(String.format("worker Id can't be greater than %d or less than 0",
+                    MAX_WORKER_ID));
 
-        if (datacenterId > maxDatacenterId || datacenterId < 0)
+        if (datacenterId > MAX_DATACENTER_ID || datacenterId < 0)
             throw new IllegalArgumentException(
-                    String.format("datacenter Id can't be greater than %d or less than 0", maxDatacenterId));
+                    String.format("datacenter Id can't be greater than %d or less than 0", MAX_DATACENTER_ID));
 
         this.workerId = workerId;
         this.datacenterId = datacenterId;
@@ -48,11 +50,13 @@ public class Snowflake {
         long timestamp = timeGen();
 
         if (timestamp < lastTimestamp) {
-            throw new RuntimeException("Clock moved backwards. Refusing to generate id!");
+            throw new ClockMovedBackwardsException(
+                    "Clock moved backwards. Refusing to generate id!");
         }
 
+
         if (lastTimestamp == timestamp) {
-            sequence = (sequence + 1) & sequenceMask;
+            sequence = (sequence + 1) & SEQUENCE_MASK;
 
             if (sequence == 0)
                 timestamp = tilNextMillis(lastTimestamp);
@@ -63,9 +67,9 @@ public class Snowflake {
 
         lastTimestamp = timestamp;
 
-        return ((timestamp - twepoch) << timestampLeftShift)
-                | (datacenterId << datacenterIdShift)
-                | (workerId << workerIdShift)
+        return ((timestamp - TWEPOCH) << TIME_STAMP_LEFT_SHIFT)
+                | (datacenterId << DATACENTER_ID_SHIFT)
+                | (workerId << WORKER_ID_SHIFT)
                 | sequence;
     }
 

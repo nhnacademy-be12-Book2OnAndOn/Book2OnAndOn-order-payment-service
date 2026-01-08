@@ -88,6 +88,9 @@ public class OrderServiceImpl implements OrderService {
     private final OrderViewAssembler orderViewAssembler;
     private final OrderResourceManager resourceManager;
 
+    private static final String NOT_FOUND_ORDER_MSG_PREFIX = "Not Found Order : ";
+
+
     /**
      * 책 클라이언트를 통해 책 정보를 가져오는 공용 메서드입니다.
      * @param bookIds 도서 아이디 List
@@ -480,29 +483,30 @@ public class OrderServiceImpl implements OrderService {
                                             List<Long> targetCategoryIds,
                                             int totalItemAmount){
         // 특정 도서 대상
-        if(targetBookIds != null && !targetBookIds.isEmpty()
-                && (targetCategoryIds == null || targetCategoryIds.isEmpty())){
+        if(targetBookIds != null && !targetBookIds.isEmpty() &&
+                (targetCategoryIds == null || targetCategoryIds.isEmpty())){
             return calcContextList.stream()
                     .filter(ctx -> targetBookIds.contains(ctx.getBookId()))
                     .mapToInt(OrderItemCalcContext::getItemTotalPrice)
                     .sum();
             // 특정 카테고리 도서 대상
-        }else if((targetBookIds == null || targetBookIds.isEmpty())
-                && targetCategoryIds != null && !targetCategoryIds.isEmpty()){
+        }else if((targetBookIds == null || targetBookIds.isEmpty()) &&
+                (targetCategoryIds != null && !targetCategoryIds.isEmpty())){
             return calcContextList.stream()
                     .filter(ctx -> targetCategoryIds.contains(ctx.getCategoryId()))
                     .mapToInt(OrderItemCalcContext::getItemTotalPrice)
                     .sum();
             // 금액 대상
-        }else if((targetBookIds == null || targetBookIds.isEmpty())
-                && targetCategoryIds == null || targetCategoryIds.isEmpty()){
+        }else if((targetBookIds == null || targetBookIds.isEmpty()) &&
+                (targetCategoryIds == null || targetCategoryIds.isEmpty())){
             return totalItemAmount;
 
             // 특정 도서, 카테고리 대상
         }else{
             return calcContextList.stream()
                     .filter(ctx ->
-                            (targetBookIds.contains(ctx.getBookId()) || targetCategoryIds.contains(ctx.getCategoryId())))
+                            (targetBookIds.contains(ctx.getBookId()) ||
+                                targetCategoryIds.contains(ctx.getCategoryId())))
                     .mapToInt(OrderItemCalcContext::getItemTotalPrice)
                     .sum();
         }
@@ -703,7 +707,7 @@ public class OrderServiceImpl implements OrderService {
     @Override
     public OrderDetailResponseDto getOrderDetailWithAdmin(String orderNumber) {
 
-        Order order = orderRepository.findByOrderNumber(orderNumber).orElseThrow(() -> new OrderNotFoundException("Not Found Order : " + orderNumber));
+        Order order = orderRepository.findByOrderNumber(orderNumber).orElseThrow(() -> new OrderNotFoundException(NOT_FOUND_ORDER_MSG_PREFIX + orderNumber));
         List<Long> bookIds = order.getOrderItems().stream()
                         .map(OrderItem::getBookId)
                         .toList();
@@ -721,7 +725,7 @@ public class OrderServiceImpl implements OrderService {
         log.info("관리자 주문 취소 요청 (주문번호 : {})", orderNumber);
 
         Order order = orderRepository.findByOrderNumber(orderNumber)
-                .orElseThrow(() -> new OrderNotFoundException("Not Found Order : " + orderNumber));
+                .orElseThrow(() -> new OrderNotFoundException(NOT_FOUND_ORDER_MSG_PREFIX + orderNumber));
 
         // 공통 취소 로직 호출
         processCancelOrder(order);
@@ -734,7 +738,7 @@ public class OrderServiceImpl implements OrderService {
     @Transactional
     public void setOrderStatus(String orderNumber, OrderStatusUpdateDto req) {
         log.info("주문 상태 변경 로직 실행 (주문번호 : {})", orderNumber);
-        Order order = orderRepository.findByOrderNumber(orderNumber).orElseThrow(() -> new OrderNotFoundException("Not Found Order : " + orderNumber));
+        Order order = orderRepository.findByOrderNumber(orderNumber).orElseThrow(() -> new OrderNotFoundException(NOT_FOUND_ORDER_MSG_PREFIX + orderNumber));
 
         order.setOrderStatus(req.getOrderStatus());
     }
@@ -743,7 +747,7 @@ public class OrderServiceImpl implements OrderService {
     @Transactional
     public void setOrderItemStatus(String orderNumber, OrderItemStatusUpdateDto req) {
         log.info("주문 항목 상태 변경 로직 실행 (주문번호 : {})", orderNumber);
-        Order order = orderRepository.findByOrderNumber(orderNumber).orElseThrow(() -> new OrderNotFoundException("Not Found Order : " + orderNumber));
+        Order order = orderRepository.findByOrderNumber(orderNumber).orElseThrow(() -> new OrderNotFoundException(NOT_FOUND_ORDER_MSG_PREFIX + orderNumber));
 
         for (OrderItem orderItem : order.getOrderItems()) {
             Long id = orderItem.getOrderItemId();

@@ -31,6 +31,7 @@ import org.springframework.web.method.annotation.HandlerMethodValidationExceptio
 @RestControllerAdvice
 public class GlobalExceptionHandler {
 
+    private static final String VALIDATION_FAIL_MSG_PREFIX = "요청 값 검증에 실패했습니다. detail=";
 
     /** 공통 ErrorResponse 생성 헬퍼 */
     private ErrorResponse buildErrorResponse(HttpStatus status, String error, String message) {
@@ -172,7 +173,7 @@ public class GlobalExceptionHandler {
                 .map(err -> err.getField() + " " + err.getDefaultMessage())
                 .orElse("Validation failed");
 
-        String msg = "요청 값 검증에 실패했습니다. detail=" + detail;
+        String msg = VALIDATION_FAIL_MSG_PREFIX + detail;
         return ResponseEntity.status(status)
                 .body(buildErrorResponse(status, "VALIDATION_ERROR", msg));
     }
@@ -180,7 +181,7 @@ public class GlobalExceptionHandler {
     @ExceptionHandler(ConstraintViolationException.class)
     public ResponseEntity<ErrorResponse> handleConstraintViolation(ConstraintViolationException ex) {
         HttpStatus status = HttpStatus.BAD_REQUEST;
-        String msg = "요청 값 검증에 실패했습니다. detail=" + ex.getMessage();
+        String msg = VALIDATION_FAIL_MSG_PREFIX + ex.getMessage();
         return ResponseEntity.status(status)
                 .body(buildErrorResponse(status, "CONSTRAINT_VIOLATION", msg));
     }
@@ -251,7 +252,7 @@ public class GlobalExceptionHandler {
     @ExceptionHandler(HandlerMethodValidationException.class)
     public ResponseEntity<ErrorResponse> handleHandlerMethodValidation(HandlerMethodValidationException ex) {
         HttpStatus status = HttpStatus.BAD_REQUEST;
-        String msg = "요청 값 검증에 실패했습니다. detail=" + ex.getMessage();
+        String msg = VALIDATION_FAIL_MSG_PREFIX + ex.getMessage();
         return ResponseEntity.status(status)
                 .body(buildErrorResponse(status, "VALIDATION_ERROR", msg));
     }

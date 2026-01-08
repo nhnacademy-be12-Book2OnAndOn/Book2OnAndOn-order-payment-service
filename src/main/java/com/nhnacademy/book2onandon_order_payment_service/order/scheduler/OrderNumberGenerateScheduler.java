@@ -19,6 +19,8 @@ public class OrderNumberGenerateScheduler {
     private final RedisTemplate<String, String> orderNumberRedisTemplate;
     private final OrderNumberGenerator orderNumberGenerator;
 
+    private static final String ORDER_NUMBER_SCHEDULER_ERROR_MSG = "주문 번호 생성 스케줄러 오류 발생";
+
     private static final String ORDER_NUMBER_QUEUE_KEY = "order-service:order-number:queue";
     private static final int ORDER_NUMBER_QUEUE_SIZE = 500;
 
@@ -37,13 +39,13 @@ public class OrderNumberGenerateScheduler {
                 size = orderNumberRedisTemplate.opsForList().size(ORDER_NUMBER_QUEUE_KEY);
             }
         } catch (RedisConnectionFailureException e) {
-            log.error("주문 번호 생성 스케줄러 오류 발생", e);
+            log.error(ORDER_NUMBER_SCHEDULER_ERROR_MSG, e);
             throw new OrderNumberGenerateException("Redis 연결 실패", e);
         } catch (SerializationException e) {
-            log.error("주문 번호 생성 스케줄러 오류 발생", e);
+            log.error(ORDER_NUMBER_SCHEDULER_ERROR_MSG, e);
             throw new OrderNumberGenerateException("Redis 직렬화 실패", e);
         } catch (Exception e) {
-            log.error("주문 번호 생성 스케줄러 오류 발생", e);
+            log.error(ORDER_NUMBER_SCHEDULER_ERROR_MSG, e);
             throw new OrderNumberGenerateException("알 수 없는 오류", e);
         }
     }

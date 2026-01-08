@@ -89,14 +89,5 @@ public class OrderApiServiceImpl implements OrderApiService {
         }
 
         orderTransactionService.changeStatusOrder(order, false);
-//        Order order = orderTransactionService.validateOrderExistence(userId, req.orderNumber(), null);
-
-//        orderResourceManager.releaseResources(req.orderNumber(), userId, order.getPointDiscount(), order.getOrderId());
-//
-//        order.setOrderStatus(OrderStatus.CANCELED);
-//
-//        for (OrderItem orderItem : order.getOrderItems()) {
-//            orderItem.setOrderItemStatus(OrderItemStatus.ORDER_CANCELED);
-//        }
     }
 }
