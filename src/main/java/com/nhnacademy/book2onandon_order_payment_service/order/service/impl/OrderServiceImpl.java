@@ -150,7 +150,6 @@ public class OrderServiceImpl implements OrderService {
      * @param userId, req
      * @return 주문 항목, 유저 배송지 정보, 사용가능한 쿠폰, 유저 포인트 반환 DTO
      */
-    // TODO 캐시 설정?
     @Override
     public OrderPrepareResponseDto prepareOrder(Long userId, OrderPrepareRequestDto req) {
         log.info("주문 전 데이터 정보 가져오기 로직 실행 (회원 아이디 : {})", userId);

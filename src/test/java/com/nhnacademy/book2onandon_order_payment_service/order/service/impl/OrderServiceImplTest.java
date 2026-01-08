@@ -26,7 +26,6 @@ import com.nhnacademy.book2onandon_order_payment_service.order.repository.order.
 import com.nhnacademy.book2onandon_order_payment_service.order.service.OrderResourceManager;
 import com.nhnacademy.book2onandon_order_payment_service.order.service.OrderTransactionService;
 import com.nhnacademy.book2onandon_order_payment_service.order.service.WrappingPaperService;
-import com.nhnacademy.book2onandon_order_payment_service.order.service.impl.OrderServiceImpl;
 import com.nhnacademy.book2onandon_order_payment_service.payment.domain.dto.request.PaymentCancelRequest;
 import com.nhnacademy.book2onandon_order_payment_service.payment.domain.dto.response.PaymentResponse;
 import com.nhnacademy.book2onandon_order_payment_service.payment.service.PaymentService;

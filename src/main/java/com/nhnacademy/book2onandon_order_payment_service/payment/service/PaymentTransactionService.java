@@ -33,7 +33,7 @@ public class PaymentTransactionService {
     private final OrderResourceManager orderResourceManager;
     private final PaymentEventPublisher paymentEventPublisher;
 
-    private final int MAX_RETRY = 2;
+    private final int maxRetry = 2;
 
     // 결제 저장 로직
     @Transactional
@@ -87,7 +87,7 @@ public class PaymentTransactionService {
 
         int count = 0;
 
-        while(count <= MAX_RETRY){
+        while(count <= maxRetry){
             try{
                 List<PaymentCancel> saved = paymentCancelRepository.saveAll(cancelList);
 

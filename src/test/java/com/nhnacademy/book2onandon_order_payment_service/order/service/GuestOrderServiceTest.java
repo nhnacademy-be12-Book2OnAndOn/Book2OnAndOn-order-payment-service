@@ -13,7 +13,6 @@ import com.nhnacademy.book2onandon_order_payment_service.order.entity.order.Orde
 import com.nhnacademy.book2onandon_order_payment_service.order.exception.GuestOrderNotFoundException;
 import com.nhnacademy.book2onandon_order_payment_service.order.provider.GuestTokenProvider;
 import com.nhnacademy.book2onandon_order_payment_service.order.repository.order.GuestOrderRepository;
-import com.nhnacademy.book2onandon_order_payment_service.order.service.GuestOrderService;
 import java.util.Optional;
 import org.junit.jupiter.api.DisplayName;
 import org.junit.jupiter.api.Test;

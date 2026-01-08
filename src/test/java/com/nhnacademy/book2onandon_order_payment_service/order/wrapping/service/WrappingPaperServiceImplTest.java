@@ -137,20 +137,20 @@ class WrappingPaperServiceImplTest {
     @Test
     @DisplayName("포장지 수정 성공: updateWrappingPaper")
     void updateWrappingPaper_success() {
-        String updated_name = "새로운 포장지 이름";
-        int updated_price = 9999;
+        String updatedName = "새로운 포장지 이름";
+        int updatedPrice = 9999;
 
         WrappingPaperUpdateRequestDto requestDto = new WrappingPaperUpdateRequestDto(
-            updated_name, updated_price, null
+                updatedName, updatedPrice, null
         );
         when(wrappingPaperRepository.findById(TEST_ID)).thenReturn(Optional.of(mockEntity));
 
         WrappingPaperResponseDto result = wrappingPaperService.updateWrappingPaper(TEST_ID, requestDto);
 
-        assertThat(result.getWrappingPaperName()).isEqualTo(updated_name);
-        assertThat(result.getWrappingPaperPrice()).isEqualTo(updated_price);
+        assertThat(result.getWrappingPaperName()).isEqualTo(updatedName);
+        assertThat(result.getWrappingPaperPrice()).isEqualTo(updatedPrice);
 
-        assertThat(mockEntity.getWrappingPaperName()).isEqualTo(updated_name);
+        assertThat(mockEntity.getWrappingPaperName()).isEqualTo(updatedName);
 
         verify(wrappingPaperRepository, times(1)).findById(TEST_ID);
     }

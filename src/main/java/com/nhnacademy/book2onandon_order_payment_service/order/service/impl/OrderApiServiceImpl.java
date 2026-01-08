@@ -4,7 +4,6 @@ import com.nhnacademy.book2onandon_order_payment_service.order.entity.order.Orde
 import com.nhnacademy.book2onandon_order_payment_service.order.entity.order.OrderItemStatus;
 import com.nhnacademy.book2onandon_order_payment_service.order.entity.order.OrderStatus;
 import com.nhnacademy.book2onandon_order_payment_service.order.exception.OrderNotFoundException;
-import com.nhnacademy.book2onandon_order_payment_service.order.repository.order.GuestOrderRepository;
 import com.nhnacademy.book2onandon_order_payment_service.order.repository.order.OrderRepository;
 import com.nhnacademy.book2onandon_order_payment_service.order.service.OrderApiService;
 import com.nhnacademy.book2onandon_order_payment_service.order.service.OrderResourceManager;
@@ -28,11 +27,10 @@ public class OrderApiServiceImpl implements OrderApiService {
     private final OrderRepository orderRepository;
     private final OrderTransactionService orderTransactionService;
     private final OrderResourceManager orderResourceManager;
-    private final GuestOrderRepository guestOrderRepository;
 
-    private final Pageable TOP_10 = PageRequest.of(0, 10);
-    private final OrderStatus ORDER_STATUS_DELIVERED = OrderStatus.DELIVERED;
-    private final OrderItemStatus ORDER_ITEM_STATUS_DELIVERED = OrderItemStatus.DELIVERED;
+    private final Pageable top10 = PageRequest.of(0, 10);
+    private static final OrderStatus ORDER_STATUS_DELIVERED = OrderStatus.DELIVERED;
+    private static final OrderItemStatus ORDER_ITEM_STATUS_DELIVERED = OrderItemStatus.DELIVERED;
 
     @Transactional(readOnly = true)
     @Override
@@ -52,7 +50,7 @@ public class OrderApiServiceImpl implements OrderApiService {
             startDateTime = yesterday.atStartOfDay();
             endDateTime = yesterday.atTime(LocalTime.MAX);
             return orderRepository.findTopBestSellerBookIds(
-                    startDateTime, endDateTime, ORDER_STATUS_DELIVERED, ORDER_ITEM_STATUS_DELIVERED, TOP_10);
+                    startDateTime, endDateTime, ORDER_STATUS_DELIVERED, ORDER_ITEM_STATUS_DELIVERED, top10);
         }
 
         // 주간 (7일 전 00:00:00 ~ 어제 23:59:59)
@@ -60,7 +58,7 @@ public class OrderApiServiceImpl implements OrderApiService {
             startDateTime = now.minusWeeks(1).atStartOfDay();
             endDateTime = now.minusDays(1).atTime(LocalTime.MAX);
             return orderRepository.findTopBestSellerBookIds(
-                    startDateTime, endDateTime, ORDER_STATUS_DELIVERED, ORDER_ITEM_STATUS_DELIVERED, TOP_10);
+                    startDateTime, endDateTime, ORDER_STATUS_DELIVERED, ORDER_ITEM_STATUS_DELIVERED, top10);
         }
         return List.of();
     }
