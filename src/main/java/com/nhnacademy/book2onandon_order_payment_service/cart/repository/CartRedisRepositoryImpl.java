@@ -107,7 +107,7 @@ public class CartRedisRepositoryImpl implements CartRedisRepository {
     @Override
     public Map<Long, CartRedisItem> getUserCartItems(Long userId) {
         Map<Long, CartRedisItem> map = hashOps().entries(userKey(userId));
-        if (map == null || map.isEmpty()) {
+        if (map.isEmpty()) {
             return Collections.emptyMap(); // 비어있는 불변 Map 객체
         }
         return map;
@@ -200,8 +200,7 @@ public class CartRedisRepositoryImpl implements CartRedisRepository {
     @Override
     public Map<Long, CartRedisItem> getGuestCartItems(String uuid) {
         requireUuid(uuid);
-        Map<Long, CartRedisItem> map = hashOps().entries(guestKey(uuid));
-        return map != null ? map : Collections.emptyMap();
+        return hashOps().entries(guestKey(uuid));
     }
 
     // 2) 상태 갱신
@@ -308,7 +307,7 @@ public class CartRedisRepositoryImpl implements CartRedisRepository {
         }
 
         // putAll로 밀어넣을 값 준비: cap/createdAt/updatedAt 정리
-        Map<Long, CartRedisItem> toSave = new java.util.HashMap<>(items.size());
+        Map<Long, CartRedisItem> toSave = HashMap.newHashMap(items.size());
         for (Map.Entry<Long, CartRedisItem> e : items.entrySet()) {
             Long bookId = e.getKey();
             CartRedisItem v = e.getValue();

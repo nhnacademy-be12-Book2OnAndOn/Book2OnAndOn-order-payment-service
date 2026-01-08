@@ -7,7 +7,6 @@ import static org.springframework.test.web.servlet.request.MockMvcRequestBuilder
 import static org.springframework.test.web.servlet.request.MockMvcRequestBuilders.post;
 import static org.springframework.test.web.servlet.result.MockMvcResultMatchers.status;
 
-import com.fasterxml.jackson.databind.ObjectMapper;
 import com.nhnacademy.book2onandon_order_payment_service.order.controller.RefundController;
 import com.nhnacademy.book2onandon_order_payment_service.order.dto.refund.request.RefundRequestDto;
 import com.nhnacademy.book2onandon_order_payment_service.order.dto.refund.response.RefundResponseDto;
@@ -75,7 +74,6 @@ class RefundControllerTest {
     void createRefund_success_returns201() throws Exception {
         long orderId = 10L;
         Long userId = 1L;
-        String guestToken = null;
 
         String validJson = """
                 {

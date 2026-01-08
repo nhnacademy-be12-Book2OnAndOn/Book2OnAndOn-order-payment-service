@@ -11,10 +11,12 @@ import com.nhnacademy.book2onandon_order_payment_service.cart.domain.entity.*;
 import com.nhnacademy.book2onandon_order_payment_service.cart.exception.*;
 import com.nhnacademy.book2onandon_order_payment_service.cart.repository.*;
 import com.nhnacademy.book2onandon_order_payment_service.cart.support.CartCalculator;
+import com.nhnacademy.book2onandon_order_payment_service.cart.support.CartCalculator.CartItemPricingResult;
 import com.nhnacademy.book2onandon_order_payment_service.client.BookServiceClient;
 import com.nhnacademy.book2onandon_order_payment_service.client.BookServiceClient.BookSnapshot;
 import feign.FeignException;
 import java.util.*;
+import org.junit.jupiter.api.BeforeEach;
 import org.junit.jupiter.api.Nested;
 import org.junit.jupiter.api.Test;
 import org.junit.jupiter.api.extension.ExtendWith;
@@ -34,8 +36,16 @@ class CartServiceImplTest {
     @Mock private CartRedisRepository cartRedisRepository;
     @Mock private BookServiceClient bookServiceClient;
     @Mock private CartCalculator cartCalculator;
+    @Mock private CartFlushService cartFlushService;
 
     @InjectMocks private CartServiceImpl cartService;
+
+    @BeforeEach
+    void setUpSelfProxy() {
+        // 중요: @InjectMocks는 setSelf(@Lazy CartService self)를 자동 호출하지 않음
+        // self가 null이면 getUserSelectedCart/getGuestSelectedCart에서 NPE 발생
+        cartService.setSelf(cartService);
+    }
 
     // ============================================================
     // Helpers
@@ -46,13 +56,12 @@ class CartServiceImplTest {
     }
 
     private static CartItem dbItem(Cart cart, long bookId, int qty, boolean selected) {
-        CartItem it = CartItem.builder()
+        return CartItem.builder()
                 .cart(cart)
                 .bookId(bookId)
                 .quantity(qty)
                 .selected(selected)
                 .build();
-        return it;
     }
 
     private static BookSnapshot snapshot(long bookId, int stock, boolean deleted, boolean saleEnded) {
@@ -68,12 +77,10 @@ class CartServiceImplTest {
         return s;
     }
 
-    private void stubSnapshots(List<Long> bookIds, Map<Long, BookSnapshot> map) {
-        // requireBookSnapshot/safeGetBookSnapshots 모두 getBookSnapshots(List<Long>)를 호출
+    private void stubSnapshots(Map<Long, BookSnapshot> map) {
         given(bookServiceClient.getBookSnapshots(anyList())).willAnswer(inv -> {
             @SuppressWarnings("unchecked")
             List<Long> ids = (List<Long>) inv.getArgument(0);
-            // 테스트 안전성: 요청한 ID 중 없는 것은 null로 남게 됨
             Map<Long, BookSnapshot> res = new HashMap<>();
             for (Long id : ids) {
                 if (map.containsKey(id)) res.put(id, map.get(id));
@@ -87,8 +94,8 @@ class CartServiceImplTest {
                                    CartItemUnavailableReason reason,
                                    int stock) {
 
-        given(cartCalculator.calculatePricing(eq(bookId), eq(qty), anyMap()))
-                .willReturn(new CartCalculator.CartItemPricingResult(
+        given(cartCalculator.calculatePricing(eq(bookId), eq(qty), ArgumentMatchers.<Long, BookSnapshot>anyMap()))
+                .willReturn(CartItemPricingResult.of(
                         "t", "u",
                         2000, 1500,
                         stock,
@@ -114,7 +121,11 @@ class CartServiceImplTest {
             given(req.isSelected()).willReturn(true);
 
             assertThatThrownBy(() -> cartService.addItemToUserCart(userId, req))
-                    .isInstanceOf(CartBusinessException.class);
+                    .isInstanceOf(CartBusinessException.class)
+                    .satisfies(ex ->
+                            assertThat(((CartBusinessException) ex).getErrorCode())
+                                    .isEqualTo(CartErrorCode.INVALID_QUANTITY)
+                    );
 
             verifyNoInteractions(cartRedisRepository, bookServiceClient);
         }
@@ -128,7 +139,11 @@ class CartServiceImplTest {
             given(req.isSelected()).willReturn(true);
 
             assertThatThrownBy(() -> cartService.addItemToGuestCart(uuid, req))
-                    .isInstanceOf(CartBusinessException.class);
+                    .isInstanceOf(CartBusinessException.class)
+                    .satisfies(ex ->
+                            assertThat(((CartBusinessException) ex).getErrorCode())
+                                    .isEqualTo(CartErrorCode.INVALID_QUANTITY)
+                    );
 
             verifyNoInteractions(cartRedisRepository, bookServiceClient);
         }
@@ -151,11 +166,14 @@ class CartServiceImplTest {
             given(req.isSelected()).willReturn(true);
 
             given(cartRedisRepository.getUserCartItems(userId)).willReturn(Collections.emptyMap());
-            // getBookSnapshots returns empty => snapshot null
             given(bookServiceClient.getBookSnapshots(anyList())).willReturn(Collections.emptyMap());
 
             assertThatThrownBy(() -> cartService.addItemToUserCart(userId, req))
-                    .isInstanceOf(CartBusinessException.class);
+                    .isInstanceOf(CartBusinessException.class)
+                    .satisfies(ex ->
+                            assertThat(((CartBusinessException) ex).getErrorCode())
+                                    .isEqualTo(CartErrorCode.INVALID_BOOK_ID)
+                    );
 
             verify(cartRedisRepository, never()).putUserItem(anyLong(), any());
         }
@@ -176,7 +194,11 @@ class CartServiceImplTest {
             given(bookServiceClient.getBookSnapshots(anyList())).willThrow(fe);
 
             assertThatThrownBy(() -> cartService.addItemToUserCart(userId, req))
-                    .isInstanceOf(CartBusinessException.class);
+                    .isInstanceOf(CartBusinessException.class)
+                    .satisfies(ex ->
+                            assertThat(((CartBusinessException) ex).getErrorCode())
+                                    .isEqualTo(CartErrorCode.BOOK_UNAVAILABLE)
+                    );
 
             verify(cartRedisRepository, never()).putUserItem(anyLong(), any());
         }
@@ -192,10 +214,14 @@ class CartServiceImplTest {
             given(req.isSelected()).willReturn(true);
 
             given(cartRedisRepository.getUserCartItems(userId)).willReturn(Collections.emptyMap());
-            stubSnapshots(List.of(bookId), Map.of(bookId, snapshot(bookId, 10, true, false)));
+            stubSnapshots(Map.of(bookId, snapshot(bookId, 10, true, false)));
 
             assertThatThrownBy(() -> cartService.addItemToUserCart(userId, req))
-                    .isInstanceOf(CartBusinessException.class);
+                    .isInstanceOf(CartBusinessException.class)
+                    .satisfies(ex ->
+                            assertThat(((CartBusinessException) ex).getErrorCode())
+                                    .isEqualTo(CartErrorCode.BOOK_UNAVAILABLE)
+                    );
 
             verify(cartRedisRepository, never()).putUserItem(anyLong(), any());
         }
@@ -211,10 +237,14 @@ class CartServiceImplTest {
             given(req.isSelected()).willReturn(true);
 
             given(cartRedisRepository.getUserCartItems(userId)).willReturn(Collections.emptyMap());
-            stubSnapshots(List.of(bookId), Map.of(bookId, snapshot(bookId, 0, false, false)));
+            stubSnapshots(Map.of(bookId, snapshot(bookId, 0, false, false)));
 
             assertThatThrownBy(() -> cartService.addItemToUserCart(userId, req))
-                    .isInstanceOf(CartBusinessException.class);
+                    .isInstanceOf(CartBusinessException.class)
+                    .satisfies(ex ->
+                            assertThat(((CartBusinessException) ex).getErrorCode())
+                                    .isEqualTo(CartErrorCode.OUT_OF_STOCK)
+                    );
 
             verify(cartRedisRepository, never()).putUserItem(anyLong(), any());
         }
@@ -231,10 +261,14 @@ class CartServiceImplTest {
             given(cartRedisRepository.getGuestCartItems(uuid))
                     .willReturn(Map.of(bookId, redisItem(bookId, 1, true)));
 
-            stubSnapshots(List.of(bookId), Map.of(bookId, snapshot(bookId, 3, false, false)));
+            stubSnapshots(Map.of(bookId, snapshot(bookId, 3, false, false)));
 
             assertThatThrownBy(() -> cartService.updateQuantityGuestCartItem(uuid, req))
-                    .isInstanceOf(CartBusinessException.class);
+                    .isInstanceOf(CartBusinessException.class)
+                    .satisfies(ex ->
+                            assertThat(((CartBusinessException) ex).getErrorCode())
+                                    .isEqualTo(CartErrorCode.OUT_OF_STOCK)
+                    );
 
             verify(cartRedisRepository, never()).putGuestItem(anyString(), any());
         }
@@ -275,7 +309,11 @@ class CartServiceImplTest {
             given(cartRedisRepository.getGuestCartItems(uuid)).willReturn(existing);
 
             assertThatThrownBy(() -> cartService.addItemToGuestCart(uuid, req))
-                    .isInstanceOf(CartBusinessException.class);
+                    .isInstanceOf(CartBusinessException.class)
+                    .satisfies(ex ->
+                            assertThat(((CartBusinessException) ex).getErrorCode())
+                                    .isEqualTo(CartErrorCode.CART_SIZE_EXCEEDED)
+                    );
 
             verifyNoInteractions(bookServiceClient);
             verify(cartRedisRepository, never()).putGuestItem(anyString(), any());
@@ -292,9 +330,10 @@ class CartServiceImplTest {
             given(req.isSelected()).willReturn(false);
 
             CartRedisItem existing = redisItem(bookId, 50, true);
-            given(cartRedisRepository.getGuestCartItems(uuid)).willReturn(new HashMap<>(Map.of(bookId, existing)));
+            given(cartRedisRepository.getGuestCartItems(uuid))
+                    .willReturn(new HashMap<>(Map.of(bookId, existing)));
 
-            stubSnapshots(List.of(bookId), Map.of(bookId, snapshot(bookId, 999, false, false)));
+            stubSnapshots(Map.of(bookId, snapshot(bookId, 999, false, false)));
 
             cartService.addItemToGuestCart(uuid, req);
 
@@ -371,7 +410,11 @@ class CartServiceImplTest {
             given(cartRedisRepository.getUserCartItems(userId)).willReturn(existing);
 
             assertThatThrownBy(() -> cartService.addItemToUserCart(userId, req))
-                    .isInstanceOf(CartBusinessException.class);
+                    .isInstanceOf(CartBusinessException.class)
+                    .satisfies(ex ->
+                            assertThat(((CartBusinessException) ex).getErrorCode())
+                                    .isEqualTo(CartErrorCode.CART_SIZE_EXCEEDED)
+                    );
 
             verifyNoInteractions(bookServiceClient);
             verify(cartRedisRepository, never()).putUserItem(anyLong(), any());
@@ -389,9 +432,10 @@ class CartServiceImplTest {
             given(req.isSelected()).willReturn(false);
 
             CartRedisItem existing = redisItem(bookId, 50, true); // 50 + 60 => cap 99
-            given(cartRedisRepository.getUserCartItems(userId)).willReturn(new HashMap<>(Map.of(bookId, existing)));
+            given(cartRedisRepository.getUserCartItems(userId))
+                    .willReturn(new HashMap<>(Map.of(bookId, existing)));
 
-            stubSnapshots(List.of(bookId), Map.of(bookId, snapshot(bookId, 999, false, false)));
+            stubSnapshots(Map.of(bookId, snapshot(bookId, 999, false, false)));
 
             cartService.addItemToUserCart(userId, req);
 
@@ -481,7 +525,7 @@ class CartServiceImplTest {
                             bookId2, redisItem(bookId2, 1, false)
                     ));
 
-            stubSnapshots(List.of(bookId1, bookId2), Map.of(
+            stubSnapshots(Map.of(
                     bookId1, snapshot(bookId1, 100, false, false),
                     bookId2, snapshot(bookId2, 100, false, false)
             ));
@@ -495,7 +539,6 @@ class CartServiceImplTest {
             assertThat(res.getTotalItemCount()).isEqualTo(2);
             assertThat(res.getTotalQuantity()).isEqualTo(3);
             assertThat(res.getTotalPrice()).isEqualTo(1500 * 2 + 1500 * 1);
-            // selectedTotalPrice는 bookId1만 selected=true
             assertThat(res.getSelectedQuantity()).isEqualTo(2);
             assertThat(res.getSelectedTotalPrice()).isEqualTo(1500 * 2);
 
@@ -543,7 +586,7 @@ class CartServiceImplTest {
             CartItem db = dbItem(cart, bookId, 2, true);
             given(cartItemRepository.findByCart(cart)).willReturn(List.of(db));
 
-            stubSnapshots(List.of(bookId), Map.of(bookId, snapshot(bookId, 100, false, false)));
+            stubSnapshots(Map.of(bookId, snapshot(bookId, 100, false, false)));
             stubPricingAnyMap(bookId, 2, true, null, 100);
 
             CartItemsResponseDto res = cartService.getUserCart(userId);
@@ -587,9 +630,9 @@ class CartServiceImplTest {
                             b3, redisItem(b3, 5, false)
                     ));
 
-            stubSnapshots(List.of(b1, b2, b3), Map.of(
+            stubSnapshots(Map.of(
                     b1, snapshot(b1, 100, false, false),
-                    b2, snapshot(b2, 0, false, false),   // stock 0 -> pricing에서 unavailable로 내려도 됨
+                    b2, snapshot(b2, 0, false, false),
                     b3, snapshot(b3, 100, false, false)
             ));
 
@@ -702,18 +745,14 @@ class CartServiceImplTest {
             Cart cart = Cart.builder().userId(userId).build();
             given(cartRepository.findByUserId(userId)).willReturn(Optional.of(cart));
             given(cartItemRepository.findByCart(cart))
-                    .willReturn(List.of(dbItem(cart, 99L, 1, true))); // warm-up 용 더미
+                    .willReturn(List.of(dbItem(cart, 99L, 1, true))); // warm-up 더미
 
-            // ✅ 여기서 단 1번만:
-            // 1) merge 시작: empty → warm-up 진입
-            // 2) warm-up 직후(다시 조회할 수 있음): empty로 둬도 됨
-            // 3) merge 끝나고 응답 빌드용: merged map(qty=2)
             given(cartRedisRepository.getUserCartItems(userId))
-                    .willReturn(Collections.emptyMap())
-                    .willReturn(Collections.emptyMap())
-                    .willReturn(Map.of(bookId, redisItem(bookId, 2, true)));
+                    .willReturn(Collections.emptyMap())              // merge 시작: empty -> warm-up 진입
+                    .willReturn(Collections.emptyMap())              // warm-up 후 재조회(여전히 empty로 둠)
+                    .willReturn(Map.of(bookId, redisItem(bookId, 2, true))); // merge 후 응답 빌드용
 
-            stubSnapshots(List.of(bookId), Map.of(bookId, snapshot(bookId, 100, false, false)));
+            stubSnapshots(Map.of(bookId, snapshot(bookId, 100, false, false)));
             stubPricingAnyMap(bookId, 2, true, null, 100);
 
             CartMergeResultResponseDto res = cartService.mergeGuestCartToUserCart(userId, uuid);
@@ -724,38 +763,28 @@ class CartServiceImplTest {
             verify(cartRedisRepository, atLeastOnce()).markUserCartDirty(userId);
         }
 
-
         @Test
-        void merge_whenSizeLimitExceeded_addFailedToMerge_andDoNotPut() {
+        void merge_whenSizeLimitExceeded_addFailedToMerge_andDoNotPutGuestBook() {
             long userId = 1L;
             String uuid = "g1";
 
             Map<Long, CartRedisItem> guest = Map.of(999L, redisItem(999L, 1, true));
             given(cartRedisRepository.getGuestCartItems(uuid)).willReturn(guest);
 
-            // user already at MAX_CART_SIZE distinct
             Map<Long, CartRedisItem> userMap = new HashMap<>();
             for (int i = 0; i < MAX_CART_SIZE; i++) {
                 userMap.put((long) (1000 + i), redisItem(1000 + i, 1, true));
             }
             given(cartRedisRepository.getUserCartItems(userId)).willReturn(userMap);
 
-            // snapshots empty도 허용(safeGetBookSnapshots 실패 케이스) -> unavailable 판정으로 들어갈 수 있으나
-            // 여기서는 사이즈 제한이 먼저 걸려 continue 하므로 스냅샷 영향 없음.
             given(bookServiceClient.getBookSnapshots(anyList())).willReturn(Collections.emptyMap());
-
-            // mergedUserItems를 build할 때도 getUserCartItems를 호출하므로, 그대로 반환
-            given(cartRedisRepository.getUserCartItems(userId)).willReturn(userMap);
             given(cartCalculator.calculatePricing(anyLong(), anyInt(), anyMap()))
                     .willAnswer(inv -> {
                         Long bookId = inv.getArgument(0);
                         Integer qty = inv.getArgument(1);
-                        // lineTotal = 1500 * qty 로만 맞춰서 NPE 방지 + 합계 계산 가능
-                        return new CartCalculator.CartItemPricingResult(
-                                "t-" + bookId,
-                                "u-" + bookId,
-                                2000,
-                                1500,
+                        return CartItemPricingResult.of(
+                                "t-" + bookId, "u-" + bookId,
+                                2000, 1500,
                                 999,
                                 false,
                                 true,
@@ -764,14 +793,13 @@ class CartServiceImplTest {
                         );
                     });
 
-
-            // pricing 스텁은 필요 없음(mergedUserItems에는 guestBookId가 안 들어가므로)
-
             CartMergeResultResponseDto res = cartService.mergeGuestCartToUserCart(userId, uuid);
 
             assertThat(res.isMergeSucceeded()).isTrue();
             assertThat(res.getFailedToMergeItems()).hasSize(1);
-            verify(cartRedisRepository, never()).putUserItem(eq(userId), argThat(it -> Objects.equals(it.getBookId(), 999L)));
+
+            verify(cartRedisRepository, never()).putUserItem(eq(userId),
+                    argThat(it -> it != null && Objects.equals(it.getBookId(), 999L)));
         }
 
         @Test
@@ -780,20 +808,14 @@ class CartServiceImplTest {
             String uuid = "g1";
             long bookId = 10L;
 
-            // guest + user same bookId => 합산이 MAX 초과
             given(cartRedisRepository.getGuestCartItems(uuid))
                     .willReturn(Map.of(bookId, redisItem(bookId, 60, true)));
 
             given(cartRedisRepository.getUserCartItems(userId))
-                    .willReturn(Map.of(bookId, redisItem(bookId, 60, true)));
+                    .willReturn(Map.of(bookId, redisItem(bookId, 60, true)))
+                    .willReturn(Map.of(bookId, redisItem(bookId, MAX_QUANTITY, true))); // 응답 빌드용
 
-            // stock 충분
-            stubSnapshots(List.of(bookId), Map.of(bookId, snapshot(bookId, 999, false, false)));
-
-            // merge 후 조회(응답 빌드)용
-            given(cartRedisRepository.getUserCartItems(userId))
-                    .willReturn(Map.of(bookId, redisItem(bookId, MAX_QUANTITY, true)));
-
+            stubSnapshots(Map.of(bookId, snapshot(bookId, 999, false, false)));
             stubPricingAnyMap(bookId, MAX_QUANTITY, true, null, 999);
 
             CartMergeResultResponseDto res = cartService.mergeGuestCartToUserCart(userId, uuid);
@@ -814,14 +836,10 @@ class CartServiceImplTest {
                     .willReturn(Map.of(bookId, redisItem(bookId, 5, true)));
 
             given(cartRedisRepository.getUserCartItems(userId))
-                    .willReturn(Map.of(bookId, redisItem(bookId, 5, true)));
+                    .willReturn(Map.of(bookId, redisItem(bookId, 5, true)))
+                    .willReturn(Map.of(bookId, redisItem(bookId, 7, true))); // 응답 빌드용
 
-            // requested 10, stock 7 => final 7 with STOCK_LIMIT_EXCEEDED
-            stubSnapshots(List.of(bookId), Map.of(bookId, snapshot(bookId, 7, false, false)));
-
-            given(cartRedisRepository.getUserCartItems(userId))
-                    .willReturn(Map.of(bookId, redisItem(bookId, 7, true)));
-
+            stubSnapshots(Map.of(bookId, snapshot(bookId, 7, false, false)));
             stubPricingAnyMap(bookId, 7, true, null, 7);
 
             CartMergeResultResponseDto res = cartService.mergeGuestCartToUserCart(userId, uuid);
@@ -839,15 +857,11 @@ class CartServiceImplTest {
             given(cartRedisRepository.getGuestCartItems(uuid))
                     .willReturn(Map.of(bookId, redisItem(bookId, 1, true)));
 
-            // ✅ 여기서 단 1번만. (merge 시작 시점엔 empty, merge 끝나고 응답 빌드 때는 merged map)
             given(cartRedisRepository.getUserCartItems(userId))
-                    .willReturn(Collections.emptyMap())
-                    .willReturn(Map.of(bookId, redisItem(bookId, 1, true)));
+                    .willReturn(Collections.emptyMap())                 // merge 시작
+                    .willReturn(Map.of(bookId, redisItem(bookId, 1, true))); // 응답 빌드용
 
-            // deleted => unavailable
-            stubSnapshots(List.of(bookId), Map.of(bookId, snapshot(bookId, 10, true, false)));
-
-            // ✅ qty=1로 호출되어야 함 (위 stubbing이 덮이지 않으면 1로 유지)
+            stubSnapshots(Map.of(bookId, snapshot(bookId, 10, true, false))); // deleted => unavailable
             stubPricingAnyMap(bookId, 1, false, CartItemUnavailableReason.BOOK_DELETED, 10);
 
             CartMergeResultResponseDto res = cartService.mergeGuestCartToUserCart(userId, uuid);
@@ -856,11 +870,10 @@ class CartServiceImplTest {
             verify(cartRedisRepository).putUserItem(eq(userId), any(CartRedisItem.class));
             verify(cartRedisRepository).clearGuestCart(uuid);
         }
-
     }
 
     // ============================================================
-    // Scheduler branches
+    // Scheduler branches (✅ flushSingleUserCart는 CartFlushService로 이동)
     // ============================================================
     @Nested
     class Scheduler {
@@ -871,123 +884,27 @@ class CartServiceImplTest {
 
             cartService.flushDirtyUserCarts();
 
-            verify(cartRepository, never()).findByUserId(anyLong());
-            verify(cartItemRepository, never()).findByCart(any());
+            verifyNoInteractions(cartFlushService);
+        }
+
+        @Test
+        void flushDirtyUserCarts_whenDirtyEmpty_end() {
+            given(cartRedisRepository.getDirtyUserIds()).willReturn(Collections.emptySet());
+
+            cartService.flushDirtyUserCarts();
+
+            verifyNoInteractions(cartFlushService);
         }
 
         @Test
         void flushDirtyUserCarts_whenHasDirty_callsFlushSinglePerUser() {
-            // flushSingleUserCart 내부를 통과시키려면 최소 스텁 필요
             given(cartRedisRepository.getDirtyUserIds()).willReturn(Set.of(1L, 2L));
-            given(cartRedisRepository.getUserCartItems(anyLong())).willReturn(Collections.emptyMap());
-
-            // cart 생성/조회 경로를 간단히 empty redis => deleteAllInBatch 분기 타게 구성
-            given(cartRepository.findByUserId(anyLong())).willReturn(Optional.of(Cart.builder().userId(1L).build()));
-            given(cartItemRepository.findByCart(any())).willReturn(Collections.emptyList());
 
             cartService.flushDirtyUserCarts();
 
-            verify(cartRedisRepository, atLeast(2)).clearUserCartDirty(anyLong());
-        }
-
-        @Test
-        void flushSingleUserCart_whenRedisEmptyAndDbNotEmpty_deleteAllAndClearDirty() {
-            long userId = 1L;
-
-            given(cartRedisRepository.getUserCartItems(userId)).willReturn(Collections.emptyMap());
-
-            Cart cart = Cart.builder().userId(userId).build();
-            given(cartRepository.findByUserId(userId)).willReturn(Optional.of(cart));
-
-            CartItem db1 = dbItem(cart, 10L, 1, true);
-            CartItem db2 = dbItem(cart, 11L, 1, true);
-            given(cartItemRepository.findByCart(cart)).willReturn(List.of(db1, db2));
-
-            cartService.flushSingleUserCart(userId);
-
-            verify(cartItemRepository).deleteAllInBatch(anyList());
-            verify(cartRedisRepository).clearUserCartDirty(userId);
-        }
-
-        @Test
-        void flushSingleUserCart_whenRedisNull_treatedAsEmpty_andClearsDirty() {
-            long userId = 1L;
-
-            given(cartRedisRepository.getUserCartItems(userId)).willReturn(null);
-
-            Cart cart = Cart.builder().userId(userId).build();
-            given(cartRepository.findByUserId(userId)).willReturn(Optional.of(cart));
-            given(cartItemRepository.findByCart(cart)).willReturn(Collections.emptyList());
-
-            cartService.flushSingleUserCart(userId);
-
-            verify(cartRedisRepository).clearUserCartDirty(userId);
-            verify(cartItemRepository, never()).saveAll(anyList());
-        }
-
-        @Test
-        void flushSingleUserCart_whenRedisHasItems_deletesDbOnlyItems_andUpsertsChangedOnly() {
-            long userId = 1L;
-
-            // redis has bookId 10(qty2), 12(qty1)
-            Map<Long, CartRedisItem> redis = new HashMap<>();
-            redis.put(10L, redisItem(10L, 2, true));
-            redis.put(12L, redisItem(12L, 1, false));
-            given(cartRedisRepository.getUserCartItems(userId)).willReturn(redis);
-
-            Cart cart = Cart.builder().userId(userId).build();
-            given(cartRepository.findByUserId(userId)).willReturn(Optional.of(cart));
-
-            // DB has bookId 10(qty1 changed), 11(should be deleted)
-            CartItem db10 = dbItem(cart, 10L, 1, true);
-            CartItem db11 = dbItem(cart, 11L, 1, true);
-            given(cartItemRepository.findByCart(cart)).willReturn(List.of(db10, db11));
-
-            cartService.flushSingleUserCart(userId);
-
-            verify(cartItemRepository).deleteByCartAndBookIdIn(eq(cart), argThat(list -> list.size() == 1 && list.contains(11L)));
-            verify(cartItemRepository).saveAll(anyList()); // changed(10) + new(12)
-            verify(cartRedisRepository).clearUserCartDirty(userId);
-        }
-
-        @Test
-        void flushSingleUserCart_whenNoChanges_saveAllNotCalled() {
-            long userId = 1L;
-
-            // redis has bookId 10 qty=1 selected=true (same as DB)
-            given(cartRedisRepository.getUserCartItems(userId))
-                    .willReturn(Map.of(10L, redisItem(10L, 1, true)));
-
-            Cart cart = Cart.builder().userId(userId).build();
-            given(cartRepository.findByUserId(userId)).willReturn(Optional.of(cart));
-
-            CartItem db10 = dbItem(cart, 10L, 1, true);
-            given(cartItemRepository.findByCart(cart)).willReturn(List.of(db10));
-
-            cartService.flushSingleUserCart(userId);
-
-            verify(cartItemRepository, never()).saveAll(anyList());
-            verify(cartRedisRepository).clearUserCartDirty(userId);
-        }
-
-        @Test
-        void flushSingleUserCart_whenCartNotExist_createAndSave() {
-            long userId = 1L;
-
-            given(cartRedisRepository.getUserCartItems(userId))
-                    .willReturn(Map.of(10L, redisItem(10L, 1, true)));
-
-            given(cartRepository.findByUserId(userId)).willReturn(Optional.empty());
-
-            Cart saved = Cart.builder().userId(userId).build();
-            given(cartRepository.save(any(Cart.class))).willReturn(saved);
-            given(cartItemRepository.findByCart(saved)).willReturn(Collections.emptyList());
-
-            cartService.flushSingleUserCart(userId);
-
-            verify(cartRepository).save(any(Cart.class));
-            verify(cartItemRepository).saveAll(anyList()); // 신규 insert
-            verify(cartRedisRepository).clearUserCartDirty(userId);
+            verify(cartFlushService).flushSingleUserCart(1L);
+            verify(cartFlushService).flushSingleUserCart(2L);
+            verifyNoMoreInteractions(cartFlushService);
         }
     }
 }
