@@ -1,4 +1,4 @@
-package com.nhnacademy.book2onandon_order_payment_service.order.order.controller;
+package com.nhnacademy.book2onandon_order_payment_service.order.controller;
 
 import static org.mockito.ArgumentMatchers.any;
 import static org.mockito.ArgumentMatchers.eq;

@@ -21,22 +21,13 @@ import org.springframework.transaction.event.TransactionalEventListener;
 @RequiredArgsConstructor
 public class PaymentSuccessEventListener {
 
-//    private final DeliveryService deliveryService;
     private final DeliveryService deliveryService;
     private final CartService cartService;
-    private final OrderRepository orderRepository;
 
     @Async
-//    @EventListener
-//    @Transactional
+
     @Transactional(propagation = Propagation.REQUIRES_NEW)
     @TransactionalEventListener(phase = TransactionPhase.AFTER_COMMIT)
-//    public void paymentSuccessHandle(PaymentSuccessEvent event){
-//        log.info("결제 성공 후 배송 생성 이벤트 처리 - (주문번호 : {})", event.getOrder().getOrderNumber());
-//
-//        deliveryService.createPendingDelivery(event.getOrder().getOrderId());
-//    }
-
     public void paymentSuccessHandle(PaymentSuccessEvent event) {
 
         Long orderId = event.getOrder().getOrderId();
@@ -48,7 +39,6 @@ public class PaymentSuccessEventListener {
         deliveryService.createPendingDelivery(orderId);
 
         // 장바구니 정리 (이게 지금까지 없었음)
-//        Order order = orderRepository.findById(orderId).orElseThrow();
         Order order = event.getOrder();
 
         if (order.getUserId() != null) {

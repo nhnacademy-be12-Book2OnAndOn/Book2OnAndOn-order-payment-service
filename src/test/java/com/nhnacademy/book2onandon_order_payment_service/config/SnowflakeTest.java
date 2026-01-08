@@ -2,7 +2,10 @@ package com.nhnacademy.book2onandon_order_payment_service.config;
 
 import static org.assertj.core.api.Assertions.assertThat;
 import static org.assertj.core.api.Assertions.assertThatThrownBy;
+import static org.junit.jupiter.api.Assertions.assertThrows;
 
+import com.nhnacademy.book2onandon_order_payment_service.exception.ClockMovedBackwardsException;
+import java.lang.reflect.Field;
 import org.junit.jupiter.api.DisplayName;
 import org.junit.jupiter.api.Test;
 import org.springframework.test.util.ReflectionTestUtils;
@@ -71,5 +74,30 @@ class SnowflakeTest {
             long id = snowflake.nextId();
             assertThat(id).isPositive();
         }
+    }
+
+    @Test
+    @DisplayName("시계가 뒤로 이동하면 ClockMovedBackwardsException 발생")
+    void nextId_ShouldThrowClockMovedBackwardsException_WhenTimestampGoesBackwards() {
+        Snowflake snowflake = new Snowflake();
+        // given: lastTimestamp를 현재보다 큰 값으로 강제 세팅
+        Field lastTimestampField = null;
+        try {
+            lastTimestampField = Snowflake.class.getDeclaredField("lastTimestamp");
+        } catch (NoSuchFieldException e) {
+            throw new RuntimeException(e);
+        }
+        lastTimestampField.setAccessible(true);
+
+        long futureTimestamp = System.currentTimeMillis() + 1000; // 미래 시간
+        try {
+            lastTimestampField.setLong(snowflake, futureTimestamp);
+        } catch (IllegalAccessException e) {
+            throw new RuntimeException(e);
+        }
+
+        // when & then: nextId() 호출 시 예외 발생
+        assertThrows(ClockMovedBackwardsException.class, snowflake::nextId);
+
     }
 }

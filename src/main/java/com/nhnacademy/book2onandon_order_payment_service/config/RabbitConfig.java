@@ -27,9 +27,10 @@ public class RabbitConfig {
 
     // 공통 EXCHANGE
     @Bean
-    public DirectExchange exchange(){
+    public DirectExchange orderPaymentExchange(){
         return new DirectExchange(EXCHANGE);
     }
+
 
     @Bean
     public MessageConverter jsonMessageConverter(){

@@ -96,7 +96,8 @@ public class PaymentServiceImpl implements PaymentService {
         Payment payment = validateAndGetPayment(req.orderNumber());
         paymentRepository.delete(payment);
         log.info("결제 내역 삭제");
-        return new PaymentDeleteResponse(payment.getOrderNumber());}
+        return new PaymentDeleteResponse(payment.getOrderNumber());
+    }
 
     @Override
     @Transactional

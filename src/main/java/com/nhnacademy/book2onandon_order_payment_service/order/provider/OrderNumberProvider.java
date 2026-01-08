@@ -14,6 +14,8 @@ import org.springframework.transaction.annotation.Transactional;
 @RequiredArgsConstructor
 public class OrderNumberProvider {
 
+    private static final String ORDER_NUMBER_PROVISION_ERROR_MSG = "주문 번호 발급 오류 발생";
+
     private final RedisTemplate<String, String> orderNumberRedisTemplate;
     private static final String ORDER_NUMBER_QUEUE_KEY = "order-service:order-number:queue";
 
@@ -23,13 +25,13 @@ public class OrderNumberProvider {
             return orderNumberRedisTemplate.opsForList().rightPop(ORDER_NUMBER_QUEUE_KEY);
         } catch (RedisConnectionFailureException e) {
             log.error("Redis 연결 실패", e);
-            throw new OrderNumberProvisionException("주문 번호 발급 오류 발생", e);
+            throw new OrderNumberProvisionException(ORDER_NUMBER_PROVISION_ERROR_MSG, e);
         } catch (SerializationException e) {
             log.error("Redis 직렬화 실패", e);
-            throw new OrderNumberProvisionException("주문 번호 발급 오류 발생", e);
+            throw new OrderNumberProvisionException(ORDER_NUMBER_PROVISION_ERROR_MSG, e);
         } catch (Exception e) {
             log.error("알 수 없는 오류", e);
-            throw new OrderNumberProvisionException("주문 번호 발급 오류 발생", e);
+            throw new OrderNumberProvisionException(ORDER_NUMBER_PROVISION_ERROR_MSG, e);
         }
     }
 }
