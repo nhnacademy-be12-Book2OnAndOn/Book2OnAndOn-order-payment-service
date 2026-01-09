@@ -1,0 +1,910 @@
+package com.nhnacademy.book2onandon_order_payment_service.cart.service;
+
+import static com.nhnacademy.book2onandon_order_payment_service.cart.domain.entity.CartConstants.*;
+import static org.assertj.core.api.Assertions.*;
+import static org.mockito.ArgumentMatchers.*;
+import static org.mockito.BDDMockito.*;
+
+import com.nhnacademy.book2onandon_order_payment_service.cart.domain.dto.request.*;
+import com.nhnacademy.book2onandon_order_payment_service.cart.domain.dto.response.*;
+import com.nhnacademy.book2onandon_order_payment_service.cart.domain.entity.*;
+import com.nhnacademy.book2onandon_order_payment_service.cart.exception.*;
+import com.nhnacademy.book2onandon_order_payment_service.cart.repository.*;
+import com.nhnacademy.book2onandon_order_payment_service.cart.support.CartCalculator;
+import com.nhnacademy.book2onandon_order_payment_service.cart.support.CartCalculator.CartItemPricingResult;
+import com.nhnacademy.book2onandon_order_payment_service.client.BookServiceClient;
+import com.nhnacademy.book2onandon_order_payment_service.client.BookServiceClient.BookSnapshot;
+import feign.FeignException;
+import java.util.*;
+import org.junit.jupiter.api.BeforeEach;
+import org.junit.jupiter.api.Nested;
+import org.junit.jupiter.api.Test;
+import org.junit.jupiter.api.extension.ExtendWith;
+import org.mockito.*;
+import org.mockito.junit.jupiter.MockitoExtension;
+import org.springframework.test.context.TestPropertySource;
+
+@ExtendWith(MockitoExtension.class)
+@TestPropertySource(properties = {
+        "spring.cloud.config.enabled=false",
+        "spring.cloud.config.import-check.enabled=false"
+})
+class CartServiceImplTest {
+
+    @Mock private CartRepository cartRepository;
+    @Mock private CartItemRepository cartItemRepository;
+    @Mock private CartRedisRepository cartRedisRepository;
+    @Mock private BookServiceClient bookServiceClient;
+    @Mock private CartCalculator cartCalculator;
+    @Mock private CartFlushService cartFlushService;
+
+    @InjectMocks private CartServiceImpl cartService;
+
+    @BeforeEach
+    void setUpSelfProxy() {
+        // 중요: @InjectMocks는 setSelf(@Lazy CartService self)를 자동 호출하지 않음
+        // self가 null이면 getUserSelectedCart/getGuestSelectedCart에서 NPE 발생
+        cartService.setSelf(cartService);
+    }
+
+    // ============================================================
+    // Helpers
+    // ============================================================
+
+    private static CartRedisItem redisItem(long bookId, int qty, boolean selected) {
+        return new CartRedisItem(bookId, qty, selected, 0L, 0L);
+    }
+
+    private static CartItem dbItem(Cart cart, long bookId, int qty, boolean selected) {
+        return CartItem.builder()
+                .cart(cart)
+                .bookId(bookId)
+                .quantity(qty)
+                .selected(selected)
+                .build();
+    }
+
+    private static BookSnapshot snapshot(long bookId, int stock, boolean deleted, boolean saleEnded) {
+        BookSnapshot s = new BookSnapshot();
+        s.setBookId(bookId);
+        s.setTitle("title-" + bookId);
+        s.setThumbnailUrl("thumb-" + bookId);
+        s.setOriginalPrice(2000);
+        s.setSalePrice(1500);
+        s.setStockCount(stock);
+        s.setDeleted(deleted);
+        s.setSaleEnded(saleEnded);
+        return s;
+    }
+
+    private void stubSnapshots(Map<Long, BookSnapshot> map) {
+        given(bookServiceClient.getBookSnapshots(anyList())).willAnswer(inv -> {
+            @SuppressWarnings("unchecked")
+            List<Long> ids = (List<Long>) inv.getArgument(0);
+            Map<Long, BookSnapshot> res = new HashMap<>();
+            for (Long id : ids) {
+                if (map.containsKey(id)) res.put(id, map.get(id));
+            }
+            return res;
+        });
+    }
+
+    private void stubPricingAnyMap(long bookId, int qty,
+                                   boolean available,
+                                   CartItemUnavailableReason reason,
+                                   int stock) {
+
+        given(cartCalculator.calculatePricing(eq(bookId), eq(qty), ArgumentMatchers.<Long, BookSnapshot>anyMap()))
+                .willReturn(CartItemPricingResult.of(
+                        "t", "u",
+                        2000, 1500,
+                        stock,
+                        false,
+                        available,
+                        reason,
+                        1500 * qty
+                ));
+    }
+
+    // ============================================================
+    // Quantity validation (via public methods)
+    // ============================================================
+    @Nested
+    class QuantityValidation {
+
+        @Test
+        void addItemToUserCart_whenQuantityUnderMin_throwInvalidQuantity() {
+            long userId = 1L;
+            CartItemRequestDto req = mock(CartItemRequestDto.class);
+            given(req.getBookId()).willReturn(10L);
+            given(req.getQuantity()).willReturn(MIN_QUANTITY - 1);
+            given(req.isSelected()).willReturn(true);
+
+            assertThatThrownBy(() -> cartService.addItemToUserCart(userId, req))
+                    .isInstanceOf(CartBusinessException.class)
+                    .satisfies(ex ->
+                            assertThat(((CartBusinessException) ex).getErrorCode())
+                                    .isEqualTo(CartErrorCode.INVALID_QUANTITY)
+                    );
+
+            verifyNoInteractions(cartRedisRepository, bookServiceClient);
+        }
+
+        @Test
+        void addItemToGuestCart_whenQuantityOverMax_throwInvalidQuantity() {
+            String uuid = "g1";
+            CartItemRequestDto req = mock(CartItemRequestDto.class);
+            given(req.getBookId()).willReturn(10L);
+            given(req.getQuantity()).willReturn(MAX_QUANTITY + 1);
+            given(req.isSelected()).willReturn(true);
+
+            assertThatThrownBy(() -> cartService.addItemToGuestCart(uuid, req))
+                    .isInstanceOf(CartBusinessException.class)
+                    .satisfies(ex ->
+                            assertThat(((CartBusinessException) ex).getErrorCode())
+                                    .isEqualTo(CartErrorCode.INVALID_QUANTITY)
+                    );
+
+            verifyNoInteractions(cartRedisRepository, bookServiceClient);
+        }
+    }
+
+    // ============================================================
+    // requireBookSnapshot / availability / stock (via add/update)
+    // ============================================================
+    @Nested
+    class BookSnapshotAndStock {
+
+        @Test
+        void addItemToUserCart_whenSnapshotMissing_throwInvalidBookId() {
+            long userId = 1L;
+            long bookId = 10L;
+
+            CartItemRequestDto req = mock(CartItemRequestDto.class);
+            given(req.getBookId()).willReturn(bookId);
+            given(req.getQuantity()).willReturn(1);
+            given(req.isSelected()).willReturn(true);
+
+            given(cartRedisRepository.getUserCartItems(userId)).willReturn(Collections.emptyMap());
+            given(bookServiceClient.getBookSnapshots(anyList())).willReturn(Collections.emptyMap());
+
+            assertThatThrownBy(() -> cartService.addItemToUserCart(userId, req))
+                    .isInstanceOf(CartBusinessException.class)
+                    .satisfies(ex ->
+                            assertThat(((CartBusinessException) ex).getErrorCode())
+                                    .isEqualTo(CartErrorCode.INVALID_BOOK_ID)
+                    );
+
+            verify(cartRedisRepository, never()).putUserItem(anyLong(), any());
+        }
+
+        @Test
+        void addItemToUserCart_whenBookServiceFeignException_throwBookUnavailable() {
+            long userId = 1L;
+            long bookId = 10L;
+
+            CartItemRequestDto req = mock(CartItemRequestDto.class);
+            given(req.getBookId()).willReturn(bookId);
+            given(req.getQuantity()).willReturn(1);
+            given(req.isSelected()).willReturn(true);
+
+            given(cartRedisRepository.getUserCartItems(userId)).willReturn(Collections.emptyMap());
+
+            FeignException fe = mock(FeignException.class);
+            given(bookServiceClient.getBookSnapshots(anyList())).willThrow(fe);
+
+            assertThatThrownBy(() -> cartService.addItemToUserCart(userId, req))
+                    .isInstanceOf(CartBusinessException.class)
+                    .satisfies(ex ->
+                            assertThat(((CartBusinessException) ex).getErrorCode())
+                                    .isEqualTo(CartErrorCode.BOOK_UNAVAILABLE)
+                    );
+
+            verify(cartRedisRepository, never()).putUserItem(anyLong(), any());
+        }
+
+        @Test
+        void addItemToUserCart_whenDeletedBook_throwBookUnavailable() {
+            long userId = 1L;
+            long bookId = 10L;
+
+            CartItemRequestDto req = mock(CartItemRequestDto.class);
+            given(req.getBookId()).willReturn(bookId);
+            given(req.getQuantity()).willReturn(1);
+            given(req.isSelected()).willReturn(true);
+
+            given(cartRedisRepository.getUserCartItems(userId)).willReturn(Collections.emptyMap());
+            stubSnapshots(Map.of(bookId, snapshot(bookId, 10, true, false)));
+
+            assertThatThrownBy(() -> cartService.addItemToUserCart(userId, req))
+                    .isInstanceOf(CartBusinessException.class)
+                    .satisfies(ex ->
+                            assertThat(((CartBusinessException) ex).getErrorCode())
+                                    .isEqualTo(CartErrorCode.BOOK_UNAVAILABLE)
+                    );
+
+            verify(cartRedisRepository, never()).putUserItem(anyLong(), any());
+        }
+
+        @Test
+        void addItemToUserCart_whenStockZero_throwOutOfStock() {
+            long userId = 1L;
+            long bookId = 10L;
+
+            CartItemRequestDto req = mock(CartItemRequestDto.class);
+            given(req.getBookId()).willReturn(bookId);
+            given(req.getQuantity()).willReturn(1);
+            given(req.isSelected()).willReturn(true);
+
+            given(cartRedisRepository.getUserCartItems(userId)).willReturn(Collections.emptyMap());
+            stubSnapshots(Map.of(bookId, snapshot(bookId, 0, false, false)));
+
+            assertThatThrownBy(() -> cartService.addItemToUserCart(userId, req))
+                    .isInstanceOf(CartBusinessException.class)
+                    .satisfies(ex ->
+                            assertThat(((CartBusinessException) ex).getErrorCode())
+                                    .isEqualTo(CartErrorCode.OUT_OF_STOCK)
+                    );
+
+            verify(cartRedisRepository, never()).putUserItem(anyLong(), any());
+        }
+
+        @Test
+        void updateQuantityGuestCartItem_whenRequestedExceedsStock_throwOutOfStock() {
+            String uuid = "g1";
+            long bookId = 10L;
+
+            CartItemQuantityUpdateRequestDto req = mock(CartItemQuantityUpdateRequestDto.class);
+            given(req.getBookId()).willReturn(bookId);
+            given(req.getQuantity()).willReturn(5);
+
+            given(cartRedisRepository.getGuestCartItems(uuid))
+                    .willReturn(Map.of(bookId, redisItem(bookId, 1, true)));
+
+            stubSnapshots(Map.of(bookId, snapshot(bookId, 3, false, false)));
+
+            assertThatThrownBy(() -> cartService.updateQuantityGuestCartItem(uuid, req))
+                    .isInstanceOf(CartBusinessException.class)
+                    .satisfies(ex ->
+                            assertThat(((CartBusinessException) ex).getErrorCode())
+                                    .isEqualTo(CartErrorCode.OUT_OF_STOCK)
+                    );
+
+            verify(cartRedisRepository, never()).putGuestItem(anyString(), any());
+        }
+    }
+
+    // ============================================================
+    // Guest cart core flows
+    // ============================================================
+    @Nested
+    class GuestCart {
+
+        @Test
+        void getGuestCart_whenNullRedis_returnEmptyDto() {
+            String uuid = "g1";
+            given(cartRedisRepository.getGuestCartItems(uuid)).willReturn(null);
+
+            CartItemsResponseDto res = cartService.getGuestCart(uuid);
+
+            assertThat(res.getItems()).isEmpty();
+            assertThat(res.getTotalItemCount()).isZero();
+            verifyNoInteractions(bookServiceClient, cartCalculator);
+        }
+
+        @Test
+        void addItemToGuestCart_whenNewItemAndExceedMaxSize_throwCartSizeExceeded() {
+            String uuid = "g1";
+            long bookId = 999L;
+
+            CartItemRequestDto req = mock(CartItemRequestDto.class);
+            given(req.getBookId()).willReturn(bookId);
+            given(req.getQuantity()).willReturn(1);
+            given(req.isSelected()).willReturn(true);
+
+            Map<Long, CartRedisItem> existing = new HashMap<>();
+            for (int i = 0; i < MAX_CART_SIZE; i++) {
+                existing.put((long) (1000 + i), redisItem(1000 + i, 1, true));
+            }
+            given(cartRedisRepository.getGuestCartItems(uuid)).willReturn(existing);
+
+            assertThatThrownBy(() -> cartService.addItemToGuestCart(uuid, req))
+                    .isInstanceOf(CartBusinessException.class)
+                    .satisfies(ex ->
+                            assertThat(((CartBusinessException) ex).getErrorCode())
+                                    .isEqualTo(CartErrorCode.CART_SIZE_EXCEEDED)
+                    );
+
+            verifyNoInteractions(bookServiceClient);
+            verify(cartRedisRepository, never()).putGuestItem(anyString(), any());
+        }
+
+        @Test
+        void addItemToGuestCart_whenExistingItem_quantityGetsCapped_andSelectedUpdated() {
+            String uuid = "g1";
+            long bookId = 10L;
+
+            CartItemRequestDto req = mock(CartItemRequestDto.class);
+            given(req.getBookId()).willReturn(bookId);
+            given(req.getQuantity()).willReturn(MAX_QUANTITY); // 기존 50 + 99 => cap 99
+            given(req.isSelected()).willReturn(false);
+
+            CartRedisItem existing = redisItem(bookId, 50, true);
+            given(cartRedisRepository.getGuestCartItems(uuid))
+                    .willReturn(new HashMap<>(Map.of(bookId, existing)));
+
+            stubSnapshots(Map.of(bookId, snapshot(bookId, 999, false, false)));
+
+            cartService.addItemToGuestCart(uuid, req);
+
+            verify(cartRedisRepository).putGuestItem(eq(uuid), argThat(it ->
+                    it != null
+                            && it.getBookId().equals(bookId)
+                            && it.getQuantity() == MAX_QUANTITY
+                            && !it.isSelected()
+            ));
+        }
+
+        @Test
+        void selectAllGuestCartItems_whenEmpty_return() {
+            String uuid = "g1";
+            CartItemSelectAllRequestDto req = mock(CartItemSelectAllRequestDto.class);
+            given(req.isSelected()).willReturn(true);
+
+            given(cartRedisRepository.getGuestCartItems(uuid)).willReturn(Collections.emptyMap());
+
+            cartService.selectAllGuestCartItems(uuid, req);
+
+            verify(cartRedisRepository, never()).putGuestItem(anyString(), any());
+        }
+
+        @Test
+        void deleteSelectedGuestCartItems_whenHasSelected_deleteOnlySelected() {
+            String uuid = "g1";
+
+            Map<Long, CartRedisItem> map = new HashMap<>();
+            map.put(10L, redisItem(10L, 1, true));
+            map.put(11L, redisItem(11L, 1, false));
+            map.put(12L, redisItem(12L, 1, true));
+            given(cartRedisRepository.getGuestCartItems(uuid)).willReturn(map);
+
+            cartService.deleteSelectedGuestCartItems(uuid);
+
+            verify(cartRedisRepository).deleteGuestItem(uuid, 10L);
+            verify(cartRedisRepository).deleteGuestItem(uuid, 12L);
+            verify(cartRedisRepository, never()).deleteGuestItem(uuid, 11L);
+        }
+
+        @Test
+        void getGuestCartCount_whenEmpty_returnZeros() {
+            String uuid = "g1";
+            given(cartRedisRepository.getGuestCartItems(uuid)).willReturn(Collections.emptyMap());
+
+            CartItemCountResponseDto res = cartService.getGuestCartCount(uuid);
+
+            assertThat(res.getItemCount()).isZero();
+            assertThat(res.getTotalQuantity()).isZero();
+        }
+    }
+
+    // ============================================================
+    // User cart core flows
+    // ============================================================
+    @Nested
+    class UserCart {
+
+        @Test
+        void addItemToUserCart_whenNewItemAndExceedMaxSize_throwCartSizeExceeded() {
+            long userId = 1L;
+            long bookId = 999L;
+
+            CartItemRequestDto req = mock(CartItemRequestDto.class);
+            given(req.getBookId()).willReturn(bookId);
+            given(req.getQuantity()).willReturn(1);
+            given(req.isSelected()).willReturn(true);
+
+            Map<Long, CartRedisItem> existing = new HashMap<>();
+            for (int i = 0; i < MAX_CART_SIZE; i++) {
+                existing.put((long) (1000 + i), redisItem(1000 + i, 1, true));
+            }
+            given(cartRedisRepository.getUserCartItems(userId)).willReturn(existing);
+
+            assertThatThrownBy(() -> cartService.addItemToUserCart(userId, req))
+                    .isInstanceOf(CartBusinessException.class)
+                    .satisfies(ex ->
+                            assertThat(((CartBusinessException) ex).getErrorCode())
+                                    .isEqualTo(CartErrorCode.CART_SIZE_EXCEEDED)
+                    );
+
+            verifyNoInteractions(bookServiceClient);
+            verify(cartRedisRepository, never()).putUserItem(anyLong(), any());
+            verify(cartRedisRepository, never()).markUserCartDirty(anyLong());
+        }
+
+        @Test
+        void addItemToUserCart_whenExistingItem_totalCapped_andDirtyMarked() {
+            long userId = 1L;
+            long bookId = 10L;
+
+            CartItemRequestDto req = mock(CartItemRequestDto.class);
+            given(req.getBookId()).willReturn(bookId);
+            given(req.getQuantity()).willReturn(60);
+            given(req.isSelected()).willReturn(false);
+
+            CartRedisItem existing = redisItem(bookId, 50, true); // 50 + 60 => cap 99
+            given(cartRedisRepository.getUserCartItems(userId))
+                    .willReturn(new HashMap<>(Map.of(bookId, existing)));
+
+            stubSnapshots(Map.of(bookId, snapshot(bookId, 999, false, false)));
+
+            cartService.addItemToUserCart(userId, req);
+
+            verify(cartRedisRepository).putUserItem(eq(userId), argThat(it ->
+                    it != null
+                            && it.getBookId().equals(bookId)
+                            && it.getQuantity() == MAX_QUANTITY
+                            && !it.isSelected()
+            ));
+            verify(cartRedisRepository).markUserCartDirty(userId);
+        }
+
+        @Test
+        void updateQuantityUserCartItem_whenItemMissing_throwNotFound() {
+            long userId = 1L;
+            long bookId = 10L;
+
+            CartItemQuantityUpdateRequestDto req = mock(CartItemQuantityUpdateRequestDto.class);
+            given(req.getBookId()).willReturn(bookId);
+            given(req.getQuantity()).willReturn(2);
+
+            given(cartRedisRepository.getUserCartItems(userId)).willReturn(Collections.emptyMap());
+
+            assertThatThrownBy(() -> cartService.updateQuantityUserCartItem(userId, req))
+                    .isInstanceOf(CartItemNotFoundException.class);
+
+            verifyNoInteractions(bookServiceClient);
+        }
+
+        @Test
+        void selectAllUserCartItems_whenNothingChanges_doNotMarkDirty() {
+            long userId = 1L;
+
+            CartItemSelectAllRequestDto req = mock(CartItemSelectAllRequestDto.class);
+            given(req.isSelected()).willReturn(true);
+
+            Map<Long, CartRedisItem> map = new HashMap<>();
+            map.put(10L, redisItem(10L, 1, true));
+            map.put(11L, redisItem(11L, 1, true));
+            given(cartRedisRepository.getUserCartItems(userId)).willReturn(map);
+
+            cartService.selectAllUserCartItems(userId, req);
+
+            verify(cartRedisRepository, never()).markUserCartDirty(userId);
+        }
+
+        @Test
+        void deleteSelectedUserCartItems_whenEmpty_return() {
+            long userId = 1L;
+            given(cartRedisRepository.getUserCartItems(userId)).willReturn(Collections.emptyMap());
+
+            cartService.deleteSelectedUserCartItems(userId);
+
+            verify(cartRedisRepository, never()).deleteUserCartItem(anyLong(), anyLong());
+            verify(cartRedisRepository, never()).markUserCartDirty(userId);
+        }
+
+        @Test
+        void clearUserCart_deleteRedisAndDb_andClearDirty() {
+            long userId = 1L;
+            Cart cart = Cart.builder().userId(userId).build();
+            given(cartRepository.findByUserId(userId)).willReturn(Optional.of(cart));
+
+            cartService.clearUserCart(userId);
+
+            verify(cartRedisRepository).clearUserCart(userId);
+            verify(cartItemRepository).deleteByCart(cart);
+            verify(cartRedisRepository).clearUserCartDirty(userId);
+        }
+    }
+
+    // ============================================================
+    // getUserCart + builders (Redis hit / dirty block / DB warm-up)
+    // ============================================================
+    @Nested
+    class GetUserCart {
+
+        @Test
+        void redisHit_buildFromRedis_pricingAndTotalsCovered() {
+            long userId = 1L;
+            long bookId1 = 10L;
+            long bookId2 = 11L;
+
+            given(cartRedisRepository.getUserCartItems(userId))
+                    .willReturn(Map.of(
+                            bookId1, redisItem(bookId1, 2, true),
+                            bookId2, redisItem(bookId2, 1, false)
+                    ));
+
+            stubSnapshots(Map.of(
+                    bookId1, snapshot(bookId1, 100, false, false),
+                    bookId2, snapshot(bookId2, 100, false, false)
+            ));
+
+            stubPricingAnyMap(bookId1, 2, true, null, 100);
+            stubPricingAnyMap(bookId2, 1, true, null, 100);
+
+            CartItemsResponseDto res = cartService.getUserCart(userId);
+
+            assertThat(res.getItems()).hasSize(2);
+            assertThat(res.getTotalItemCount()).isEqualTo(2);
+            assertThat(res.getTotalQuantity()).isEqualTo(3);
+            assertThat(res.getTotalPrice()).isEqualTo(1500 * 2 + 1500 * 1);
+            assertThat(res.getSelectedQuantity()).isEqualTo(2);
+            assertThat(res.getSelectedTotalPrice()).isEqualTo(1500 * 2);
+
+            verify(cartRepository, never()).findByUserId(anyLong());
+            verify(cartItemRepository, never()).findByCart(any());
+        }
+
+        @Test
+        void redisEmpty_dirtyTrue_returnsEmpty_andBlocksDbFallback() {
+            long userId = 1L;
+
+            given(cartRedisRepository.getUserCartItems(userId)).willReturn(Collections.emptyMap());
+            given(cartRedisRepository.isUserCartDirty(userId)).willReturn(true);
+
+            CartItemsResponseDto res = cartService.getUserCart(userId);
+
+            assertThat(res.getItems()).isEmpty();
+            verifyNoInteractions(cartRepository, cartItemRepository, bookServiceClient, cartCalculator);
+        }
+
+        @Test
+        void redisEmpty_dirtyFalse_cartMissing_returnsEmpty() {
+            long userId = 1L;
+            given(cartRedisRepository.getUserCartItems(userId)).willReturn(Collections.emptyMap());
+            given(cartRedisRepository.isUserCartDirty(userId)).willReturn(false);
+            given(cartRepository.findByUserId(userId)).willReturn(Optional.empty());
+
+            CartItemsResponseDto res = cartService.getUserCart(userId);
+
+            assertThat(res.getItems()).isEmpty();
+            verify(cartItemRepository, never()).findByCart(any());
+        }
+
+        @Test
+        void redisEmpty_dirtyFalse_dbFallback_warmsUpCache_andBuildsResponse() {
+            long userId = 1L;
+            long bookId = 10L;
+
+            given(cartRedisRepository.getUserCartItems(userId)).willReturn(Collections.emptyMap());
+            given(cartRedisRepository.isUserCartDirty(userId)).willReturn(false);
+
+            Cart cart = Cart.builder().userId(userId).build();
+            given(cartRepository.findByUserId(userId)).willReturn(Optional.of(cart));
+
+            CartItem db = dbItem(cart, bookId, 2, true);
+            given(cartItemRepository.findByCart(cart)).willReturn(List.of(db));
+
+            stubSnapshots(Map.of(bookId, snapshot(bookId, 100, false, false)));
+            stubPricingAnyMap(bookId, 2, true, null, 100);
+
+            CartItemsResponseDto res = cartService.getUserCart(userId);
+
+            assertThat(res.getItems()).hasSize(1);
+            verify(cartRedisRepository).clearUserCart(userId);
+            verify(cartRedisRepository, atLeastOnce()).putUserItem(eq(userId), any(CartRedisItem.class));
+        }
+    }
+
+    // ============================================================
+    // getUserSelectedCart / filterSelectedOnly branches
+    // ============================================================
+    @Nested
+    class SelectedOnly {
+
+        @Test
+        void getUserSelectedCart_whenFullEmpty_returnEmpty() {
+            long userId = 1L;
+            given(cartRedisRepository.getUserCartItems(userId)).willReturn(Collections.emptyMap());
+            given(cartRedisRepository.isUserCartDirty(userId)).willReturn(false);
+            given(cartRepository.findByUserId(userId)).willReturn(Optional.empty());
+
+            CartItemsResponseDto res = cartService.getUserSelectedCart(userId);
+
+            assertThat(res.getItems()).isEmpty();
+            assertThat(res.getTotalItemCount()).isZero();
+        }
+
+        @Test
+        void getUserSelectedCart_filtersSelectedAndAvailable_only() {
+            long userId = 1L;
+            long b1 = 10L; // selected+available
+            long b2 = 11L; // selected but unavailable
+            long b3 = 12L; // not selected
+
+            given(cartRedisRepository.getUserCartItems(userId))
+                    .willReturn(Map.of(
+                            b1, redisItem(b1, 2, true),
+                            b2, redisItem(b2, 1, true),
+                            b3, redisItem(b3, 5, false)
+                    ));
+
+            stubSnapshots(Map.of(
+                    b1, snapshot(b1, 100, false, false),
+                    b2, snapshot(b2, 0, false, false),
+                    b3, snapshot(b3, 100, false, false)
+            ));
+
+            stubPricingAnyMap(b1, 2, true, null, 100);
+            stubPricingAnyMap(b2, 1, false, CartItemUnavailableReason.OUT_OF_STOCK, 0);
+            stubPricingAnyMap(b3, 5, true, null, 100);
+
+            CartItemsResponseDto res = cartService.getUserSelectedCart(userId);
+
+            assertThat(res.getItems()).hasSize(1);
+            assertThat(res.getItems().get(0).getBookId()).isEqualTo(b1);
+            assertThat(res.getTotalQuantity()).isEqualTo(2);
+            assertThat(res.getTotalPrice()).isEqualTo(1500 * 2);
+        }
+    }
+
+    // ============================================================
+    // getUserCartCount branches (cache hit / db fallback / warm-up)
+    // ============================================================
+    @Nested
+    class Count {
+
+        @Test
+        void getUserCartCount_whenCacheHit_returnsCounts_withoutDb() {
+            long userId = 1L;
+
+            given(cartRedisRepository.getUserCartItems(userId))
+                    .willReturn(Map.of(
+                            10L, redisItem(10L, 2, true),
+                            11L, redisItem(11L, 5, false)
+                    ));
+
+            CartItemCountResponseDto res = cartService.getUserCartCount(userId);
+
+            assertThat(res.getItemCount()).isEqualTo(2);
+            assertThat(res.getTotalQuantity()).isEqualTo(7);
+
+            verifyNoInteractions(cartRepository, cartItemRepository);
+        }
+
+        @Test
+        void getUserCartCount_whenCacheEmpty_cartMissing_returnsZero() {
+            long userId = 1L;
+            given(cartRedisRepository.getUserCartItems(userId)).willReturn(Collections.emptyMap());
+            given(cartRepository.findByUserId(userId)).willReturn(Optional.empty());
+
+            CartItemCountResponseDto res = cartService.getUserCartCount(userId);
+
+            assertThat(res.getItemCount()).isZero();
+            assertThat(res.getTotalQuantity()).isZero();
+        }
+
+        @Test
+        void getUserCartCount_whenDbFallback_warmsUpCache() {
+            long userId = 1L;
+            long bookId = 10L;
+
+            given(cartRedisRepository.getUserCartItems(userId)).willReturn(Collections.emptyMap());
+
+            Cart cart = Cart.builder().userId(userId).build();
+            given(cartRepository.findByUserId(userId)).willReturn(Optional.of(cart));
+
+            CartItem db = dbItem(cart, bookId, 3, true);
+            given(cartItemRepository.findByCart(cart)).willReturn(List.of(db));
+
+            CartItemCountResponseDto res = cartService.getUserCartCount(userId);
+
+            assertThat(res.getItemCount()).isEqualTo(1);
+            assertThat(res.getTotalQuantity()).isEqualTo(3);
+
+            verify(cartRedisRepository).clearUserCart(userId);
+            verify(cartRedisRepository).putUserItem(eq(userId), any(CartRedisItem.class));
+        }
+    }
+
+    // ============================================================
+    // Merge branches
+    // ============================================================
+    @Nested
+    class Merge {
+
+        @Test
+        void merge_whenGuestEmpty_returnsEmptySucceededTrue() {
+            long userId = 1L;
+            String uuid = "g1";
+
+            given(cartRedisRepository.getGuestCartItems(uuid)).willReturn(Collections.emptyMap());
+
+            CartMergeResultResponseDto res = cartService.mergeGuestCartToUserCart(userId, uuid);
+
+            assertThat(res.isMergeSucceeded()).isTrue();
+            assertThat(res.getMergedItems()).isEmpty();
+            assertThat(res.getFailedToMergeItems()).isEmpty();
+            assertThat(res.getExceededMaxQuantityItems()).isEmpty();
+            assertThat(res.getUnavailableItems()).isEmpty();
+
+            verify(cartRedisRepository, never()).clearGuestCart(uuid);
+            verify(cartRedisRepository, never()).putUserItem(anyLong(), any());
+        }
+
+        @Test
+        void merge_whenUserRedisEmpty_warmUpFromDb_thenMerge() {
+            long userId = 1L;
+            String uuid = "g1";
+            long bookId = 10L;
+
+            given(cartRedisRepository.getGuestCartItems(uuid))
+                    .willReturn(Map.of(bookId, redisItem(bookId, 2, true)));
+
+            Cart cart = Cart.builder().userId(userId).build();
+            given(cartRepository.findByUserId(userId)).willReturn(Optional.of(cart));
+            given(cartItemRepository.findByCart(cart))
+                    .willReturn(List.of(dbItem(cart, 99L, 1, true))); // warm-up 더미
+
+            given(cartRedisRepository.getUserCartItems(userId))
+                    .willReturn(Collections.emptyMap())              // merge 시작: empty -> warm-up 진입
+                    .willReturn(Collections.emptyMap())              // warm-up 후 재조회(여전히 empty로 둠)
+                    .willReturn(Map.of(bookId, redisItem(bookId, 2, true))); // merge 후 응답 빌드용
+
+            stubSnapshots(Map.of(bookId, snapshot(bookId, 100, false, false)));
+            stubPricingAnyMap(bookId, 2, true, null, 100);
+
+            CartMergeResultResponseDto res = cartService.mergeGuestCartToUserCart(userId, uuid);
+
+            assertThat(res.isMergeSucceeded()).isTrue();
+            verify(cartRedisRepository).clearGuestCart(uuid);
+            verify(cartRedisRepository, atLeastOnce()).putUserItem(eq(userId), any(CartRedisItem.class));
+            verify(cartRedisRepository, atLeastOnce()).markUserCartDirty(userId);
+        }
+
+        @Test
+        void merge_whenSizeLimitExceeded_addFailedToMerge_andDoNotPutGuestBook() {
+            long userId = 1L;
+            String uuid = "g1";
+
+            Map<Long, CartRedisItem> guest = Map.of(999L, redisItem(999L, 1, true));
+            given(cartRedisRepository.getGuestCartItems(uuid)).willReturn(guest);
+
+            Map<Long, CartRedisItem> userMap = new HashMap<>();
+            for (int i = 0; i < MAX_CART_SIZE; i++) {
+                userMap.put((long) (1000 + i), redisItem(1000 + i, 1, true));
+            }
+            given(cartRedisRepository.getUserCartItems(userId)).willReturn(userMap);
+
+            given(bookServiceClient.getBookSnapshots(anyList())).willReturn(Collections.emptyMap());
+            given(cartCalculator.calculatePricing(anyLong(), anyInt(), anyMap()))
+                    .willAnswer(inv -> {
+                        Long bookId = inv.getArgument(0);
+                        Integer qty = inv.getArgument(1);
+                        return CartItemPricingResult.of(
+                                "t-" + bookId, "u-" + bookId,
+                                2000, 1500,
+                                999,
+                                false,
+                                true,
+                                null,
+                                1500 * qty
+                        );
+                    });
+
+            CartMergeResultResponseDto res = cartService.mergeGuestCartToUserCart(userId, uuid);
+
+            assertThat(res.isMergeSucceeded()).isTrue();
+            assertThat(res.getFailedToMergeItems()).hasSize(1);
+
+            verify(cartRedisRepository, never()).putUserItem(eq(userId),
+                    argThat(it -> it != null && Objects.equals(it.getBookId(), 999L)));
+        }
+
+        @Test
+        void merge_whenRequestedOverMaxQuantity_recordsExceededList_andCapsQuantity() {
+            long userId = 1L;
+            String uuid = "g1";
+            long bookId = 10L;
+
+            given(cartRedisRepository.getGuestCartItems(uuid))
+                    .willReturn(Map.of(bookId, redisItem(bookId, 60, true)));
+
+            given(cartRedisRepository.getUserCartItems(userId))
+                    .willReturn(Map.of(bookId, redisItem(bookId, 60, true)))
+                    .willReturn(Map.of(bookId, redisItem(bookId, MAX_QUANTITY, true))); // 응답 빌드용
+
+            stubSnapshots(Map.of(bookId, snapshot(bookId, 999, false, false)));
+            stubPricingAnyMap(bookId, MAX_QUANTITY, true, null, 999);
+
+            CartMergeResultResponseDto res = cartService.mergeGuestCartToUserCart(userId, uuid);
+
+            assertThat(res.getExceededMaxQuantityItems()).isNotEmpty();
+            verify(cartRedisRepository).putUserItem(eq(userId), argThat(it ->
+                    it.getBookId().equals(bookId) && it.getQuantity() == MAX_QUANTITY
+            ));
+        }
+
+        @Test
+        void merge_whenStockLimitExceeded_finalQuantityReduced_andIssueRecorded() {
+            long userId = 1L;
+            String uuid = "g1";
+            long bookId = 10L;
+
+            given(cartRedisRepository.getGuestCartItems(uuid))
+                    .willReturn(Map.of(bookId, redisItem(bookId, 5, true)));
+
+            given(cartRedisRepository.getUserCartItems(userId))
+                    .willReturn(Map.of(bookId, redisItem(bookId, 5, true)))
+                    .willReturn(Map.of(bookId, redisItem(bookId, 7, true))); // 응답 빌드용
+
+            stubSnapshots(Map.of(bookId, snapshot(bookId, 7, false, false)));
+            stubPricingAnyMap(bookId, 7, true, null, 7);
+
+            CartMergeResultResponseDto res = cartService.mergeGuestCartToUserCart(userId, uuid);
+
+            assertThat(res.getExceededMaxQuantityItems()).isNotEmpty();
+            verify(cartRedisRepository).putUserItem(eq(userId), argThat(it -> it.getQuantity() == 7));
+        }
+
+        @Test
+        void merge_whenUnavailable_addUnavailableList_butStillMerged() {
+            long userId = 1L;
+            String uuid = "g1";
+            long bookId = 10L;
+
+            given(cartRedisRepository.getGuestCartItems(uuid))
+                    .willReturn(Map.of(bookId, redisItem(bookId, 1, true)));
+
+            given(cartRedisRepository.getUserCartItems(userId))
+                    .willReturn(Collections.emptyMap())                 // merge 시작
+                    .willReturn(Map.of(bookId, redisItem(bookId, 1, true))); // 응답 빌드용
+
+            stubSnapshots(Map.of(bookId, snapshot(bookId, 10, true, false))); // deleted => unavailable
+            stubPricingAnyMap(bookId, 1, false, CartItemUnavailableReason.BOOK_DELETED, 10);
+
+            CartMergeResultResponseDto res = cartService.mergeGuestCartToUserCart(userId, uuid);
+
+            assertThat(res.getUnavailableItems()).hasSize(1);
+            verify(cartRedisRepository).putUserItem(eq(userId), any(CartRedisItem.class));
+            verify(cartRedisRepository).clearGuestCart(uuid);
+        }
+    }
+
+    // ============================================================
+    // Scheduler branches (✅ flushSingleUserCart는 CartFlushService로 이동)
+    // ============================================================
+    @Nested
+    class Scheduler {
+
+        @Test
+        void flushDirtyUserCarts_whenDirtyNull_end() {
+            given(cartRedisRepository.getDirtyUserIds()).willReturn(null);
+
+            cartService.flushDirtyUserCarts();
+
+            verifyNoInteractions(cartFlushService);
+        }
+
+        @Test
+        void flushDirtyUserCarts_whenDirtyEmpty_end() {
+            given(cartRedisRepository.getDirtyUserIds()).willReturn(Collections.emptySet());
+
+            cartService.flushDirtyUserCarts();
+
+            verifyNoInteractions(cartFlushService);
+        }
+
+        @Test
+        void flushDirtyUserCarts_whenHasDirty_callsFlushSinglePerUser() {
+            given(cartRedisRepository.getDirtyUserIds()).willReturn(Set.of(1L, 2L));
+
+            cartService.flushDirtyUserCarts();
+
+            verify(cartFlushService).flushSingleUserCart(1L);
+            verify(cartFlushService).flushSingleUserCart(2L);
+            verifyNoMoreInteractions(cartFlushService);
+        }
+    }
+}
