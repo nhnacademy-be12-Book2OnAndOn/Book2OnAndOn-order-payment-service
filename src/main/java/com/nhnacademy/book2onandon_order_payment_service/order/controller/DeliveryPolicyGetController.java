@@ -19,7 +19,7 @@ class DeliveryPolicyGetController {
 
     @GetMapping("/delivery-policies")
     public ResponseEntity<Page<DeliveryPolicyResponseDto>> getDeliveryPolicies(Pageable pageable){
-        log.debug("GET /delivery-policies 배송비 정책 호출");
+        log.info("GET /delivery-policies 배송비 정책 호출");
         return ResponseEntity.ok(deliveryPolicyService.getPolicies(pageable));
     }
 }
