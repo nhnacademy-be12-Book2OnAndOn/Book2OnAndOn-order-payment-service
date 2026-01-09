@@ -36,8 +36,8 @@ jobs:
         run: |
           chmod +x mvnw
           ./mvnw clean verify sonar:sonar \
-            -Dsonar.projectKey=Book2onandon-order-payment-service \
-            -Dsonar.projectName="Book2onandon-order-payment-service" \
+            -Dsonar.projectKey=Book2OnAndOn-order-payment-service \
+            -Dsonar.projectName="Book2OnAndOn-order-payment-service" \
             -Dsonar.host.url=$SONAR_HOST_URL \
             -Dsonar.token=$SONAR_TOKEN \
             -Dspring.cloud.config.enabled=false \
