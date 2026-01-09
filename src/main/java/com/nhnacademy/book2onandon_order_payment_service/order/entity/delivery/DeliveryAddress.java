@@ -36,7 +36,7 @@ public class DeliveryAddress {
 
     @Column(name = "delivery_address", length = 100)
     @NotNull
-    private String deliveryAddress;
+    private String deliveryAddressMain;
 
     @Column(name = "delivery_address_detail", length = 100)
     private String deliveryAddressDetail;

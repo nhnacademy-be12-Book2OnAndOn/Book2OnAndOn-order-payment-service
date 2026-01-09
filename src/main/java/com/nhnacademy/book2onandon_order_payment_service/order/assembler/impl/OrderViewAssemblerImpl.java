@@ -121,7 +121,7 @@ public class OrderViewAssemblerImpl implements OrderViewAssembler {
     @Override
     public DeliveryAddressResponseDto toDeliveryAddressView(DeliveryAddress deliveryAddress) {
         return new DeliveryAddressResponseDto(
-                    deliveryAddress.getDeliveryAddress(),
+                    deliveryAddress.getDeliveryAddressMain(),
                     deliveryAddress.getDeliveryAddressDetail(),
                     deliveryAddress.getDeliveryMessage(),
                     deliveryAddress.getRecipient(),

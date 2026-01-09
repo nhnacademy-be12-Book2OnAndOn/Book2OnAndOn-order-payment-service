@@ -3,6 +3,7 @@ package com.nhnacademy.book2onandon_order_payment_service.config;
 import com.nhnacademy.book2onandon_order_payment_service.exception.ClockMovedBackwardsException;
 import java.time.LocalDateTime;
 import java.time.ZoneId;
+import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.stereotype.Component;
 
 @Component
@@ -29,6 +30,7 @@ public class Snowflake {
     private long sequence = 0L;
     private long lastTimestamp = -1L;
 
+    @Autowired
     public Snowflake() {
         this(1, 1); // 기본값
     }

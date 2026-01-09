@@ -339,7 +339,7 @@ public class OrderServiceImpl implements OrderService {
      */
     private DeliveryAddress createDeliveryAddress(DeliveryAddressRequestDto deliveryAddressRequestDto){
         return DeliveryAddress.builder()
-                .deliveryAddress(deliveryAddressRequestDto.getDeliveryAddress())
+                .deliveryAddressMain(deliveryAddressRequestDto.getDeliveryAddress())
                 .deliveryAddressDetail(deliveryAddressRequestDto.getDeliveryAddressDetail())
                 .deliveryMessage(deliveryAddressRequestDto.getDeliveryMessage())
                 .recipient(deliveryAddressRequestDto.getRecipient())
