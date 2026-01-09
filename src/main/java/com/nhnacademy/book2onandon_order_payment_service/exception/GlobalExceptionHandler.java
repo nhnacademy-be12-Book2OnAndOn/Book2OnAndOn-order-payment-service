@@ -281,6 +281,15 @@ public class GlobalExceptionHandler {
                 .body(buildErrorResponse(status, "UNSUPPORTED_MEDIA_TYPE", msg));
     }
 
+    @ExceptionHandler(EncryptionException.class)
+    public ResponseEntity<ErrorResponse> handleEncryptionException(EncryptionException e) {
+        HttpStatus status = HttpStatus.INTERNAL_SERVER_ERROR;
+
+        log.error("Encryption/Decryption failed", e);
+        return ResponseEntity.status(status)
+                .body(buildErrorResponse(status, "ENCRYPTION_ERROR", "데이터 처리 중 오류가 발생했습니다."));
+    }
+
     // ==========================
     // 그 외 모든 예외 (Fallback)
     // ==========================
